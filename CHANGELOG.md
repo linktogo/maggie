@@ -10,6 +10,18 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Changed
+
+- The board dashboard now builds with Tailwind CSS 4. The PostCSS pipeline
+  (`postcss.config.js`, `autoprefixer`) and `tailwind.config.js` are replaced by
+  the `@tailwindcss/vite` plugin and CSS-first configuration in
+  `apps/board/src/style.css`. Utility names that v4 renamed were updated in the
+  components (`shadow-sm` → `shadow-xs`, `shadow` → `shadow-sm`, `rounded` →
+  `rounded-sm`, `outline-none` → `outline-hidden`). The dashboard renders
+  unchanged: the v3 font stack and the button/placeholder defaults v4 dropped
+  are pinned in `style.css`, so only Tailwind's new OKLCH palette shifts colours
+  very slightly.
+
 ## [1.1.0] - 2026-08-19
 
 ### Added

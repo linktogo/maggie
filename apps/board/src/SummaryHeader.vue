@@ -24,7 +24,7 @@ const percentDone = computed(() => (total.value ? Math.round((counts.value.done 
 </script>
 
 <template>
-  <div class="bg-white border border-slate-200 rounded-xl shadow-sm px-4 py-3 mb-4">
+  <div class="bg-white border border-slate-200 rounded-xl shadow-xs px-4 py-3 mb-4">
     <div class="flex flex-wrap gap-2 mb-2.5">
       <span class="rounded-md px-2 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">{{ total }} {{ t('summary.repos') }}</span>
       <span :class="['rounded-md px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.todo.chip]">{{ counts.todo }} {{ t('status.todo') }}</span>

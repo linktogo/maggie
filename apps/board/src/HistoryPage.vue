@@ -27,7 +27,7 @@ const buckets = computed(() => bucketByPeriod(granularity.value));
 const projectTotals = computed(() => totalsByProject());
 
 function tabClass(active) {
-  return ['rounded-md px-3 py-1 font-medium transition-colors', active ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'];
+  return ['rounded-md px-3 py-1 font-medium transition-colors', active ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700'];
 }
 </script>
 
@@ -44,7 +44,7 @@ function tabClass(active) {
       </div>
     </div>
 
-    <div v-if="tab === 'period'" class="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+    <div v-if="tab === 'period'" class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
       <div class="inline-flex bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm mb-3">
         <button
           v-for="g in GRANULARITIES" :key="g.key"
@@ -56,7 +56,7 @@ function tabClass(active) {
       <TimeSeriesChart :buckets="buckets" :mode="mode" />
     </div>
 
-    <div v-else class="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+    <div v-else class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
       <ProjectBarChart :totals="projectTotals" :mode="mode" />
     </div>
 

@@ -64,14 +64,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             data-test="detail-message-input"
             rows="2"
             :placeholder="t('session.messagePlaceholder')"
-            class="min-w-0 flex-1 resize-y rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+            class="min-w-0 flex-1 resize-y rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-hidden"
             @keydown.enter.exact.prevent="send"
           ></textarea>
           <button
             type="submit"
             data-test="detail-message-send"
             :disabled="!draft.trim()"
-            class="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="shrink-0 rounded-sm bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >{{ t('session.send') }}</button>
         </form>
       </template>
@@ -85,7 +85,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
       </p>
       <ul v-else class="mt-1 space-y-1">
         <li v-for="u in ciUsers" :key="u.login" data-test="ci-user" class="text-xs text-slate-600">
-          <span :class="['border rounded px-1 py-0.5 mr-1 font-semibold', pillClass(u.state)]">{{ u.initials }}</span>
+          <span :class="['border rounded-sm px-1 py-0.5 mr-1 font-semibold', pillClass(u.state)]">{{ u.initials }}</span>
           <b>{{ u.login }}</b> ·
           <a data-test="ci-link" :href="ci.users[u.login].run.url" target="_blank" rel="noopener" class="text-blue-600 underline">
             {{ ci.users[u.login].run.workflow }}

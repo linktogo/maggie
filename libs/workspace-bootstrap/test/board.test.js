@@ -85,6 +85,7 @@ test('setSessionStatus creates a new session on a repo not yet on the board, sto
     lastPrompt: 'first prompt',
     startedAt: '2026-06-16T10:00:00Z',
     worktree: null,
+    agent: null,
     usage: null,
     pendingMessages: [],
     events: [{ event: 'Notification', at: '2026-06-16T10:00:00Z' }],
@@ -285,7 +286,7 @@ test('closeSession appends a history entry and removes the session, leaving a si
   assert.equal(appends.length, 1);
   assert.equal(appends[0][0], '/x/history.jsonl');
   assert.deepEqual(JSON.parse(appends[0][1]), {
-    repo: 'a', sessionId: 's1', title: 'fix bug', startedAt: 'T0', endedAt: 'T2',
+    repo: 'a', sessionId: 's1', title: 'fix bug', agent: null, startedAt: 'T0', endedAt: 'T2',
     usage: { inputTokens: 1, outputTokens: 2, cacheCreationInputTokens: 3, cacheReadInputTokens: 4 },
   });
   const written = JSON.parse(writes[0][1]);
@@ -457,4 +458,36 @@ test('queueMessage stamps an ISO timestamp when no clock is injected', async () 
   await queueMessage('/x', 'a', 's1', 'hi', io);
   const board = JSON.parse(io.store.json);
   assert.match(board.repos.a.sessions.s1.pendingMessages[0].at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+});
+
+test('setSessionStatus records the agent once and never overwrites it afterwards', async () => {
+  const first = await setSessionStatus('/x', 'a', 's1', 'inprogress', {
+    lastEvent: 'userPromptSubmitted', agent: 'copilot', now: () => 'T1',
+    read: async () => JSON.stringify({ version: 2, repos: {} }),
+    write: async () => {}, move: async () => {}, ensureDir: async () => {}, tmpSuffix: '.tmp',
+  });
+  assert.equal(first.repos.a.sessions.s1.agent, 'copilot');
+
+  const second = await setSessionStatus('/x', 'a', 's1', 'question', {
+    lastEvent: 'agentStop', agent: 'claude', now: () => 'T2',
+    read: async () => JSON.stringify(first),
+    write: async () => {}, move: async () => {}, ensureDir: async () => {}, tmpSuffix: '.tmp',
+  });
+  assert.equal(second.repos.a.sessions.s1.agent, 'copilot');
+});
+
+test('closeSession carries the session agent into the history entry', async () => {
+  const appends = [];
+  await closeSession('/x/board.json', 'a', 's1', {
+    now: () => 'T2',
+    historyPath: '/x/history.jsonl',
+    read: async () => JSON.stringify({
+      version: 2,
+      repos: { a: { sessions: { s1: { status: 'question', agent: 'copilot', startedAt: 'T0', title: 't', usage: null, events: [] } } } },
+    }),
+    write: async () => {}, move: async () => {}, ensureDir: async () => {},
+    append: async (file, data) => appends.push(JSON.parse(data)),
+    tmpSuffix: '.tmp',
+  });
+  assert.equal(appends[0].agent, 'copilot');
 });

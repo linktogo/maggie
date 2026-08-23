@@ -75,7 +75,9 @@ and prints where it settled, so avoid starting a second instance by accident.
 `status` is one of `todo`, `inprogress`, `question`, `done`. `events` is a
 bounded per-repo history (last 20, newest first). A session may also carry a
 `pendingMessages` array (`[{ text, at }]`, last 20) holding messages queued from
-the dashboard but not yet delivered — see [Messaging a session](#messaging-a-session).
+the dashboard but not yet delivered — see [Messaging a session](#messaging-a-session)
+— and an `agent` field naming the local agent that runs it (`claude` or
+`copilot`; `null` on sessions recorded before the board tracked it).
 
 The version stays `1`: `events` is additive and legacy files are backfilled
 transparently on read. The dashboard only reads the file — writers work whether
@@ -96,6 +98,10 @@ or not the server is running.
   message to the session (see below).
 - **Message box** on each session card (and in the detail panel) to send a
   message to that session — see [Messaging a session](#messaging-a-session).
+- **Agent badge** on each session row naming the local agent behind it —
+  `claude` (Claude Code) or `copilot` (GitHub Copilot CLI) — so a workspace
+  mixing both stays readable. Sessions recorded before the board tracked the
+  agent show as `claude`.
 - **Language picker** in the header: English (the default), French, German and
   Spanish. See below.
 
@@ -113,11 +119,21 @@ which also lists any messages still queued.
 Sending posts `{ repo, sessionId, message }` to `POST /api/sessions/message`.
 The server appends the message to that session's `pendingMessages` queue in
 `board.json` (bounded to the last 20). Because maggie only observes sessions
-through Claude Code hooks — it never drives them — the message is not pushed into
-a live terminal. Instead it is **delivered on the session's next turn**: the
-`UserPromptSubmit` hook drains the queue and prints the messages to stdout, which
-Claude Code adds to the conversation context. So the session picks up whatever
-you queued the next time it runs a prompt.
+through the agent's own hooks — it never drives them — the message is not pushed
+into a live terminal. It is **delivered on the session's next turn**, through
+whichever hook the agent lets write back into the conversation:
+
+| Agent | Delivered by | How |
+|---|---|---|
+| Claude Code | `UserPromptSubmit` | The hook prints the queued messages to stdout, which Claude Code adds to the conversation context. |
+| GitHub Copilot CLI | `sessionStart` and `notification` | Copilot drops the stdout of a `userPromptSubmitted` hook, so the queue is drained on the two events whose output it does honour, and returned as `{"additionalContext": "…"}` — which Copilot injects as a prepended user message. |
+
+Under Copilot that means a message typed while the agent sits blocked on a
+permission prompt or idle reaches it on that notification, without waiting for
+you to type the next prompt. The `messages` subcommand
+(`maggie-workspace messages <repo> --agent copilot`) is the delivery-only entry
+point the `sessionStart` hook uses; it drains the queue without touching the
+session's status.
 
 ## Language
 
@@ -152,10 +168,14 @@ and no technology filter.
 ## Hook reconciliation on start
 
 When started with `--config`, the server re-verifies every configured repo's
-Claude Code hooks and silently repoints any that drifted — a CLI path that moved,
-or hooks writing to a different `board.json` than the one being served. Repos
-with no checkout on disk are skipped; nothing is cloned and no dependencies are
-installed. A short summary is logged.
+status hooks and silently repoints any that drifted — a CLI path that moved, or
+hooks writing to a different `board.json` than the one being served. Each
+checkout is reconciled for the agents it is already wired for, detected from the
+settings files present (`.claude/settings.local.json`,
+`.github/copilot/settings.local.json`), falling back to Claude Code when it has
+neither; the log line names the agent. Repos with no checkout on disk are
+skipped; nothing is cloned and no dependencies are installed. A short summary is
+logged.
 
 This exists because both kinds of drift are invisible otherwise: the symptom is
 a card that simply never moves.

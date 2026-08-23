@@ -4,7 +4,7 @@ import { clone as defaultClone, defaultExec } from '@linktogo/maggie-git';
 import { EDITORS, launchCommand } from './platform.js';
 import { planInstall } from './installers.js';
 import { initRepos } from './board.js';
-import { installHooks as defaultInstallHooks } from './hooks.js';
+import { agentSpec, DEFAULT_AGENT } from './agents.js';
 
 async function pathExists(p) {
   try {
@@ -31,7 +31,8 @@ export function formatTimestamp(date = new Date()) {
 export async function bootstrap(config, options = {}) {
   const {
     workspaceDir,
-    editor = 'claude',
+    agent = DEFAULT_AGENT,
+    editor = agent,
     repoFilter,
     worktree,
     install = true,
@@ -44,7 +45,7 @@ export async function bootstrap(config, options = {}) {
     onExisting,
     timestamp = formatTimestamp,
     boardPath: boardPathOption,
-    installRepoHooks = defaultInstallHooks,
+    installRepoHooks,
     initBoard = initRepos,
     hookCommand,
     logger = console,
@@ -54,9 +55,13 @@ export async function bootstrap(config, options = {}) {
   if (!EDITORS.includes(editor)) {
     throw new Error(`Unknown editor "${editor}" (known: ${EDITORS.join(', ')})`);
   }
-  if (worktree && editor !== 'claude') {
-    throw new Error('--worktree is only supported with --editor claude');
+  // A worktree is only useful for an agent driven from that directory; VS Code
+  // is launched on the workspace as a whole and gets no per-branch checkout.
+  if (worktree && editor === 'vscode') {
+    throw new Error('--worktree is not supported with --editor vscode');
   }
+  const spec = agentSpec(agent);
+  const installAgentHooks = installRepoHooks ?? spec.installHooks;
 
   const tag = dryRun ? '[dry-run] ' : '';
   const repos = repoFilter
@@ -114,7 +119,7 @@ export async function bootstrap(config, options = {}) {
     }
     workDirs.push(workDir);
 
-    if (!dryRun) await installRepoHooks(workDir, repo.name, boardPath, { command: hookCommand, worktree });
+    if (!dryRun) await installAgentHooks(workDir, repo.name, boardPath, { command: hookCommand, worktree });
 
     let installed = false;
     if (install) {
@@ -137,10 +142,11 @@ export async function bootstrap(config, options = {}) {
   const relativeLaunch = path.relative(process.cwd(), launchDir) || '.';
   const command = launchCommand(editor, relativeLaunch);
   logger.log(`\nWorkspace ready at ${workspaceDir}`);
+  logger.log(`Status hooks wired for ${spec.label}`);
   logger.log(`Launch ${editor}:\n  ${command}`);
-  if (editor === 'claude' && !worktree) {
+  if (editor !== 'vscode' && !worktree) {
     logger.log('\n→ Tip: isolate your work in a git worktree with --worktree <branch>');
   }
 
-  return { workspaceDir, editor, command, results };
+  return { workspaceDir, agent, editor, command, results };
 }

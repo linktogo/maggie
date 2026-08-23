@@ -35,6 +35,7 @@ export default {
   'session.showMore': 'mehr anzeigen',
   'session.showLess': 'weniger anzeigen',
   'session.tokens': '{count} Tokens',
+  'session.agentTooltip': 'Läuft mit {agent}',
   'session.worktreeTooltip': 'Isoliert in Git-Worktree · Branch {branch}',
   'session.usageTooltip': 'Eingabe {input} · Ausgabe {output} · Cache geschrieben {cacheWrite} · Cache gelesen {cacheRead}',
   'session.messagePlaceholder': 'Nachricht an die Sitzung…',

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { bootstrap, formatTimestamp } from '../src/bootstrap.js';
@@ -123,10 +123,10 @@ test('dry-run reports actions without cloning or installing', async () => {
   await rm(ws, { recursive: true, force: true });
 });
 
-test('--worktree is only supported with the claude editor', async () => {
+test('--worktree is rejected for the vscode editor', async () => {
   await assert.rejects(
     () => bootstrap(config, { workspaceDir: '/tmp/x', editor: 'vscode', worktree: 'feat/x', logger: silentLogger() }),
-    /--worktree is only supported with --editor claude/,
+    /--worktree is not supported with --editor vscode/,
   );
 });
 
@@ -550,4 +550,59 @@ test('onExisting "reinstall" for a path-based repo clones beside the external pa
   assert.deepEqual(cloned, ['/abs/external/ext-reinstall']);
   assert.equal(result.command, `cd "${rel('/abs/external/ext-reinstall')}" && claude`);
   await rm(ws, { recursive: true, force: true });
+});
+
+test('--agent copilot writes Copilot hooks and prints a copilot launch command', async () => {
+  const ws = await mkdtemp(path.join(tmpdir(), 'ws-'));
+  const lines = [];
+  const result = await bootstrap({ ...config, repos: [config.repos[0]] }, {
+    workspaceDir: ws,
+    agent: 'copilot',
+    clone: async () => {},
+    exec: async () => {},
+    exists: async () => false,
+    logger: { log: (l) => lines.push(l), warn() {}, error() {} },
+  });
+
+  assert.equal(result.agent, 'copilot');
+  assert.equal(result.editor, 'copilot');
+  assert.equal(result.command, `cd "${rel(path.join(ws, 'a'))}" && copilot`);
+  assert.ok(lines.some((l) => l.includes('GitHub Copilot CLI')));
+
+  const settings = JSON.parse(
+    await readFile(path.join(ws, 'a', '.github', 'copilot', 'settings.local.json'), 'utf8'),
+  );
+  assert.match(settings.hooks.agentStop[0].command, /status a question --board .*--agent copilot$/);
+  await assert.rejects(() => access(path.join(ws, 'a', '.claude', 'settings.local.json')));
+  await rm(ws, { recursive: true, force: true });
+});
+
+test('--agent copilot still supports an isolated worktree', async () => {
+  const ws = await mkdtemp(path.join(tmpdir(), 'ws-'));
+  const execCalls = [];
+  const result = await bootstrap({ ...config, repos: [config.repos[0]] }, {
+    workspaceDir: ws,
+    agent: 'copilot',
+    worktree: 'feat/x',
+    clone: async () => {},
+    exec: async (file, args) => { execCalls.push([file, ...args]); },
+    exists: async (p) => p === path.join(ws, 'a'),
+    install: false,
+    logger: silentLogger(),
+  });
+
+  assert.ok(execCalls.some(([file, ...args]) => file === 'git' && args.includes('worktree')));
+  assert.equal(result.command, `cd "${rel(path.join(ws, 'a.feat-x'))}" && copilot`);
+  const settings = JSON.parse(
+    await readFile(path.join(ws, 'a.feat-x', '.github', 'copilot', 'settings.local.json'), 'utf8'),
+  );
+  assert.match(settings.hooks.userPromptSubmitted[0].command, /--worktree feat\/x$/);
+  await rm(ws, { recursive: true, force: true });
+});
+
+test('bootstrap rejects an unknown agent', async () => {
+  await assert.rejects(
+    () => bootstrap(config, { workspaceDir: '/tmp/x', agent: 'cursor', editor: 'claude', logger: silentLogger() }),
+    /Unknown agent "cursor"/,
+  );
 });

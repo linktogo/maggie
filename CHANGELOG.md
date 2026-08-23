@@ -10,6 +10,34 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- The status board now tracks **GitHub Copilot CLI** sessions locally, alongside
+  Claude Code ones. `maggie-workspace --agent copilot` merges Copilot hooks into
+  each checkout's `.github/copilot/settings.local.json` (`sessionStart`,
+  `userPromptSubmitted`, `notification`, `agentStop`, `sessionEnd`) and prints a
+  `copilot` launch command; `--editor` still picks the launch command on its own
+  when the two should differ. Both agents feed the same `board.json`, and each
+  session card carries a badge naming the agent behind it.
+- Token usage for Copilot sessions is read from its
+  `~/.copilot/session-state/<id>/events.jsonl` event stream, mapped onto the
+  same four counters as Claude Code transcripts, so cards and history totals
+  stay comparable across agents.
+- New `maggie-workspace messages <repo>` subcommand: drains a session's queued
+  dashboard messages without touching its status. Copilot drops the stdout of a
+  `userPromptSubmitted` hook, so queued messages are delivered on `sessionStart`
+  and `notification` instead, returned as `additionalContext` — which means a
+  message sent while the agent is idle or waiting on a permission prompt reaches
+  it without waiting for your next prompt.
+
+### Changed
+
+- `--worktree` is now supported with `--agent copilot` too; it is rejected only
+  for `--editor vscode` (previously it required `--editor claude`).
+- Board hook reconciliation on server start now reconciles whichever agents a
+  checkout is wired for, detected from the settings files present, and names the
+  agent in its log line.
+
 ## [1.1.0] - 2026-08-19
 
 ### Added

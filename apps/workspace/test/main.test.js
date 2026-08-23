@@ -125,7 +125,7 @@ test('main routes the status subcommand to setSessionStatus using the piped sess
   });
   assert.equal(code, 0);
   assert.deepEqual(calls, [{
-    boardPath: path.resolve('/b.json'), repo: 'oc-be', sessionId: 'sess-1', state: 'question', o: { lastEvent: 'Stop' },
+    boardPath: path.resolve('/b.json'), repo: 'oc-be', sessionId: 'sess-1', state: 'question', o: { lastEvent: 'Stop', agent: 'claude' },
   }]);
 });
 
@@ -165,7 +165,7 @@ test('status subcommand defaults lastEvent to manual and falls back to a "manual
     logger: silentLogger(),
   });
   assert.equal(receivedSessionId, 'manual');
-  assert.deepEqual(received, { lastEvent: 'manual' });
+  assert.deepEqual(received, { lastEvent: 'manual', agent: 'claude' });
 });
 
 test('status subcommand targets an explicit session via --session instead of falling back to "manual"', async () => {
@@ -208,7 +208,7 @@ test('status subcommand skips title/lastPrompt when UserPromptSubmit has no prom
     stdin: pipedStdin({ session_id: 'sess-1', hook_event_name: 'UserPromptSubmit' }),
     logger: silentLogger(),
   });
-  assert.deepEqual(received, { lastEvent: 'UserPromptSubmit' });
+  assert.deepEqual(received, { lastEvent: 'UserPromptSubmit', agent: 'claude' });
 });
 
 test('status subcommand does not forward a title/lastPrompt on Notification or Stop', async () => {
@@ -218,7 +218,7 @@ test('status subcommand does not forward a title/lastPrompt on Notification or S
     stdin: pipedStdin({ session_id: 'sess-1', hook_event_name: 'Stop' }),
     logger: silentLogger(),
   });
-  assert.deepEqual(received, { lastEvent: 'Stop' });
+  assert.deepEqual(received, { lastEvent: 'Stop', agent: 'claude' });
 });
 
 test('status subcommand computes usage from the transcript on Stop and forwards it', async () => {
@@ -233,7 +233,7 @@ test('status subcommand computes usage from the transcript on Stop and forwards 
     stdin: pipedStdin({ session_id: 'sess-1', hook_event_name: 'Stop', transcript_path: '/t.jsonl' }),
     logger: silentLogger(),
   });
-  assert.deepEqual(received, { lastEvent: 'Stop', usage });
+  assert.deepEqual(received, { lastEvent: 'Stop', agent: 'claude', usage });
 });
 
 test('status subcommand does not compute usage on UserPromptSubmit even with a transcript path', async () => {
@@ -359,7 +359,7 @@ test('session-end subcommand writes a history entry using the outgoing session\'
   });
   assert.deepEqual(appendCalls, [{
     historyPath: resolveHistoryPath(boardPath),
-    entry: { repo: 'oc-be', sessionId: 'sess-1', title: 'fix login', startedAt: 'T0', endedAt: '2026-06-16T12:00:00Z', usage },
+    entry: { repo: 'oc-be', sessionId: 'sess-1', title: 'fix login', agent: 'claude', startedAt: 'T0', endedAt: '2026-06-16T12:00:00Z', usage },
   }]);
   assert.deepEqual(removeCalls, [{ boardPath, repo: 'oc-be', sessionId: 'sess-1' }]);
 });
@@ -452,4 +452,207 @@ test('main defaults editor to claude and install to true', async () => {
   assert.equal(received.dryRun, false);
   assert.equal(received.offline, false);
   assert.equal(received.repoFilter, undefined);
+});
+
+// --- GitHub Copilot CLI wiring -------------------------------------------
+
+function recordingLogger() {
+  const out = [];
+  const err = [];
+  return { out, err, log: (l) => out.push(l), warn: (l) => err.push(l), error: (l) => err.push(l) };
+}
+
+test('status subcommand reads a camelCase Copilot payload and records the agent', async () => {
+  let received;
+  let receivedSessionId;
+  await main(['status', 'a', 'inprogress', '--board', '/b.json', '--event', 'userPromptSubmitted', '--agent', 'copilot'], {
+    setSessionStatus: async (_p, _r, sid, _s, o) => { receivedSessionId = sid; received = o; },
+    takePendingMessages: async () => [],
+    stdin: pipedStdin({ sessionId: 'cop-1', timestamp: 1, cwd: '/w', prompt: 'ship the thing' }),
+    logger: silentLogger(),
+  });
+  assert.equal(receivedSessionId, 'cop-1');
+  assert.deepEqual(received, {
+    lastEvent: 'userPromptSubmitted', agent: 'copilot', title: 'ship the thing', lastPrompt: 'ship the thing',
+  });
+});
+
+test('status subcommand reads Copilot token usage from the events stream on agentStop', async () => {
+  let received;
+  const usage = { inputTokens: 7, outputTokens: 1, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 };
+  await main(['status', 'a', 'question', '--board', '/b.json', '--event', 'agentStop', '--agent', 'copilot'], {
+    setSessionStatus: async (_p, _r, _sid, _s, o) => { received = o; },
+    takePendingMessages: async () => [],
+    readTranscriptUsage: async () => { throw new Error('the Claude reader must not be used'); },
+    readCopilotTranscriptUsage: async (transcriptPath) => {
+      assert.equal(transcriptPath, '/home/u/.copilot/session-state/cop-1/events.jsonl');
+      return usage;
+    },
+    stdin: pipedStdin({ sessionId: 'cop-1', transcriptPath: '/home/u/.copilot/session-state/cop-1/events.jsonl' }),
+    logger: silentLogger(),
+  });
+  assert.equal(received.usage, usage);
+});
+
+test('under Copilot the status line goes to stderr so stdout stays parsable JSON', async () => {
+  const logger = recordingLogger();
+  await main(['status', 'a', 'question', '--board', '/b.json', '--event', 'agentStop', '--agent', 'copilot'], {
+    setSessionStatus: async () => {},
+    takePendingMessages: async () => { throw new Error('agentStop output is dropped, do not drain'); },
+    stdin: pipedStdin({ sessionId: 'cop-1' }),
+    logger,
+  });
+  assert.deepEqual(logger.out, []);
+  assert.deepEqual(logger.err, ['a [cop-1] → question']);
+});
+
+test('a Copilot notification drains queued messages as an additionalContext reply', async () => {
+  const logger = recordingLogger();
+  const drained = [];
+  await main(['status', 'a', 'question', '--board', '/b.json', '--event', 'notification', '--agent', 'copilot'], {
+    setSessionStatus: async () => {},
+    takePendingMessages: async (_bp, repo, sid) => { drained.push([repo, sid]); return [{ text: 'use pnpm' }, { text: 'and rebase' }]; },
+    stdin: pipedStdin({ sessionId: 'cop-1' }),
+    logger,
+  });
+  assert.deepEqual(drained, [['a', 'cop-1']]);
+  assert.equal(logger.out.length, 1);
+  const reply = JSON.parse(logger.out[0]);
+  assert.match(reply.additionalContext, /^\[maggie\] Message\(s\) sent from the board dashboard/);
+  assert.match(reply.additionalContext, /- use pnpm\n- and rebase$/);
+});
+
+test('a Copilot notification with an empty queue writes nothing to stdout', async () => {
+  const logger = recordingLogger();
+  await main(['status', 'a', 'question', '--board', '/b.json', '--event', 'notification', '--agent', 'copilot'], {
+    setSessionStatus: async () => {},
+    takePendingMessages: async () => [],
+    stdin: pipedStdin({ sessionId: 'cop-1' }),
+    logger,
+  });
+  assert.deepEqual(logger.out, []);
+});
+
+test('messages subcommand drains the queue for the piped Copilot session', async () => {
+  const logger = recordingLogger();
+  let boardPathSeen;
+  await main(['messages', 'a', '--board', '/b.json', '--agent', 'copilot'], {
+    takePendingMessages: async (bp, repo, sid) => {
+      boardPathSeen = bp;
+      assert.equal(repo, 'a');
+      assert.equal(sid, 'cop-1');
+      return [{ text: 'welcome back' }];
+    },
+    stdin: pipedStdin({ sessionId: 'cop-1', source: 'resume' }),
+    logger,
+  });
+  assert.equal(boardPathSeen, path.resolve('/b.json'));
+  assert.equal(JSON.parse(logger.out[0]).additionalContext, '[maggie] Message(s) sent from the board dashboard while you were away:\n- welcome back');
+});
+
+test('messages subcommand reports an empty queue on stderr under Copilot, stdout on Claude', async () => {
+  const copilot = recordingLogger();
+  await main(['messages', 'a', '--board', '/b.json', '--agent', 'copilot', '--session', 's1'], {
+    takePendingMessages: async () => [],
+    stdin: ttyStdin(),
+    logger: copilot,
+  });
+  assert.deepEqual(copilot.out, []);
+  assert.deepEqual(copilot.err, ['a [s1] no queued message']);
+
+  const claude = recordingLogger();
+  await main(['messages', 'a', '--board', '/b.json'], {
+    takePendingMessages: async () => [],
+    stdin: ttyStdin(),
+    logger: claude,
+  });
+  assert.deepEqual(claude.out, ['a [manual] no queued message']);
+});
+
+test('messages subcommand relays queued messages as plain text under Claude Code', async () => {
+  const logger = recordingLogger();
+  await main(['messages', 'a', '--board', '/b.json', '--session', 's1'], {
+    takePendingMessages: async () => [{ text: 'rebase please' }],
+    stdin: ttyStdin(),
+    logger,
+  });
+  assert.deepEqual(logger.out, ['[maggie] Message(s) sent from the board dashboard while you were away:\n- rebase please']);
+});
+
+test('messages subcommand requires a repo', async () => {
+  await assert.rejects(
+    () => main(['messages', '--board', '/b.json'], { stdin: ttyStdin(), logger: silentLogger() }),
+    /Usage: maggie-workspace messages <repo>/,
+  );
+});
+
+test('session-end subcommand uses the Copilot usage reader and records the agent it was told about', async () => {
+  const appendCalls = [];
+  const logger = recordingLogger();
+  await main(['session-end', 'a', '--board', '/b.json', '--agent', 'copilot'], {
+    readBoard: async () => ({
+      version: 2,
+      repos: { a: { sessions: { 'cop-1': { status: 'question', title: 't', startedAt: 'T0', usage: null } } } },
+    }),
+    readTranscriptUsage: async () => { throw new Error('the Claude reader must not be used'); },
+    readCopilotTranscriptUsage: async () => ({ inputTokens: 3, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 }),
+    appendHistoryEntry: async (_hp, entry) => appendCalls.push(entry),
+    removeSession: async () => {},
+    now: () => 'T2',
+    stdin: pipedStdin({ sessionId: 'cop-1', reason: 'user_exit', transcriptPath: '/e.jsonl' }),
+    logger,
+  });
+  assert.equal(appendCalls[0].agent, 'copilot');
+  assert.equal(appendCalls[0].usage.inputTokens, 3);
+  assert.deepEqual(logger.out, []);
+  assert.deepEqual(logger.err, ['a [cop-1] session ended']);
+});
+
+test('an unknown agent is rejected by every hook-facing subcommand', async () => {
+  for (const argv of [
+    ['status', 'a', 'done', '--board', '/b.json', '--agent', 'cursor'],
+    ['messages', 'a', '--board', '/b.json', '--agent', 'cursor'],
+    ['session-end', 'a', '--board', '/b.json', '--agent', 'cursor'],
+  ]) {
+    await assert.rejects(
+      () => main(argv, { stdin: ttyStdin(), logger: silentLogger() }),
+      /Unknown agent "cursor" \(known: claude, copilot\)/,
+    );
+  }
+});
+
+test('--agent copilot reaches bootstrap and defaults the launch command to copilot', async () => {
+  let received;
+  await main(['--config', 'repos.json', '--workspace', '/tmp/ws', '--agent', 'copilot'], {
+    loadConfig: async () => config,
+    runBootstrap: async (_c, opts) => { received = opts; return {}; },
+    isInteractive: false,
+    logger: silentLogger(),
+  });
+  assert.equal(received.agent, 'copilot');
+  assert.equal(received.editor, 'copilot');
+});
+
+test('--editor still wins over the agent default when both are given', async () => {
+  let received;
+  await main(['--config', 'repos.json', '--workspace', '/tmp/ws', '--agent', 'copilot', '--editor', 'vscode'], {
+    loadConfig: async () => config,
+    runBootstrap: async (_c, opts) => { received = opts; return {}; },
+    isInteractive: false,
+    logger: silentLogger(),
+  });
+  assert.equal(received.agent, 'copilot');
+  assert.equal(received.editor, 'vscode');
+});
+
+test('bootstrap defaults to the claude agent when --agent is omitted', async () => {
+  let received;
+  await main(['--config', 'repos.json', '--workspace', '/tmp/ws'], {
+    loadConfig: async () => config,
+    runBootstrap: async (_c, opts) => { received = opts; return {}; },
+    isInteractive: false,
+    logger: silentLogger(),
+  });
+  assert.equal(received.agent, 'claude');
+  assert.equal(received.editor, 'claude');
 });

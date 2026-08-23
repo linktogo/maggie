@@ -125,3 +125,18 @@ test('does not show a worktree badge when the session has no worktree', () => {
   const w = mount(SessionRow, { props: { session: session(), now } });
   expect(w.find('[data-test=worktree-badge]').exists()).toBe(false);
 });
+
+test('shows the agent the session runs on, defaulting to claude for older sessions', () => {
+  const w = mount(SessionRow, { props: { session: session(), now } });
+  const badge = w.get('[data-test=agent-badge]');
+  expect(badge.text()).toBe('claude');
+  expect(badge.attributes('title')).toBe('Running on Claude Code');
+});
+
+test('shows a copilot badge for a session recorded by the GitHub Copilot hooks', () => {
+  const w = mount(SessionRow, { props: { session: session({ agent: 'copilot' }), now } });
+  const badge = w.get('[data-test=agent-badge]');
+  expect(badge.text()).toBe('copilot');
+  expect(badge.attributes('title')).toBe('Running on GitHub Copilot CLI');
+  expect(badge.classes().join(' ')).toContain('sky');
+});

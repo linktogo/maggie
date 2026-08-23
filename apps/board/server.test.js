@@ -278,7 +278,7 @@ test('startFromArgv reconciles a repo\'s hooks on start and logs what changed', 
     { log: (m) => logs.push(m) },
   );
   await listening(server);
-  assert.ok(logs.some((m) => m.includes('✓ demo: hooks repointed')));
+  assert.ok(logs.some((m) => m.includes('✓ demo: claude hooks repointed')));
   const settings = JSON.parse(await readFile(path.join(checkout, '.claude', 'settings.local.json'), 'utf8'));
   assert.match(settings.hooks.UserPromptSubmit[0].hooks[0].command, /status demo inprogress --board/);
   server.close();
@@ -377,7 +377,7 @@ test('startFromArgv loads config from --config-repo and serves it at /api/config
   await listening(server);
   assert.equal(repoArgs.url, 'git@host:o/config.git');
   assert.equal(repoArgs.opts.configFile, 'repos.json');
-  assert.ok(logs.some((m) => m.includes('✓ demo: hooks repointed')));
+  assert.ok(logs.some((m) => m.includes('✓ demo: claude hooks repointed')));
   const res = await fetch(`http://127.0.0.1:${server.address().port}/api/config`);
   assert.deepEqual(await res.json(), {
     repos: { demo: { url: 'https://h/demo.git', technologies: ['nestjs'], targets: ['claude'] } },

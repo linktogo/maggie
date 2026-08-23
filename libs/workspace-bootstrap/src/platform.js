@@ -10,8 +10,8 @@ export function pnpmCommand(platform = process.platform) {
   return platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 }
 
-// Editors we know how to launch into a workspace directory.
-export const EDITORS = ['claude', 'vscode'];
+// Editors and local agents we know how to launch into a workspace directory.
+export const EDITORS = ['claude', 'copilot', 'vscode'];
 
 // Build the shell command we print for the user to copy/paste.
 //
@@ -23,7 +23,8 @@ export function launchCommand(editor, dir, platform = process.platform) {
   const quoted = `"${dir}"`;
   if (editor === 'vscode') return `code ${quoted}`;
   const cd = platform === 'win32' ? `cd /d ${quoted}` : `cd ${quoted}`;
-  return `${cd} && claude`;
+  // `claude` and `copilot` are both terminal agents launched from the directory.
+  return `${cd} && ${editor}`;
 }
 
 // Resolve the Maven binary. Prefer the repo's wrapper (mvnw / mvnw.cmd) for a

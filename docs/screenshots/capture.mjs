@@ -42,7 +42,8 @@ const localesBoard = {
     'oc-idle': { sessions: {} },
     'oc-be': {
       sessions: Object.fromEntries([session('s-be', {
-        status: 'inprogress', title: 'add tests', lastEvent: 'UserPromptSubmit',
+        // One Copilot session so the board shot shows both agent badges.
+        status: 'inprogress', agent: 'copilot', title: 'add tests', lastEvent: 'UserPromptSubmit',
         updatedAt: ago(4 * H), startedAt: ago(5 * H),
         lastPrompt: 'add coverage for the parser',
       })]),

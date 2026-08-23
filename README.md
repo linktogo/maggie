@@ -13,7 +13,8 @@ Windsurf).
 
 It ships two CLIs — `maggie` (push skills to repos) and `maggie-workspace`
 (bootstrap a local workspace + status board) — plus a kanban dashboard, as an
-[Nx](https://nx.dev) monorepo on npm workspaces.
+[Nx](https://nx.dev) monorepo on npm workspaces. The board tracks local agent
+sessions for both Claude Code and GitHub Copilot CLI.
 
 ## Why
 
@@ -54,6 +55,11 @@ Then copy `repos.example.json`, point it at your own repositories, and drop the
 npm run wk     # clone those repos into ./wk and print the command to open them
 npm start      # serve the board (auto-detects wk/.maggie/board.json)
 ```
+
+`npm run wk` wires Claude Code hooks by default; add `-- --agent copilot` to
+wire GitHub Copilot CLI instead. Sessions from both show up on the same board,
+each card labelled with the agent behind it — see
+[`maggie-workspace` CLI](docs/workspace-cli.md#status-tracking).
 
 New here? Read [Configuration](docs/configuration.md) next, then
 [Adding a skill](CONTRIBUTING.md#adding-a-skill).
@@ -98,7 +104,7 @@ independently so they can be reused on their own:
 | [`@linktogo/maggie-git`](libs/git) | thin git/`gh` wrapper |
 | [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
 | [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
-| [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, hooks, board state |
+| [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
 | [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
 
 All are released in lockstep on the same version — see

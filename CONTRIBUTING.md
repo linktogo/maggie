@@ -91,6 +91,20 @@ their public `@linktogo/maggie-*` names, while the applications under `apps/` st
 their own. Nx project names (`config`, `sync`, …) come from each `project.json`
 and are independent of both.
 
+## Dependency holds
+
+One dependency is deliberately held back, and Dependabot is configured to stop
+proposing it (`.github/dependabot.yml`):
+
+| Package | Held at | Why |
+|---|---|---|
+| `typescript` | `~6.0.3` | TypeScript 7 is the native rewrite. Its npm package no longer exports the classic compiler API: the main entry is now `{ version, versionMajorMinor }` and everything else lives behind `typescript/unstable/*`. Nx's project-graph plugins still call `ts.readConfigFile`, so on TS 7 `nx show projects` — and therefore every lint/test/build target — fails with `ts.readConfigFile is not a function`. |
+
+Nothing in this repository is written in TypeScript; `typescript` is present
+only because Nx's plugins and editor tooling load it. Lift the hold once Nx
+processes the project graph on TS 7 — check with `npm i -D typescript@7 && npx
+nx reset && npx nx show projects` before touching `package.json`.
+
 ## Commit messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):

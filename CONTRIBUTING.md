@@ -34,6 +34,19 @@ npm run build       # nx run-many -t build
 npm start           # build + serve the kanban dashboard
 ```
 
+The screenshots in `docs/images` are generated, not captured by hand:
+
+```bash
+npm run board:build
+NODE_PATH="$(npm root -g)" node docs/screenshots/capture.mjs
+```
+
+`docs/screenshots/capture.mjs` serves the built board with a stub API and its
+own demo data — one scene per image — so a UI change can be reflected in the
+docs by rebuilding and re-running it. It needs Playwright and a Chromium
+(`npm i -g playwright && playwright install chromium`); it is deliberately not
+a project dependency, since nothing in CI runs it.
+
 To exercise the CLIs against the sample config without touching any real repo:
 
 ```bash

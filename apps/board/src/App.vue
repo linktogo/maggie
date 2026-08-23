@@ -54,11 +54,11 @@ const routeProps = computed(() => (route.name === 'history'
         <div class="inline-flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"
-            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
           >{{ t('nav.board') }}</router-link>
           <router-link
             data-test="view-history" to="/history"
-            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
           >{{ t('nav.history') }}</router-link>
         </div>
       </div>
@@ -66,11 +66,11 @@ const routeProps = computed(() => (route.name === 'history'
         <LocaleSwitcher />
         <button
           v-if="permission !== 'granted'"
-          class="border border-slate-200 rounded-lg shadow-sm hover:shadow px-3 py-1.5 text-sm bg-white"
+          class="border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white"
           @click="requestPermission"
         >🔔 {{ t('notifications.enable') }}</button>
         <button
-          class="border border-slate-200 rounded-lg shadow-sm hover:shadow px-3 py-1.5 text-sm bg-white"
+          class="border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white"
           :class="soundOn ? 'text-slate-700' : 'text-slate-400'"
           @click="toggleSound"
         >{{ soundOn ? '🔊' : '🔇' }} {{ t('notifications.sound') }}</button>

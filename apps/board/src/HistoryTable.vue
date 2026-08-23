@@ -53,12 +53,12 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+  <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
     <input
       data-test="history-repo-filter"
       v-model="repoFilter"
       :placeholder="t('filter.searchRepo')"
-      class="border border-slate-200 rounded-lg shadow-sm px-3 py-1.5 text-sm bg-white mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+      class="border border-slate-200 rounded-lg shadow-xs px-3 py-1.5 text-sm bg-white mb-3 focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
     />
     <table class="w-full text-sm text-left">
       <thead>
@@ -87,7 +87,7 @@ const rows = computed(() => {
           <td class="py-1.5 px-3 text-right">{{ e.usage?.cacheCreationInputTokens ?? 0 }}</td>
           <td class="py-1.5 px-3 text-right">{{ e.usage?.cacheReadInputTokens ?? 0 }}</td>
           <td class="py-1.5 px-3 text-right">
-            <span class="inline-block bg-slate-100 rounded px-1.5 py-0.5 font-semibold">{{ formatTokens(totalOf(e)) }}</span>
+            <span class="inline-block bg-slate-100 rounded-sm px-1.5 py-0.5 font-semibold">{{ formatTokens(totalOf(e)) }}</span>
           </td>
         </tr>
       </tbody>

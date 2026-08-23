@@ -34,6 +34,19 @@ npm run build       # nx run-many -t build
 npm start           # build + serve the kanban dashboard
 ```
 
+The screenshots in `docs/images` are generated, not captured by hand:
+
+```bash
+npm run board:build
+NODE_PATH="$(npm root -g)" node docs/screenshots/capture.mjs
+```
+
+`docs/screenshots/capture.mjs` serves the built board with a stub API and its
+own demo data — one scene per image — so a UI change can be reflected in the
+docs by rebuilding and re-running it. It needs Playwright and a Chromium
+(`npm i -g playwright && playwright install chromium`); it is deliberately not
+a project dependency, since nothing in CI runs it.
+
 To exercise the CLIs against the sample config without touching any real repo:
 
 ```bash
@@ -90,6 +103,20 @@ their public `@linktogo/maggie-*` names, while the applications under `apps/` st
 `private` and keep internal `@maggie/*` names, since they are never published on
 their own. Nx project names (`config`, `sync`, …) come from each `project.json`
 and are independent of both.
+
+## Dependency holds
+
+One dependency is deliberately held back, and Dependabot is configured to stop
+proposing it (`.github/dependabot.yml`):
+
+| Package | Held at | Why |
+|---|---|---|
+| `typescript` | `~6.0.3` | TypeScript 7 is the native rewrite. Its npm package no longer exports the classic compiler API: the main entry is now `{ version, versionMajorMinor }` and everything else lives behind `typescript/unstable/*`. Nx's project-graph plugins still call `ts.readConfigFile`, so on TS 7 `nx show projects` — and therefore every lint/test/build target — fails with `ts.readConfigFile is not a function`. |
+
+Nothing in this repository is written in TypeScript; `typescript` is present
+only because Nx's plugins and editor tooling load it. Lift the hold once Nx
+processes the project graph on TS 7 — check with `npm i -D typescript@7 && npx
+nx reset && npx nx show projects` before touching `package.json`.
 
 ## Commit messages
 

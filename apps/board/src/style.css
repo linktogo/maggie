@@ -1,3 +1,37 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Tailwind v4 is configured from CSS: `source(none)` turns off automatic
+ * content detection so the scanned set stays exactly what tailwind.config.js
+ * used to declare, and the `@source` lines below replace its `content` array.
+ */
+@import 'tailwindcss' source(none);
+
+@source '../index.html';
+@source './**/*.{vue,js}';
+
+/*
+ * v4.3 dropped `ui-sans-serif, system-ui` from the default sans stack. Keeping
+ * the v3 stack means the board keeps rendering in the platform UI font, so the
+ * screenshots in docs/ stay accurate and this migration changes no typography.
+ */
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/*
+ * Preflight defaults that v4 dropped and the board still relies on. Keeping
+ * them here means the migration is visually neutral instead of a silent
+ * restyle of every button and input.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+}

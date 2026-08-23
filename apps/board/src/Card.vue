@@ -39,7 +39,7 @@ function open(sessionId) {
           role="img"
           :title="`${b.login} — ${b.state}`"
           :aria-label="`${b.login} — ${b.state}`"
-          :class="['text-[10px] leading-none font-semibold border rounded px-1 py-0.5', pillClass(b.state)]"
+          :class="['text-[10px] leading-none font-semibold border rounded-sm px-1 py-0.5', pillClass(b.state)]"
         >{{ b.initials }}</span>
         <span
           v-if="badges.overflow.length"
@@ -47,7 +47,7 @@ function open(sessionId) {
           role="img"
           :title="overflowTitle"
           :aria-label="overflowTitle"
-          class="text-[10px] leading-none font-semibold border border-slate-300 bg-slate-100 text-slate-500 rounded px-1 py-0.5"
+          class="text-[10px] leading-none font-semibold border border-slate-300 bg-slate-100 text-slate-500 rounded-sm px-1 py-0.5"
         >+{{ badges.overflow.length }}</span>
       </div>
     </div>

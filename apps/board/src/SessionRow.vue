@@ -76,15 +76,15 @@ function onDragStart(e) {
       <span
         data-test="agent-badge"
         :title="t('session.agentTooltip', { agent: agentLabel(agent) })"
-        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded', agentPillClass(agent)]"
+        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded-sm', agentPillClass(agent)]"
       >{{ agent }}</span>
       <span
         v-if="session.worktree"
         data-test="worktree-badge"
         :title="t('session.worktreeTooltip', { branch: session.worktree })"
-        class="inline-flex items-center ml-1 bg-violet-100 text-violet-700 font-medium px-1.5 py-0.5 rounded"
+        class="inline-flex items-center ml-1 bg-violet-100 text-violet-700 font-medium px-1.5 py-0.5 rounded-sm"
       >⎇ {{ session.worktree }}</span>
-      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-block ml-1 bg-slate-200/70 text-slate-600 font-medium px-1.5 py-0.5 rounded">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
+      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-block ml-1 bg-slate-200/70 text-slate-600 font-medium px-1.5 py-0.5 rounded-sm">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
     </div>
     <p v-if="prompt" class="mt-1 text-xs text-slate-600 whitespace-pre-wrap">
       {{ displayedPrompt }}
@@ -110,14 +110,14 @@ function onDragStart(e) {
         data-test="message-input"
         type="text"
         :placeholder="t('session.messagePlaceholder')"
-        class="min-w-0 flex-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-none"
+        class="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-hidden"
         @keydown.stop
       />
       <button
         type="submit"
         data-test="message-send"
         :disabled="!draft.trim()"
-        class="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        class="shrink-0 rounded-sm bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
       >{{ t('session.send') }}</button>
     </form>
   </div>

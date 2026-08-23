@@ -14,7 +14,7 @@ An [Nx](https://nx.dev) monorepo on npm workspaces. Applications live in
 | `libs/git` | `@linktogo/maggie-git` | thin git/`gh` wrapper (clone, branch, commit, push, PR) |
 | `libs/renderers` | `@linktogo/maggie-renderers` | per-target renderers (claude, copilot, cursor, windsurf) |
 | `libs/skill-sync` | `@linktogo/maggie-skill-sync` | resolve skills for a repo and drive the sync pipeline |
-| `libs/workspace-bootstrap` | `@linktogo/maggie-workspace-bootstrap` | clone/install, Claude Code hooks, board state model |
+| `libs/workspace-bootstrap` | `@linktogo/maggie-workspace-bootstrap` | clone/install, Claude Code & Copilot CLI hooks, board state model |
 | `libs/ci-status` | `@linktogo/maggie-ci-status` | CI status payloads, validation, state mapping and folding |
 | `.github/actions/ci-status-report` | private | composite action depositing CI status on the `ci-status` branch |
 

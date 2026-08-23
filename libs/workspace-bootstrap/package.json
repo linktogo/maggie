@@ -1,7 +1,7 @@
 {
   "name": "@linktogo/maggie-workspace-bootstrap",
   "version": "1.1.0",
-  "description": "Clone and install a multi-repo workspace, install Claude Code status hooks, and maintain the shared kanban board state.",
+  "description": "Clone and install a multi-repo workspace, install Claude Code or GitHub Copilot CLI status hooks, and maintain the shared kanban board state.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.js",
@@ -26,6 +26,7 @@
     "maggie",
     "ai-agents",
     "claude-code",
+    "github-copilot",
     "developer-tools"
   ],
   "publishConfig": {

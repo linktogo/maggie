@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { readTranscriptUsage, resolveHistoryPath, appendHistoryEntry } from '../src/tokens.js';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { readTranscriptUsage, readCopilotTranscriptUsage, resolveHistoryPath, appendHistoryEntry } from '../src/tokens.js';
 
 test('readTranscriptUsage sums usage across assistant lines, including sidechain turns', async () => {
   const lines = [
@@ -162,4 +164,99 @@ test('readTranscriptUsage counts a repeated message.id toward its model only onc
   assert.deepEqual(usage.byModel, {
     'claude-sonnet-5': { inputTokens: 2, outputTokens: 138, cacheCreationInputTokens: 12942, cacheReadInputTokens: 19608 },
   });
+});
+
+const copilotLine = (type, data) => JSON.stringify({ type, timestamp: 'T', data });
+
+test('readCopilotTranscriptUsage maps Copilot cache counters onto the board field names', async () => {
+  const raw = [
+    copilotLine('assistant.usage', {
+      model: 'claude-sonnet-4.5',
+      usage: { inputTokens: 10, outputTokens: 5, cacheReadTokens: 3, cacheWriteTokens: 2 },
+    }),
+  ].join('\n');
+  const usage = await readCopilotTranscriptUsage('/t/events.jsonl', { read: async () => raw });
+  assert.deepEqual(usage, {
+    inputTokens: 10,
+    outputTokens: 5,
+    cacheCreationInputTokens: 2,
+    cacheReadInputTokens: 3,
+    byModel: {
+      'claude-sonnet-4.5': {
+        inputTokens: 10, outputTokens: 5, cacheCreationInputTokens: 2, cacheReadInputTokens: 3,
+      },
+    },
+  });
+});
+
+test('readCopilotTranscriptUsage sums per-turn events per model and defaults missing counters to zero', async () => {
+  const raw = [
+    copilotLine('assistant.usage', { model: 'gpt-5', usage: { inputTokens: 1, outputTokens: 1 } }),
+    copilotLine('assistant.usage', { modelId: 'gpt-5', usage: { inputTokens: 2, outputTokens: 3, cacheReadTokens: 4 } }),
+    copilotLine('assistant.usage', { model: 'other', usage: { outputTokens: 7 } }),
+  ].join('\n');
+  const usage = await readCopilotTranscriptUsage('/t/events.jsonl', { read: async () => raw });
+  assert.deepEqual(usage.byModel['gpt-5'], {
+    inputTokens: 3, outputTokens: 4, cacheCreationInputTokens: 0, cacheReadInputTokens: 4,
+  });
+  assert.equal(usage.inputTokens, 3);
+  assert.equal(usage.outputTokens, 11);
+  assert.equal(usage.cacheReadInputTokens, 4);
+});
+
+test('readCopilotTranscriptUsage lets cumulative modelMetrics replace what was accumulated', async () => {
+  const raw = [
+    copilotLine('assistant.usage', { model: 'gpt-5', usage: { inputTokens: 999, outputTokens: 999 } }),
+    copilotLine('session.shutdown', {
+      modelMetrics: {
+        'gpt-5': { requests: { count: 2 }, usage: { inputTokens: 20, outputTokens: 4, cacheReadTokens: 1, cacheWriteTokens: 2 } },
+        'no-usage-yet': { requests: { count: 0 } },
+      },
+    }),
+  ].join('\n');
+  const usage = await readCopilotTranscriptUsage('/t/events.jsonl', { read: async () => raw });
+  assert.deepEqual(Object.keys(usage.byModel), ['gpt-5']);
+  assert.deepEqual(usage, {
+    inputTokens: 20,
+    outputTokens: 4,
+    cacheCreationInputTokens: 2,
+    cacheReadInputTokens: 1,
+    byModel: {
+      'gpt-5': { inputTokens: 20, outputTokens: 4, cacheCreationInputTokens: 2, cacheReadInputTokens: 1 },
+    },
+  });
+});
+
+test('readCopilotTranscriptUsage skips blank lines, unparsable lines and events with no usage or no model', async () => {
+  const raw = [
+    '',
+    '   ',
+    'not json',
+    copilotLine('session.start', { copilotVersion: '1.2.3' }),
+    copilotLine('assistant.usage', { usage: { inputTokens: 5 } }), // no model
+    copilotLine('assistant.turn_end', { model: 'gpt-5' }),         // no usage
+    'null',
+    copilotLine('assistant.usage', { model: 'gpt-5', usage: { inputTokens: 1 } }),
+  ].join('\n');
+  const usage = await readCopilotTranscriptUsage('/t/events.jsonl', { read: async () => raw });
+  assert.equal(usage.inputTokens, 1);
+  assert.deepEqual(Object.keys(usage.byModel), ['gpt-5']);
+});
+
+test('readCopilotTranscriptUsage returns an empty usage when the events file is unreadable', async () => {
+  const usage = await readCopilotTranscriptUsage('/nope/events.jsonl', {
+    read: async () => { throw new Error('ENOENT'); },
+  });
+  assert.deepEqual(usage, {
+    inputTokens: 0, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, byModel: {},
+  });
+});
+
+test('readCopilotTranscriptUsage reads a real events.jsonl from disk with the default reader', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'copilot-usage-'));
+  const file = path.join(dir, 'events.jsonl');
+  await writeFile(file, copilotLine('assistant.usage', { model: 'gpt-5', usage: { inputTokens: 8 } }) + '\n');
+  const usage = await readCopilotTranscriptUsage(file);
+  assert.equal(usage.inputTokens, 8);
+  await rm(dir, { recursive: true, force: true });
 });

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { relativeTime } from './useRelativeTime.js';
 import { formatTokens } from './formatTokens.js';
+import { agentOf, agentLabel, agentPillClass } from './agentBadge.js';
 import { useI18n } from './i18n.js';
 
 const { t } = useI18n();
@@ -23,6 +24,8 @@ const overflows = computed(() => prompt.value.length > PROMPT_CLIP);
 const displayedPrompt = computed(() => (
   expanded.value || !overflows.value ? prompt.value : `${prompt.value.slice(0, PROMPT_CLIP)}…`
 ));
+
+const agent = computed(() => agentOf(props.session));
 
 const usage = computed(() => props.session.usage ?? null);
 const totalTokens = computed(() => {
@@ -70,6 +73,11 @@ function onDragStart(e) {
     <div class="font-medium text-slate-800 text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
     <div class="text-xs text-slate-500">
       {{ session.lastEvent }} · {{ when }}
+      <span
+        data-test="agent-badge"
+        :title="t('session.agentTooltip', { agent: agentLabel(agent) })"
+        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded', agentPillClass(agent)]"
+      >{{ agent }}</span>
       <span
         v-if="session.worktree"
         data-test="worktree-badge"

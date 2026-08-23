@@ -193,7 +193,7 @@ export async function startFromArgv(argv, {
       const hookCommand = fileURLToPath(new URL('../workspace/bin/workspace.js', import.meta.url));
       const results = await reconcileHooks(config, { boardPath, hookCommand });
       for (const r of results) {
-        if (r.status === 'repointed') log(`  ✓ ${r.repo}: hooks repointed`);
+        if (r.status === 'repointed') log(`  ✓ ${r.repo}: ${r.agent} hooks repointed`);
         else if (r.status === 'error') log(`  ⚠ ${r.repo}: ${r.error}`);
       }
       const upToDate = results.filter((r) => r.status === 'up-to-date').length;

@@ -53,7 +53,7 @@ export async function writeBoard(boardPath, board, opts = {}) {
 
 export async function setSessionStatus(boardPath, repo, sessionId, state, opts = {}) {
   const {
-    lastEvent = 'manual', title, lastPrompt, usage, startedAt, worktree,
+    lastEvent = 'manual', title, lastPrompt, usage, startedAt, worktree, agent,
     now = () => new Date().toISOString(), ...io
   } = opts;
   if (!STATES.includes(state)) {
@@ -72,6 +72,7 @@ export async function setSessionStatus(boardPath, repo, sessionId, state, opts =
     lastPrompt: lastPrompt ?? prevSession?.lastPrompt ?? null, // overwritten every UserPromptSubmit
     startedAt: prevSession?.startedAt ?? startedAt ?? at,      // set once, never overwritten
     worktree: prevSession?.worktree ?? worktree ?? null,       // set once from the hook's --worktree flag
+    agent: prevSession?.agent ?? agent ?? null,                // set once: which local agent runs this session
     usage: usage ?? prevSession?.usage ?? null,                // overwritten every Stop
     pendingMessages: prevSession?.pendingMessages ?? [],       // dashboard queue, drained on resume
     events,
@@ -131,6 +132,7 @@ export async function closeSession(boardPath, repo, sessionId, opts = {}) {
   await appendHistoryEntry(historyPath, {
     repo, sessionId,
     title: session.title ?? null,
+    agent: session.agent ?? null,
     startedAt: session.startedAt ?? null,
     endedAt: now(),
     usage: session.usage ?? null,

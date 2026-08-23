@@ -1,9 +1,7 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { hookSettings, installHooks, HOOK_EVENTS as HOOK_EVENT_DEFS } from './hooks.js';
+import { AGENTS, DEFAULT_AGENT, agentSpec } from './agents.js';
 import { initRepos } from './board.js';
-
-const HOOK_EVENTS = HOOK_EVENT_DEFS.map((h) => h.event);
 
 async function defaultExists(p) {
   try {
@@ -14,43 +12,49 @@ async function defaultExists(p) {
   }
 }
 
-function flattenHooks(hooks) {
-  const flat = {};
-  for (const event of HOOK_EVENTS) {
-    flat[event] = hooks?.[event]?.[0]?.hooks?.[0]?.command;
-  }
-  return flat;
+function settingsPath(checkoutDir, agent) {
+  return path.join(checkoutDir, ...agentSpec(agent).settingsFile);
 }
 
-async function defaultReadCurrentHooks(checkoutDir, { read = readFile } = {}) {
-  const file = path.join(checkoutDir, '.claude', 'settings.local.json');
+async function defaultReadCurrentHooks(checkoutDir, agent, { read = readFile } = {}) {
   let parsed;
   try {
-    parsed = JSON.parse(await read(file, 'utf8'));
+    parsed = JSON.parse(await read(settingsPath(checkoutDir, agent), 'utf8'));
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
     return null;
   }
-  return flattenHooks(parsed.hooks);
+  return agentSpec(agent).flattenHooks(parsed.hooks);
 }
 
-function hooksMatch(before, expectedHooks) {
+function hooksMatch(before, expectedHooks, agent) {
   if (!before) return false;
-  const expected = flattenHooks(expectedHooks);
-  return HOOK_EVENTS.every((event) => before[event] === expected[event]);
+  const expected = agentSpec(agent).flattenHooks(expectedHooks);
+  return Object.keys(expected).every((event) => before[event] === expected[event]);
+}
+
+// Which agents a checkout is wired for. A settings file already on disk is
+// reconciled for that agent; a checkout with none at all falls back to Claude
+// Code, which is what bootstrap installs by default.
+async function detectAgents(checkout, exists) {
+  const found = [];
+  for (const agent of AGENTS) {
+    if (await exists(settingsPath(checkout, agent))) found.push(agent);
+  }
+  return found.length > 0 ? found : [DEFAULT_AGENT];
 }
 
 // Every repo whose checkout already exists gets its hooks compared against
-// what hookSettings() would produce today, and repointed if they differ (or
-// don't exist yet). A repo's own failure is recorded, not thrown, so one bad
-// repo can't stop the rest from being checked.
+// what the agent's hookSettings() would produce today, and repointed if they
+// differ (or don't exist yet). A repo's own failure is recorded, not thrown, so
+// one bad repo can't stop the rest from being checked.
 export async function reconcileHooks(config, options = {}) {
   const {
     boardPath,
     hookCommand,
     exists = defaultExists,
     readCurrentHooks = defaultReadCurrentHooks,
-    installRepoHooks = installHooks,
+    installRepoHooks,
     initBoard = initRepos,
   } = options;
 
@@ -63,19 +67,22 @@ export async function reconcileHooks(config, options = {}) {
     const checkout = repo.path ? path.resolve(repo.path) : path.join(workspaceDir, repo.name);
     try {
       if (!(await exists(checkout))) {
-        results.push({ repo: repo.name, status: 'skipped-missing', checkout });
+        results.push({ repo: repo.name, agent: DEFAULT_AGENT, status: 'skipped-missing', checkout });
         continue;
       }
-      const before = await readCurrentHooks(checkout);
-      const expected = hookSettings(repo.name, boardPath, { command: hookCommand }).hooks;
-      if (hooksMatch(before, expected)) {
-        results.push({ repo: repo.name, status: 'up-to-date', checkout });
-        continue;
+      for (const agent of await detectAgents(checkout, exists)) {
+        const spec = agentSpec(agent);
+        const before = await readCurrentHooks(checkout, agent);
+        const expected = spec.hookSettings(repo.name, boardPath, { command: hookCommand }).hooks;
+        if (hooksMatch(before, expected, agent)) {
+          results.push({ repo: repo.name, agent, status: 'up-to-date', checkout });
+          continue;
+        }
+        await (installRepoHooks ?? spec.installHooks)(checkout, repo.name, boardPath, { command: hookCommand });
+        results.push({ repo: repo.name, agent, status: 'repointed', checkout });
       }
-      await installRepoHooks(checkout, repo.name, boardPath, { command: hookCommand });
-      results.push({ repo: repo.name, status: 'repointed', checkout });
     } catch (err) {
-      results.push({ repo: repo.name, status: 'error', error: err.message, checkout });
+      results.push({ repo: repo.name, agent: DEFAULT_AGENT, status: 'error', error: err.message, checkout });
     }
   }
 

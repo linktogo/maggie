@@ -1,6 +1,6 @@
 {
   "name": "@linktogo/maggie-config",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Load and validate the maggie repository config from a local file or a shared git repository.",
   "license": "Apache-2.0",
   "type": "module",
@@ -33,7 +33,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@linktogo/maggie-git": "^1.1.0",
-    "@linktogo/maggie-renderers": "^1.1.0"
+    "@linktogo/maggie-git": "^1.2.0",
+    "@linktogo/maggie-renderers": "^1.2.0"
   }
 }

@@ -10,6 +10,8 @@ changes in minor releases.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-08
+
 ### Added
 
 - The status board now tracks **GitHub Copilot CLI** sessions locally, alongside
@@ -196,7 +198,8 @@ Initial release.
 - Starter skills library for NestJS, Postgres, Next.js, React, Angular, Vue, Nx,
   Firebase, and Cloudflare Workers.
 
-[Unreleased]: https://github.com/linktogo/maggie/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/linktogo/maggie/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/linktogo/maggie/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/linktogo/maggie/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/linktogo/maggie/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/linktogo/maggie/compare/v0.5.0...v0.6.0

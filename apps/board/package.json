@@ -8,7 +8,7 @@
     "@linktogo/maggie-config": "^1.1.0",
     "@linktogo/maggie-workspace-bootstrap": "^1.1.0",
     "chart.js": "^4.5.1",
-    "vue": "^3.5.0",
+    "vue": "^3.5.42",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@linktogo/maggie-renderers",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Render agent skills into each target platform format: Claude Code, GitHub Copilot, Cursor, and Windsurf.",
   "license": "Apache-2.0",
   "type": "module",

@@ -104,7 +104,7 @@ Nx enforces module boundaries by `scope:*` tags (see `eslint.config.js`). Import
 another project only through its package entry (`@linktogo/maggie-<name>`), never by
 a deep relative path across project roots. `npm run lint` catches violations.
 
-Package naming follows what is published: the five libraries under `libs/` carry
+Package naming follows what is published: the seven libraries under `libs/` carry
 their public `@linktogo/maggie-*` names, while the applications under `apps/` stay
 `private` and keep internal `@maggie/*` names, since they are never published on
 their own. Nx project names (`config`, `sync`, …) come from each `project.json`
@@ -152,8 +152,8 @@ discussed before you invest in the implementation.
 
 ## Releasing
 
-Six packages ship from this repository and are versioned **in lockstep**: the
-CLI package `@linktogo/maggie` (the repo root) and the five `@linktogo/maggie-*`
+Eight packages ship from this repository and are versioned **in lockstep**: the
+CLI package `@linktogo/maggie` (the repo root) and the seven `@linktogo/maggie-*`
 libraries under `libs/`. The libraries depend on each other by caret range
 (`^0.1.0`), so a version that moves in one place must move everywhere.
 
@@ -212,7 +212,7 @@ updating the secret.
 To rehearse a release against a local registry:
 
 ```bash
-npm run publish:verdaccio   # publishes the five libraries to http://localhost:4873
+npm run publish:verdaccio   # publishes the seven libraries to http://localhost:4873
 ```
 
 Check what a tarball would actually contain before releasing:

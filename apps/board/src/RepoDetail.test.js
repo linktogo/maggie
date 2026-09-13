@@ -100,3 +100,49 @@ test('lists queued pending messages, and shows an empty hint when there are none
   expect(empty.find('[data-test=pending-messages]').exists()).toBe(false);
   expect(empty.find('[data-test=pending-empty]').exists()).toBe(true);
 });
+
+const retroProps = { name: 'oc-auth', session, meta, now };
+
+test('the retro-documentation panel emits the repo and the LLM the user picked', async () => {
+  const w = mount(RepoDetail, { props: retroProps });
+  await w.get('[data-test=retro-doc-provider]').setValue('copilot');
+  await w.get('[data-test=retro-doc-run]').trigger('click');
+  expect(w.emitted('generate-retro-doc')).toEqual([[{ repo: 'oc-auth', provider: 'copilot' }]]);
+});
+
+test('the retro-documentation panel defaults to the Claude API', async () => {
+  const w = mount(RepoDetail, { props: retroProps });
+  await w.get('[data-test=retro-doc-run]').trigger('click');
+  expect(w.emitted('generate-retro-doc')[0][0].provider).toBe('claude');
+});
+
+test('a running job disables the button and shows the progress line it last logged', () => {
+  const w = mount(RepoDetail, {
+    props: { ...retroProps, retroDoc: { status: 'running', log: ['digesting batch 1/5', 'digesting batch 2/5'] } },
+  });
+  expect(w.get('[data-test=retro-doc-run]').attributes('disabled')).toBeDefined();
+  expect(w.get('[data-test=retro-doc-progress]').text()).toContain('digesting batch 2/5');
+});
+
+test('a finished job says where the document landed and who wrote it', () => {
+  const w = mount(RepoDetail, {
+    props: { ...retroProps, retroDoc: { status: 'done', out: 'docs/ai/retro-documentation.md', generator: 'GitHub Copilot CLI' } },
+  });
+  const line = w.get('[data-test=retro-doc-done]').text();
+  expect(line).toContain('docs/ai/retro-documentation.md');
+  expect(line).toContain('GitHub Copilot CLI');
+  expect(w.get('[data-test=retro-doc-run]').attributes('disabled')).toBeUndefined();
+});
+
+test('a failed job shows the reason instead of a silent no-op', () => {
+  const w = mount(RepoDetail, {
+    props: { ...retroProps, retroDoc: { status: 'error', error: '`copilot` exited with code 1: not logged in' } },
+  });
+  expect(w.get('[data-test=retro-doc-error]').text()).toContain('not logged in');
+});
+
+test('the panel explains itself away when the board has no config', () => {
+  const w = mount(RepoDetail, { props: { ...retroProps, retroDocAvailable: false } });
+  expect(w.find('[data-test=retro-doc-run]').exists()).toBe(false);
+  expect(w.get('[data-test=retro-doc-unavailable]').text()).toContain('--config');
+});

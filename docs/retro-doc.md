@@ -1,8 +1,9 @@
 # Retro-documentation
 
-`scripts/retro-doc.js` reads every spec and plan of a repository and asks an LLM
-to reconstruct one reference document from them — the *why* behind a codebase,
-written for the AI agent about to change it.
+Read every spec and plan of a repository, ask an LLM, and get back one reference
+document — the *why* behind a codebase, written for the AI agent about to change
+it. Three ways in: the `scripts/retro-doc.js` CLI, a button on the board, or
+[`@linktogo/maggie-retro-doc`](../libs/retro-doc) directly.
 
 A design record grows the way this repository's did: one spec and one plan per
 feature, written at a point in time and never revisited. That history is the
@@ -191,6 +192,37 @@ machine that is already running one of those agents.
 
 `--dry-run` needs no credentials at all, whichever provider is selected: it
 never reaches an LLM, and never even asks which one to use.
+
+## From the board
+
+The dashboard can run it for you: open a repository's detail panel and the
+**Retro-documentation** section offers the same three LLMs and a button.
+
+The board runs the generation in its own process and the panel polls it, so the
+tab can be closed and reopened while it works: a running job shows the batch it
+is on, a finished one the path it wrote, a failed one what the LLM or its CLI
+said. One run at a time per repository.
+
+Two things the board needs, and says so when it does not have them:
+
+- **a config** (`npm start -- --config repos.json`, or `AI_SYNC_CONFIG`) — it is
+  what tells the board where each repository is checked out. Without it the
+  panel says so instead of guessing a directory to write into;
+- **a checkout** of that repository in the workspace. The rule is the same one
+  hook reconciliation uses: `path` from the config when it pins one, otherwise
+  `<workspace>/<name>`.
+
+The API behind the button, should you want to drive it from elsewhere:
+
+| Route | What it does |
+|---|---|
+| `POST /api/retro-doc` | `{ repo, provider, model }` → `202 { job }`, or `400`/`404`/`409` with `{ error }` |
+| `GET /api/retro-doc` | `{ jobs: [...] }`, newest first; `?repo=<name>` narrows it |
+| both | `503` when the board was started without a config |
+
+A job is `{ id, repo, provider, generator, status, startedAt, finishedAt, out,
+error, log }`, where `status` is `running`, `done` or `error`. Jobs live in the
+board process: restarting it forgets them, the generated file stays.
 
 ## Regenerating
 

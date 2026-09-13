@@ -47,6 +47,13 @@ export default {
   'detail.ciUnavailable': 'Unavailable — {reason}',
   'detail.ciEmpty': 'No status reported.',
   'detail.history': 'History',
+  'detail.retroDoc': 'Retro-documentation',
+  'detail.retroDocRun': 'Generate',
+  'detail.retroDocRunning': 'Generating…',
+  'detail.retroDocDone': 'Written to {out}',
+  'detail.retroDocFailed': 'Failed — {reason}',
+  'detail.retroDocUnavailable': 'Start the board with --config to generate one.',
+  'detail.retroDocHint': 'Rebuilds the reference document of this repo from its specs and plans.',
   'detail.message': 'Message',
   'detail.messageEmpty': 'No message queued.',
 

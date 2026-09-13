@@ -107,6 +107,7 @@ independently so they can be reused on their own:
 | [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
 | [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
 | [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
+| [`@linktogo/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
 
 All are released in lockstep on the same version — see
 [Releasing](CONTRIBUTING.md#releasing). The `apps/*` projects stay private, keep

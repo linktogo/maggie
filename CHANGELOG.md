@@ -25,6 +25,18 @@ changes in minor releases.
   (`claude`), the local `claude` CLI and the local `copilot` CLI, the two CLIs
   reusing the login they already have and taking the prompt on stdin. See
   [Retro-documentation](docs/retro-doc.md).
+- The generation itself ships as a seventh published library,
+  **`@linktogo/maggie-retro-doc`** — source collection, prompts, providers and
+  the two-phase pipeline, every I/O boundary injectable — so the CLI and the
+  board run the same code.
+- The board dashboard can run it: each repository's detail panel gets a
+  **Retro-documentation** section with the choice of LLM and a button, backed by
+  `POST /api/retro-doc` and `GET /api/retro-doc`. The run happens in the board
+  process and the panel polls it, showing the batch in flight, the path written,
+  or what the CLI said when it failed — one run at a time per repository. The
+  board must have been started with a config, since that is what tells it where
+  each repository is checked out; without one the endpoints answer `503` and the
+  panel says so.
 - The status board now tracks **GitHub Copilot CLI** sessions locally, alongside
   Claude Code ones. `maggie-workspace --agent copilot` merges Copilot hooks into
   each checkout's `.github/copilot/settings.local.json` (`sessionStart`,

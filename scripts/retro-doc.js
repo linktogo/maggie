@@ -2,8 +2,13 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn as nodeSpawn } from 'node:child_process';
 
 export const DEFAULT_MODEL = 'claude-opus-5';
+export const DEFAULT_PROVIDER = 'claude';
+export const PROVIDERS = ['claude', 'claude-cli', 'copilot'];
+export const DEFAULT_WORKSPACE = 'wk';
+export const DEFAULT_TIMEOUT_SECONDS = 600;
 export const DEFAULT_OUT = 'docs/ai/retro-documentation.md';
 export const DEFAULT_LANG = 'English';
 export const DEFAULT_MAX_CHARS = 200000;
@@ -37,33 +42,51 @@ export const PRICING = {
 
 export const USAGE = `Usage: node scripts/retro-doc.js [options]
 
-Reads every spec and plan of a target repository and asks Claude to write a
+Reads every spec and plan of a target repository and asks an LLM to write a
 single retro-documentation file, structured for an AI agent about to work in
 that repository.
 
+With no --repo and no --provider on a terminal, it asks which repository of the
+workspace to document and which LLM to use.
+
 Options:
-  --repo <path>       Target repository (default: the current directory)
+  --repo <path|name>  Target repository: a path, or the name of a checkout in
+                      the workspace (default: ask, or the current directory)
+  --workspace <dir>   Where the repository checkouts live (default: ${DEFAULT_WORKSPACE})
+  --provider <name>   ${PROVIDERS.join(' | ')} (default: ask, or ${DEFAULT_PROVIDER})
+                        claude      Anthropic API, needs ANTHROPIC_API_KEY
+                        claude-cli  the local \`claude\` CLI, uses its own login
+                        copilot     the local \`copilot\` CLI, uses its own login
+  --provider-command  Override the command a CLI provider runs, e.g.
+                      "copilot --allow-all-tools --model claude-sonnet-4.5"
+  --model <id>        Model id (default: ${DEFAULT_MODEL} for the API provider,
+                      the CLI's own default otherwise)
   --out <path>        Output file, relative to the repo (default: ${DEFAULT_OUT})
   --include <path>    Extra file or directory to read; repeatable. Replaces the
                       default spec/plan locations when given.
-  --model <id>        Claude model (default: ${DEFAULT_MODEL})
   --lang <language>   Language of the generated document (default: ${DEFAULT_LANG})
   --max-chars <n>     Characters of source per digest call (default: ${DEFAULT_MAX_CHARS})
+  --timeout <n>       Seconds a CLI provider may take per call (default: ${DEFAULT_TIMEOUT_SECONDS})
   --stdout            Print the document instead of writing it
-  --dry-run           List what would be sent and what it would cost; no API call
+  --dry-run           List what would be sent and what it would cost; no LLM call
   -h, --help          Show this help
 
-Authentication: the Anthropic SDK reads ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
-or the profile left by \`ant auth login\`.`;
+Authentication: the API provider reads ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
+or the profile left by \`ant auth login\`. The CLI providers use whatever login
+\`claude\` and \`copilot\` already have.`;
 
 export function parseArgs(argv) {
   const options = {
-    repo: '.',
+    repo: null,
+    workspace: DEFAULT_WORKSPACE,
+    provider: null,
+    providerCommand: null,
     out: DEFAULT_OUT,
     include: [],
-    model: DEFAULT_MODEL,
+    model: null,
     lang: DEFAULT_LANG,
     maxChars: DEFAULT_MAX_CHARS,
+    timeout: DEFAULT_TIMEOUT_SECONDS,
     stdout: false,
     dryRun: false,
     help: false,
@@ -78,6 +101,21 @@ export function parseArgs(argv) {
     switch (flag) {
       case '--repo':
         options.repo = value(i, flag);
+        i += 1;
+        break;
+      case '--workspace':
+        options.workspace = value(i, flag);
+        i += 1;
+        break;
+      case '--provider': {
+        const provider = value(i, flag);
+        if (!PROVIDERS.includes(provider)) throw new Error(`--provider expects one of ${PROVIDERS.join(', ')}, got "${provider}"`);
+        options.provider = provider;
+        i += 1;
+        break;
+      }
+      case '--provider-command':
+        options.providerCommand = value(i, flag);
         i += 1;
         break;
       case '--out':
@@ -104,6 +142,14 @@ export function parseArgs(argv) {
         i += 1;
         break;
       }
+      case '--timeout': {
+        const raw = value(i, flag);
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed) || parsed <= 0) throw new Error(`--timeout expects a positive integer, got "${raw}"`);
+        options.timeout = parsed;
+        i += 1;
+        break;
+      }
       case '--stdout':
         options.stdout = true;
         break;
@@ -119,6 +165,32 @@ export function parseArgs(argv) {
     }
   }
   return options;
+}
+
+/**
+ * The repositories this run could document: the current directory first, then
+ * every checkout of the workspace `maggie-workspace` bootstraps into.
+ */
+export function listRepoCandidates({ cwd = process.cwd(), workspace = DEFAULT_WORKSPACE } = {}) {
+  const candidates = [{ name: `${path.basename(path.resolve(cwd))} (current directory)`, path: path.resolve(cwd) }];
+  const workspaceDir = path.resolve(cwd, workspace);
+  if (existsSync(workspaceDir) && statSync(workspaceDir).isDirectory()) {
+    for (const entry of readdirSync(workspaceDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      const abs = path.join(workspaceDir, entry.name);
+      if (existsSync(path.join(abs, '.git'))) candidates.push({ name: `${entry.name} (${workspace}/)`, path: abs });
+    }
+  }
+  return candidates;
+}
+
+/** `--repo` takes a path, or the name of a checkout in the workspace. */
+export function resolveRepoArg(value, { cwd = process.cwd(), workspace = DEFAULT_WORKSPACE } = {}) {
+  const asPath = path.resolve(cwd, value);
+  if (existsSync(asPath)) return asPath;
+  const inWorkspace = path.resolve(cwd, workspace, value);
+  if (existsSync(inWorkspace)) return inWorkspace;
+  return asPath;
 }
 
 function walkMarkdown(absDir, repoRoot, accept, found) {
@@ -362,7 +434,15 @@ ${digests.join('\n\n')}
 </digests>`;
 }
 
-export function renderOutput({ body, context, sources, model, generatedAt }) {
+/** How the generator is named in the document header and in --dry-run. */
+export function describeProvider({ provider, model = null, providerCommand: override = null }) {
+  if (provider === 'claude') return model ?? DEFAULT_MODEL;
+  const { command } = providerCommand(provider, { override });
+  const name = command === 'copilot' ? 'GitHub Copilot CLI' : `${command} CLI`;
+  return model ? `${name} (${model})` : name;
+}
+
+export function renderOutput({ body, context, sources, generator, generatedAt }) {
   const index = sources
     .map((source) => `| ${source.date ?? '—'} | ${source.kind} | ${source.title.replace(/\|/g, '\\|')} | \`${source.path}\` |`)
     .join('\n');
@@ -370,7 +450,7 @@ export function renderOutput({ body, context, sources, model, generatedAt }) {
 
 # Retro-documentation — ${context.name}
 
-> Reconstructed from ${sources.length} design document(s) by \`${model}\` on ${generatedAt}.
+> Reconstructed from ${sources.length} design document(s) by \`${generator}\` on ${generatedAt}.
 > It describes the repository **as designed**, not as it stands today: the code is the
 > authority, this is the intent behind it. Regenerate after a design change:
 > \`node scripts/retro-doc.js --repo <path>\`.
@@ -385,7 +465,7 @@ ${index}
 `;
 }
 
-export async function generateRetroDoc({ sources, context, complete, model, lang = DEFAULT_LANG, maxChars = DEFAULT_MAX_CHARS, log = () => {}, now = () => new Date() }) {
+export async function generateRetroDoc({ sources, context, complete, generator, lang = DEFAULT_LANG, maxChars = DEFAULT_MAX_CHARS, log = () => {}, now = () => new Date() }) {
   const batches = planBatches(sources, maxChars);
   const digests = [];
   for (const [index, batch] of batches.entries()) {
@@ -411,11 +491,77 @@ export async function generateRetroDoc({ sources, context, complete, model, lang
       body,
       context,
       sources,
-      model,
+      generator,
       generatedAt: now().toISOString().slice(0, 10),
     }),
     digests,
   };
+}
+
+/**
+ * How each CLI provider is invoked. The prompt goes in on stdin — both CLIs
+ * accept it that way — so a 200 000-character batch never has to fit in argv.
+ */
+export function providerCommand(provider, { model = null, override = null } = {}) {
+  if (override) {
+    const [command, ...args] = override.split(/\s+/).filter(Boolean);
+    return { command, args };
+  }
+  const modelArgs = model ? ['--model', model] : [];
+  if (provider === 'claude-cli') return { command: 'claude', args: ['-p', ...modelArgs] };
+  // `--allow-all-tools` is what GitHub documents for non-interactive runs: without
+  // it the CLI can stop on an approval prompt no one is there to answer.
+  return { command: 'copilot', args: ['--allow-all-tools', ...modelArgs] };
+}
+
+export function runCommand({ command, args, input, timeoutMs = 0, spawn = nodeSpawn }) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const timer = timeoutMs
+      ? setTimeout(() => {
+          settled = true;
+          child.kill('SIGTERM');
+          reject(new Error(`\`${command}\` produced nothing after ${Math.round(timeoutMs / 1000)}s — raise --timeout or check that it is logged in.`));
+        }, timeoutMs)
+      : null;
+    const settle = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      fn(arg);
+    };
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('error', (err) => settle(reject, new Error(`Could not run \`${command}\`: ${err.message}`)));
+    child.on('close', (code) => {
+      if (code === 0) settle(resolve, stdout);
+      else settle(reject, new Error(`\`${command}\` exited with code ${code}${stderr.trim() ? `: ${stderr.trim().slice(0, 400)}` : ''}`));
+    });
+    child.stdin.end(input);
+  });
+}
+
+/**
+ * A `complete` backed by a local agent CLI. Neither CLI takes a system prompt,
+ * so it is folded into the message — they are the same instructions either way.
+ */
+export function createCliComplete({ provider, model = null, override = null, timeoutMs = DEFAULT_TIMEOUT_SECONDS * 1000, spawn = nodeSpawn }) {
+  const { command, args } = providerCommand(provider, { model, override });
+  return async ({ system, prompt }) => {
+    const stdout = await runCommand({ command, args, input: `${system}\n\n---\n\n${prompt}`, timeoutMs, spawn });
+    const text = stdout.trim();
+    if (!text) throw new Error(`\`${command}\` returned nothing. Run it once by hand to check it is logged in.`);
+    return text;
+  };
+}
+
+/** Resolve the provider the run was asked for into a `complete` function. */
+export async function createComplete({ provider, model, providerCommand: override = null, timeoutMs, spawn } = {}) {
+  if (provider === 'claude') return createAnthropicComplete({ model });
+  return createCliComplete({ provider, model, override, timeoutMs, spawn });
 }
 
 /** A `complete` backed by the Anthropic SDK, imported lazily so the module loads without it. */
@@ -443,23 +589,55 @@ export async function createAnthropicComplete({ model = DEFAULT_MODEL } = {}) {
   };
 }
 
-export function formatDryRun({ sources, batches, model, out }) {
+export function formatDryRun({ sources, batches, provider, model, generator, out }) {
   const chars = sources.reduce((sum, source) => sum + source.chars, 0);
   const inputTokens = estimateTokens(chars) + batches.length * 700;
   const outputTokens = batches.length * 2500 + 12000;
-  const cost = estimateCost(model, inputTokens, outputTokens);
+  const cost = provider === 'claude' ? estimateCost(model ?? DEFAULT_MODEL, inputTokens, outputTokens) : null;
   const lines = [
     `Sources: ${sources.length} document(s), ${chars} characters`,
     ...sources.map((source) => `  ${source.date ?? '        —'}  ${source.kind.padEnd(15)} ${source.path}`),
-    `Calls: ${batches.length} digest + 1 synthesis, model ${model}`,
+    `Calls: ${batches.length} digest + 1 synthesis, through ${generator}`,
     `Estimated tokens: ~${inputTokens} in, ~${outputTokens} out`,
-    cost === null ? 'Estimated cost: unknown for this model' : `Estimated cost: ~$${cost.toFixed(2)} (list price, indicative)`,
+    provider === 'claude'
+      ? (cost === null ? 'Estimated cost: unknown for this model' : `Estimated cost: ~$${cost.toFixed(2)} (list price, indicative)`)
+      : 'Estimated cost: billed by your CLI subscription, not by the Anthropic API',
     `Would write: ${out}`,
   ];
   return lines.join('\n');
 }
 
-export async function main(argv, { log = console.log, error = console.error, write = writeFileSync, completeFactory = createAnthropicComplete } = {}) {
+/** Default pickers: inquirer is loaded only when a terminal is actually going to be asked. */
+export async function promptRepo(candidates) {
+  const { select } = await import('@inquirer/prompts');
+  return select({
+    message: 'Quel dépôt documenter ?',
+    choices: candidates.map((candidate) => ({ name: candidate.name, value: candidate.path })),
+  });
+}
+
+export async function promptProvider() {
+  const { select } = await import('@inquirer/prompts');
+  return select({
+    message: 'Quel LLM utiliser ?',
+    choices: [
+      { name: 'Claude (API Anthropic — ANTHROPIC_API_KEY)', value: 'claude' },
+      { name: 'Claude Code (CLI local `claude`)', value: 'claude-cli' },
+      { name: 'GitHub Copilot (CLI local `copilot`)', value: 'copilot' },
+    ],
+  });
+}
+
+export async function main(argv, {
+  log = console.log,
+  error = console.error,
+  write = writeFileSync,
+  completeFactory = createComplete,
+  selectRepo = promptRepo,
+  selectProvider = promptProvider,
+  cwd = process.cwd(),
+  interactive = Boolean(process.stdin.isTTY),
+} = {}) {
   let options;
   try {
     options = parseArgs(argv);
@@ -473,11 +651,19 @@ export async function main(argv, { log = console.log, error = console.error, wri
     return 0;
   }
 
-  const repoRoot = path.resolve(options.repo);
+  // Asked for only when the run left the choice open and someone is there to answer.
+  const askRepo = options.repo === null && interactive;
+  const repoRoot = askRepo
+    ? path.resolve(await selectRepo(listRepoCandidates({ cwd, workspace: options.workspace })))
+    : resolveRepoArg(options.repo ?? '.', { cwd, workspace: options.workspace });
   if (!existsSync(repoRoot)) {
     error(`No such repository: ${repoRoot}`);
     return 1;
   }
+
+  const askProvider = options.provider === null && interactive && !options.dryRun;
+  const provider = askProvider ? await selectProvider() : options.provider ?? DEFAULT_PROVIDER;
+  const generator = describeProvider({ provider, model: options.model, providerCommand: options.providerCommand });
 
   const files = collectSourceFiles(repoRoot, { include: options.include });
   if (files.length === 0) {
@@ -489,16 +675,21 @@ export async function main(argv, { log = console.log, error = console.error, wri
   const outPath = path.resolve(repoRoot, options.out);
 
   if (options.dryRun) {
-    log(formatDryRun({ sources, batches, model: options.model, out: outPath }));
+    log(formatDryRun({ sources, batches, provider, model: options.model, generator, out: outPath }));
     return 0;
   }
 
-  const complete = await completeFactory({ model: options.model });
+  const complete = await completeFactory({
+    provider,
+    model: options.model,
+    providerCommand: options.providerCommand,
+    timeoutMs: options.timeout * 1000,
+  });
   const { markdown } = await generateRetroDoc({
     sources,
     context: collectRepoContext(repoRoot),
     complete,
-    model: options.model,
+    generator,
     lang: options.lang,
     maxChars: options.maxChars,
     log: (message) => error(message),

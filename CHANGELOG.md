@@ -13,13 +13,17 @@ changes in minor releases.
 ### Added
 
 - `scripts/retro-doc.js` (`npm run retro-doc`) reconstructs a single
-  **retro-documentation** file from a repository's specs and plans, using
-  Claude. It collects the design record of any target repo (`--repo`), digests
+  **retro-documentation** file from a repository's specs and plans, using an
+  LLM. It collects the design record of any target repo (`--repo`), digests
   it in batches that never split or truncate a document, then synthesises one
   agent-facing reference — orientation, glossary, architecture, decision log,
   invariants, workflows, drift and open questions — with a source index the
   script appends itself so every claim stays traceable. `--dry-run` lists the
-  sources, the call count and an indicative cost without touching the API. See
+  sources, the call count and an indicative cost without touching the API.
+  Run with no argument on a terminal, it asks which repository of the workspace
+  to document and which LLM to use; `--provider` picks between the Anthropic API
+  (`claude`), the local `claude` CLI and the local `copilot` CLI, the two CLIs
+  reusing the login they already have and taking the prompt on stdin. See
   [Retro-documentation](docs/retro-doc.md).
 - The status board now tracks **GitHub Copilot CLI** sessions locally, alongside
   Claude Code ones. `maggie-workspace --agent copilot` merges Copilot hooks into

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig, loadConfigFromRepo, resolveConfigSource } from '@linktogo/maggie-config';
 import { reconcileHooks, resolveHistoryPath, closeSession, queueMessage } from '@linktogo/maggie-workspace-bootstrap';
 import { createCiReader } from './ciReader.js';
+import { createRetroDocRunner } from './retroDocJobs.js';
 
 // Resolve the board file the server should read. Explicit --board and the
 // AI_SYNC_BOARD env var always win; otherwise auto-detect the workspace board
@@ -127,6 +128,30 @@ async function serveQueueMessage(boardPath, req, res) {
   res.end(JSON.stringify(result));
 }
 
+async function serveRetroDoc(runner, req, res, url) {
+  if (!runner) {
+    res.writeHead(503, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'no config loaded: start the board with --config to know where each repo is checked out' }));
+    return;
+  }
+  if (req.method === 'GET') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ jobs: runner.list(url.searchParams.get('repo')) }));
+    return;
+  }
+  let body;
+  try {
+    body = await readJSONBody(req);
+  } catch {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'invalid JSON body' }));
+    return;
+  }
+  const started = runner.start({ repo: body?.repo, provider: body?.provider ?? 'claude', model: body?.model ?? null });
+  res.writeHead(started.status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(started.job ? { job: started.job } : { error: started.error }));
+}
+
 async function serveStatic(distDir, pathname, res) {
   const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
   const file = path.join(distDir, rel);
@@ -146,8 +171,13 @@ async function serveStatic(distDir, pathname, res) {
   }
 }
 
-export function createBoardServer({ boardPath, distDir, config = null, ciReader = null }) {
+export function createBoardServer({ boardPath, distDir, config = null, ciReader = null, retroDoc = undefined }) {
   const historyPath = resolveHistoryPath(boardPath);
+  // Without a config the board cannot know where a repo is checked out, so the
+  // endpoint answers 503 rather than guessing a directory to write into.
+  const retroDocRunner = retroDoc === undefined
+    ? (config ? createRetroDocRunner({ boardPath, config }) : null)
+    : retroDoc;
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -157,6 +187,7 @@ export function createBoardServer({ boardPath, distDir, config = null, ciReader 
       if (url.pathname === '/api/ci') return await serveCi(ciReader, config, res);
       if (url.pathname === '/api/sessions/close' && req.method === 'POST') return await serveCloseSession(boardPath, req, res);
       if (url.pathname === '/api/sessions/message' && req.method === 'POST') return await serveQueueMessage(boardPath, req, res);
+      if (url.pathname === '/api/retro-doc' && (req.method === 'GET' || req.method === 'POST')) return await serveRetroDoc(retroDocRunner, req, res, url);
       return await serveStatic(distDir, url.pathname, res);
     } catch (err) {
       res.writeHead(500, { 'content-type': 'text/plain' });

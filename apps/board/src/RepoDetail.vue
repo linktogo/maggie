@@ -13,8 +13,19 @@ const props = defineProps({
   meta: { type: Object, default: null },
   now: { type: Number, default: () => Date.now() },
   ci: { type: Object, default: null },
+  retroDoc: { type: Object, default: null },
+  retroDocAvailable: { type: Boolean, default: true },
 });
-const emit = defineEmits(['close', 'send-message']);
+const emit = defineEmits(['close', 'send-message', 'generate-retro-doc']);
+
+const provider = ref('claude');
+const retroRunning = computed(() => props.retroDoc?.status === 'running');
+// The last log line the run emitted — "digesting batch 2/5" is the only
+// progress there is to show while a generation is in flight.
+const retroProgress = computed(() => props.retroDoc?.log?.at(-1) ?? null);
+function generateRetroDoc() {
+  emit('generate-retro-doc', { repo: props.name, provider: provider.value });
+}
 
 const ciUsers = computed(() => visibleBadges(props.ci?.users, Infinity).shown);
 
@@ -74,6 +85,41 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             class="shrink-0 rounded-sm bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >{{ t('session.send') }}</button>
         </form>
+      </template>
+
+      <h3 class="mt-4 text-xs font-semibold text-slate-500 uppercase">{{ t('detail.retroDoc') }}</h3>
+      <p v-if="!retroDocAvailable" data-test="retro-doc-unavailable" class="mt-1 text-xs text-slate-500">
+        {{ t('detail.retroDocUnavailable') }}
+      </p>
+      <template v-else>
+        <p class="mt-1 text-xs text-slate-400">{{ t('detail.retroDocHint') }}</p>
+        <div class="mt-2 flex items-center gap-1">
+          <select
+            v-model="provider"
+            data-test="retro-doc-provider"
+            class="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-hidden"
+          >
+            <option value="claude">Claude (API)</option>
+            <option value="claude-cli">Claude Code (CLI)</option>
+            <option value="copilot">GitHub Copilot (CLI)</option>
+          </select>
+          <button
+            type="button"
+            data-test="retro-doc-run"
+            :disabled="retroRunning"
+            class="shrink-0 rounded-sm bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            @click="generateRetroDoc"
+          >{{ retroRunning ? t('detail.retroDocRunning') : t('detail.retroDocRun') }}</button>
+        </div>
+        <p v-if="retroRunning" data-test="retro-doc-progress" class="mt-1 text-xs text-slate-600">
+          ⏳ {{ retroProgress ?? t('detail.retroDocRunning') }}
+        </p>
+        <p v-else-if="retroDoc?.status === 'done'" data-test="retro-doc-done" class="mt-1 text-xs text-slate-600">
+          ✓ {{ t('detail.retroDocDone', { out: retroDoc.out }) }} · {{ retroDoc.generator }}
+        </p>
+        <p v-else-if="retroDoc?.status === 'error'" data-test="retro-doc-error" class="mt-1 text-xs text-amber-700">
+          ⚠ {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
+        </p>
       </template>
 
       <h3 class="mt-4 text-xs font-semibold text-slate-500 uppercase">{{ t('detail.ci') }}</h3>

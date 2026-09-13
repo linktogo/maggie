@@ -54,6 +54,8 @@ and prints where it settled, so avoid starting a second instance by accident.
 | `GET /api/ci` | Per-contributor CI status — see [CI status](ci-status.md). |
 | `POST /api/sessions/close` | Closes a session: removes it from the board and appends a history entry. Body: `{ repo, sessionId }`. |
 | `POST /api/sessions/message` | Queues a message for a session (see [Messaging a session](#messaging-a-session)). Body: `{ repo, sessionId, message }`. |
+| `POST /api/retro-doc` | Starts a retro-documentation of a repo (see [Generating a retro-documentation](#generating-a-retro-documentation)). Body: `{ repo, provider, model }`. |
+| `GET /api/retro-doc` | The jobs of this board session, newest first; `?repo=<name>` narrows it. |
 | anything else | The built front-end, with an SPA fallback to `index.html`. |
 
 ## `board.json`
@@ -134,6 +136,28 @@ you to type the next prompt. The `messages` subcommand
 (`maggie-workspace messages <repo> --agent copilot`) is the delivery-only entry
 point the `sessionStart` hook uses; it drains the queue without touching the
 session's status.
+
+## Generating a retro-documentation
+
+Each repository's detail panel carries a **Retro-documentation** section: pick an
+LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
+the board reconstructs that repository's reference document from its specs and
+plans, into `docs/ai/retro-documentation.md` inside the checkout. See
+[Retro-documentation](retro-doc.md) for what it reads and what it writes.
+
+The run takes minutes, so `POST /api/retro-doc` answers `202` as soon as the job
+is accepted and the panel polls `GET /api/retro-doc` for what became of it: the
+batch it is on while running, the path it wrote when done, what the LLM or its
+CLI said when it failed. One run at a time per repository — a second `POST` gets
+a `409`. Jobs live in the board process, so restarting it forgets them; the
+generated file stays.
+
+The board needs to know **where each repository is checked out**, which it only
+knows when started with a config (`--config`, or `AI_SYNC_CONFIG`). Without one
+both routes answer `503` and the panel says so rather than guessing a directory
+to write into. The checkout is resolved the same way hook reconciliation
+resolves it: `path` from the config when it pins one, otherwise
+`<workspace>/<name>`.
 
 ## Language
 

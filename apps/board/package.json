@@ -6,6 +6,7 @@
   "dependencies": {
     "@linktogo/maggie-ci-status": "^1.1.0",
     "@linktogo/maggie-config": "^1.1.0",
+    "@linktogo/maggie-retro-doc": "^1.1.0",
     "@linktogo/maggie-workspace-bootstrap": "^1.1.0",
     "chart.js": "^4.5.1",
     "vue": "^3.5.0",
@@ -51,8 +52,15 @@
       "test": {
         "dependsOn": [
           "test-server",
-          "test-reader"
+          "test-reader",
+          "test-retro-doc"
         ]
+      },
+      "test-retro-doc": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test apps/board/retroDocJobs.test.js"
+        }
       }
     }
   }

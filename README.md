@@ -76,6 +76,7 @@ Full reference lives in [`docs/`](docs/README.md):
 | [`maggie-workspace` CLI](docs/workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
 | [Board dashboard](docs/board-dashboard.md) | The kanban dashboard, its server and endpoints |
 | [CI status](docs/ci-status.md) | Per-contributor CI badges on the board, and how to enable them |
+| [Retro-documentation](docs/retro-doc.md) | Folding a repository's specs and plans into one document an agent can read |
 | [Architecture](docs/architecture.md) | Nx layout, module boundaries, testing and coverage gates |
 
 `docs/superpowers/` holds the design record — one spec and plan per feature,

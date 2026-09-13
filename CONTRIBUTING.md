@@ -34,6 +34,11 @@ npm run build       # nx run-many -t build
 npm start           # build + serve the kanban dashboard
 ```
 
+`npm run retro-doc -- --repo <path> --dry-run` reconstructs a repository's
+design record into one agent-facing document; `--dry-run` shows what it would
+read and cost without calling the API. See
+[Retro-documentation](docs/retro-doc.md).
+
 The screenshots in `docs/images` are generated, not captured by hand:
 
 ```bash

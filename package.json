@@ -63,6 +63,7 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "test:scripts": "node --test scripts/*.test.js",
+    "retro-doc": "node scripts/retro-doc.js",
     "build": "nx run-many -t build",
     "start": "nx run board:start",
     "sync": "node apps/sync/bin/sync.js",
@@ -73,6 +74,7 @@
     "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "@eslint/js": "^10.0.1",
     "@nx/eslint": "^23.1.1",
     "@nx/eslint-plugin": "^23.1.1",

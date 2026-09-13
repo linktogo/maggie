@@ -13,6 +13,7 @@ the overview and quickstart; these pages are the detail.
 | [`maggie-workspace` CLI](workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
 | [Board dashboard](board-dashboard.md) | The kanban dashboard, its server and endpoints |
 | [CI status](ci-status.md) | Per-contributor CI badges on the board, and how to enable them |
+| [Retro-documentation](retro-doc.md) | Folding a repository's specs and plans into one document an agent can read |
 
 ## Working on maggie
 

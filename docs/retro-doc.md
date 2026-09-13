@@ -1,6 +1,6 @@
 # Retro-documentation
 
-`scripts/retro-doc.js` reads every spec and plan of a repository and asks Claude
+`scripts/retro-doc.js` reads every spec and plan of a repository and asks an LLM
 to reconstruct one reference document from them — the *why* behind a codebase,
 written for the AI agent about to change it.
 
@@ -12,12 +12,68 @@ were later reversed. This script folds them into a single document an agent can
 read before it starts.
 
 ```bash
+node scripts/retro-doc.js                                 # ask which repo, which LLM, then write
 node scripts/retro-doc.js --repo ../some-repo --dry-run   # what it would read and cost
-node scripts/retro-doc.js --repo ../some-repo             # write docs/ai/retro-documentation.md
+npm run retro-doc -- --repo api --provider copilot        # a workspace checkout, through Copilot
 ```
+
+Run with no arguments on a terminal and it asks two questions — which repository
+of the workspace to document, and which LLM to use — then runs. Every answer can
+be given upfront as a flag instead, which is what makes it usable from a script,
+a hook or a CI job.
 
 The output is meant to be **committed** to the target repository: it is how the
 next agent session finds it.
+
+## Choosing the repository
+
+`--repo` takes either a path or the **name of a checkout in the workspace**
+(`wk/` by default, `--workspace` to move it), so the same name that appears on
+the board works here:
+
+```bash
+npm run retro-doc -- --repo api          # documents wk/api
+npm run retro-doc -- --repo ../other     # documents a path
+```
+
+With no `--repo` on a terminal, the script lists the current directory followed
+by every git checkout of the workspace and asks. With no `--repo` and no
+terminal — a cron job, a hook, a CI step — it documents the current directory
+and asks nothing.
+
+## Choosing the LLM
+
+`--provider` picks who writes the document. All three read the same prompts; they
+differ in what they bill and what they need to be logged in.
+
+| `--provider` | Runs | Authentication |
+|---|---|---|
+| `claude` (default) | The Anthropic API, through the official SDK | `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, or an `ant auth login` profile |
+| `claude-cli` | The local `claude` CLI (`claude -p`) | Whatever Claude Code is already logged in as |
+| `copilot` | The local `copilot` CLI (`copilot --allow-all-tools`) | Whatever GitHub Copilot CLI is already logged in as |
+
+The two CLI providers get the prompt **on stdin**, which is what both CLIs
+document for [programmatic use](https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically)
+— a 200 000-character batch would not fit in a command-line argument. They are
+the cheap path: nothing is billed to an API key, the work goes through the
+subscription the CLI already has.
+
+`--allow-all-tools` is passed to `copilot` because without it the CLI can stop on
+an approval prompt that nobody is there to answer in a non-interactive run. The
+prompt it receives asks for prose, not for actions, but the flag does grant the
+agent the rights of the user running it — `--provider-command` replaces the whole
+command when that is not what you want:
+
+```bash
+npm run retro-doc -- --provider copilot --provider-command "copilot"
+npm run retro-doc -- --provider claude-cli --provider-command "claude -p --model claude-opus-5"
+```
+
+`--model` is passed through to whichever provider is in use (`--model
+claude-sonnet-5` on the API, `--model` on either CLI); leave it out and each CLI
+picks its own default. A CLI that answers nothing, or nothing within `--timeout`
+seconds (600 by default), fails the run with what it printed on stderr rather
+than hanging.
 
 ## What it reads
 
@@ -58,8 +114,9 @@ Two phases, because a large design record does not fit in one useful prompt:
 2. **Synthesis** — every digest, plus the repository's own README, package name
    and top-level layout, goes into a single call that writes the document.
 
-Both calls run on `claude-opus-5` with adaptive thinking, streamed. `--model`
-takes any other model id.
+On the `claude` provider both calls run on `claude-opus-5` with adaptive
+thinking, streamed. On a CLI provider they are two invocations of that CLI, each
+fed the same prompt on stdin.
 
 ## What it writes
 
@@ -90,14 +147,18 @@ of its own rather than a footnote.
 
 | Option | Default | Effect |
 |---|---|---|
-| `--repo <path>` | `.` | Repository to read |
+| `--repo <path\|name>` | ask, else `.` | Repository to read: a path, or a workspace checkout name |
+| `--workspace <dir>` | `wk` | Where the checkouts live |
+| `--provider <name>` | ask, else `claude` | `claude`, `claude-cli` or `copilot` |
+| `--provider-command` | — | Replace the command a CLI provider runs |
+| `--model <id>` | `claude-opus-5` on the API | Model id, passed to whichever provider runs |
 | `--out <path>` | `docs/ai/retro-documentation.md` | Output, relative to the repo |
 | `--include <path>` | the list above | Extra source location; repeatable, replaces the defaults |
-| `--model <id>` | `claude-opus-5` | Any Claude model id |
 | `--lang <language>` | `English` | Language of the generated document |
 | `--max-chars <n>` | `200000` | Source characters per digest call |
+| `--timeout <n>` | `600` | Seconds a CLI provider may take per call |
 | `--stdout` | — | Print instead of writing |
-| `--dry-run` | — | List the sources, the calls and an indicative cost; no API call |
+| `--dry-run` | — | List the sources, the calls and an indicative cost; no LLM call |
 | `-h`, `--help` | — | Usage |
 
 `--dry-run` is the way to see what a run would cost before paying for it:
@@ -106,7 +167,7 @@ of its own rather than a footnote.
 Sources: 30 document(s), 809943 characters
   2026-06-14  spec            docs/superpowers/specs/2026-06-14-skill-sync-design.md
   …
-Calls: 5 digest + 1 synthesis, model claude-opus-5
+Calls: 5 digest + 1 synthesis, through claude-opus-5
 Estimated tokens: ~205986 in, ~24500 out
 Estimated cost: ~$1.64 (list price, indicative)
 Would write: /home/user/maggie/docs/ai/retro-documentation.md
@@ -114,17 +175,22 @@ Would write: /home/user/maggie/docs/ai/retro-documentation.md
 
 ## Authentication
 
-The script uses the [Anthropic SDK](https://github.com/anthropics/anthropic-sdk-typescript),
+The `claude` provider uses the [Anthropic SDK](https://github.com/anthropics/anthropic-sdk-typescript),
 a dev dependency of this repository, which resolves credentials in this order:
 `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, then the profile left by
-`ant auth login`. Nothing else is needed:
+`ant auth login`:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-…
 npm run retro-doc -- --repo ../some-repo
 ```
 
-`--dry-run` needs no credentials at all.
+The `claude-cli` and `copilot` providers need no key at all — they reuse the
+login the CLI already has, which is also why they are the easy answer on a
+machine that is already running one of those agents.
+
+`--dry-run` needs no credentials at all, whichever provider is selected: it
+never reaches an LLM, and never even asks which one to use.
 
 ## Regenerating
 

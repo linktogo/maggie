@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { generateRetroDoc, runRetroDoc } from '../src/pipeline.js';
+import { formatDuration, generateRetroDoc, runRetroDoc } from '../src/pipeline.js';
 
 function makeRepo(files) {
   const root = mkdtempSync(path.join(tmpdir(), 'retro-doc-'));
@@ -45,7 +45,17 @@ test('generateRetroDoc digests each batch, then synthesises once from the digest
   assert.match(calls.at(-1).prompt, /digest of digest 2\/2/);
   assert.match(markdown, /Synthesised\./);
   assert.match(markdown, /on 2026-09-13/);
-  assert.equal(logged.length, 3);
+
+  // Every call is announced and then reported: a long call must not look frozen.
+  assert.deepEqual(logged, [
+    'digest 1/2: 1 document(s), 80 chars — specs/a.md',
+    '  ↳ digest 1/2 answered in 0s — 20 chars',
+    'digest 2/2: 1 document(s), 80 chars — plans/b.md',
+    '  ↳ digest 2/2 answered in 0s — 20 chars',
+    'synthesis: 2 digest(s), 391 chars — writing the document',
+    '  ↳ synthesis answered in 0s — 28 chars',
+    'done — 2 source document(s) folded into 28 chars',
+  ]);
 });
 
 test('generateRetroDoc sends the full text of every source, never a truncation', async () => {
@@ -133,4 +143,30 @@ test('runRetroDoc lets the caller supply the writer, so nothing has to touch the
   assert.equal(written.length, 1);
   assert.equal(written[0].contents, result.markdown);
   assert.equal(existsSync(path.join(root, 'docs/ai/retro-documentation.md')), false);
+});
+
+test('formatDuration reads in seconds, then in minutes', () => {
+  assert.equal(formatDuration(0), '0s');
+  assert.equal(formatDuration(4400), '4s');
+  assert.equal(formatDuration(59_400), '59s');
+  assert.equal(formatDuration(60_000), '1m 00s');
+  assert.equal(formatDuration(102_000), '1m 42s');
+  assert.equal(formatDuration(3_600_000), '60m 00s');
+});
+
+test('generateRetroDoc times each call from the clock it was given', async () => {
+  let tick = 0;
+  const logged = [];
+  await generateRetroDoc({
+    sources: [{ path: 'specs/a.md', title: 'A', kind: 'spec', date: null, text: 'x', chars: 1 }],
+    context: { name: 'x', description: '', entries: [], readme: '' },
+    // Each reading of the clock advances it by a minute, so the two calls are
+    // reported as having taken one minute each.
+    now: () => new Date(Date.parse('2026-09-14T00:00:00Z') + (tick++) * 60_000),
+    complete: async () => 'body',
+    generator: 'x',
+    log: (message) => logged.push(message),
+  });
+  assert.ok(logged.includes('  ↳ digest 1/1 answered in 1m 00s — 4 chars'), logged.join('\n'));
+  assert.ok(logged.includes('  ↳ synthesis answered in 1m 00s — 4 chars'), logged.join('\n'));
 });

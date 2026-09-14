@@ -18,7 +18,10 @@ changes in minor releases.
   it in batches that never split or truncate a document, then synthesises one
   agent-facing reference — orientation, glossary, architecture, decision log,
   invariants, workflows, drift and open questions — with a source index the
-  script appends itself so every claim stays traceable. `--dry-run` lists the
+  script appends itself so every claim stays traceable. Every LLM call is
+  announced before it goes out and reported when it comes back (how long it
+  took, how much came back), since a single call over a 200 000-character batch
+  runs for minutes in silence and would otherwise look like a freeze. `--dry-run` lists the
   sources, the call count and an indicative cost without touching the API.
   Run with no argument on a terminal, it asks which repository of the workspace
   to document and which LLM to use; `--provider` picks between the Anthropic API
@@ -33,7 +36,8 @@ changes in minor releases.
   every repository of the config — technologies, choice of LLM, state of the
   last run, button — or from a repository's detail panel, which clicking its
   name on its card now opens (previously only a session row did, which left an
-  idle repo unreachable). Both are backed by
+  idle repo unreachable). Both carry a timestamped **console** of the run — open
+  while it is in flight, one toggle away afterwards — and both are backed by
   `POST /api/retro-doc` and `GET /api/retro-doc`. The run happens in the board
   process and the panel polls it, showing the batch in flight, the path written,
   or what the CLI said when it failed — one run at a time per repository. The

@@ -66,6 +66,9 @@ export function createRetroDocRunner({
     };
     jobs.set(job.id, job);
 
+    const note = (text) => job.log.push({ at: now().toISOString(), text });
+    note(`starting on ${repoRoot} through ${job.generator}`);
+
     settled.set(job.id, (async () => {
       try {
         const complete = await completeFactory({ provider, model });
@@ -73,13 +76,17 @@ export function createRetroDocRunner({
           repoRoot,
           complete,
           generator: job.generator,
-          log: (message) => job.log.push(message),
+          // Timestamped, because the interesting question about a line is when
+          // it appeared: a run that looks frozen is one whose last line is old.
+          log: note,
         });
         job.status = 'done';
         job.out = path.relative(repoRoot, result.outPath);
+        note(`wrote ${job.out}`);
       } catch (err) {
         job.status = 'error';
         job.error = err.message;
+        note(`error: ${err.message}`);
       }
       job.finishedAt = now().toISOString();
       return publicJob(job);

@@ -149,11 +149,25 @@ plans, into `docs/ai/retro-documentation.md` inside the checkout. See
 [Retro-documentation](retro-doc.md) for what it reads and what it writes.
 
 The run takes minutes, so `POST /api/retro-doc` answers `202` as soon as the job
-is accepted and the panel polls `GET /api/retro-doc` for what became of it: the
-batch it is on while running, the path it wrote when done, what the LLM or its
-CLI said when it failed. One run at a time per repository — a second `POST` gets
-a `409`. Jobs live in the board process, so restarting it forgets them; the
-generated file stays.
+is accepted and the panel polls `GET /api/retro-doc` for what became of it. One
+run at a time per repository — a second `POST` gets a `409`. Jobs live in the
+board process, so restarting it forgets them; the generated file stays.
+
+Each job carries a **console**: timestamped lines, open by default while the run
+is in flight and one toggle away afterwards. A single LLM call over a 200 000-
+character batch takes minutes and says nothing while it runs, so every call is
+both announced and reported:
+
+```
+09:19:14  starting on /home/fabien/wk/lk-mind through GitHub Copilot CLI
+09:19:15  digest 1/5: 6 document(s), 187432 chars — docs/superpowers/plans/…
+09:20:57    ↳ digest 1/5 answered in 1m 42s — 4821 chars
+09:20:58  digest 2/5: 5 document(s), 192135 chars — docs/superpowers/plans/…
+```
+
+That is how you tell a slow run from a stuck one: the row also shows how long it
+has been running, so a last line two minutes old with a call in flight is
+normal, and a last line ten minutes old is the call about to hit its timeout.
 
 The board needs to know **where each repository is checked out**, which it only
 knows when started with a config (`--config`, or `AI_SYNC_CONFIG`). Without one

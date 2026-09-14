@@ -45,4 +45,4 @@ export {
   runCommand,
 } from './providers.js';
 
-export { generateRetroDoc, runRetroDoc } from './pipeline.js';
+export { formatDuration, generateRetroDoc, runRetroDoc } from './pipeline.js';

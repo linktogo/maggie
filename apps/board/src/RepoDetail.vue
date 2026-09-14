@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onUnmounted, computed, ref } from 'vue';
 import { relativeTime } from './useRelativeTime.js';
+import RetroDocLog from './RetroDocLog.vue';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 
@@ -20,9 +21,9 @@ const emit = defineEmits(['close', 'send-message', 'generate-retro-doc']);
 
 const provider = ref('claude');
 const retroRunning = computed(() => props.retroDoc?.status === 'running');
-// The last log line the run emitted — "digesting batch 2/5" is the only
-// progress there is to show while a generation is in flight.
-const retroProgress = computed(() => props.retroDoc?.log?.at(-1) ?? null);
+// The last log line the run emitted — the whole console sits under it.
+const retroProgress = computed(() => props.retroDoc?.log?.at(-1)?.text ?? null);
+const retroLog = computed(() => props.retroDoc?.log ?? []);
 function generateRetroDoc() {
   emit('generate-retro-doc', { repo: props.name, provider: provider.value });
 }
@@ -120,6 +121,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
         <p v-else-if="retroDoc?.status === 'error'" data-test="retro-doc-error" class="mt-1 text-xs text-amber-700">
           ⚠ {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
         </p>
+        <RetroDocLog v-if="retroLog.length" :log="retroLog" />
       </template>
 
       <h3 class="mt-4 text-xs font-semibold text-slate-500 uppercase">{{ t('detail.ci') }}</h3>

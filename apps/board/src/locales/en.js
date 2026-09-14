@@ -13,6 +13,9 @@ export default {
   'retro.lastRun': 'Last run',
   'retro.never': 'Not generated in this board session',
   'retro.noRepos': 'No repository in the config.',
+  'retro.showLog': 'log',
+  'retro.hideLog': 'hide log',
+  'retro.elapsed': 'running for {elapsed}',
 
   'notifications.enable': 'enable',
   'notifications.sound': 'sound',

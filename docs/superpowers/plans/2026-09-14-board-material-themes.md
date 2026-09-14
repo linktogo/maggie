@@ -18,6 +18,7 @@ Everything in this plan lives in `apps/board/`. Two things about this app that a
 
 1. **Tailwind is configured from CSS, not a config file.** `apps/board/src/style.css` starts with `@import 'tailwindcss' source(none);` followed by `@source` lines. `source(none)` disables automatic content detection, so **a new file that contains class names must be covered by an `@source` line** or its classes are silently dropped from the build. The existing lines already cover `./src/**/*.{vue,js}`.
 2. **Tailwind only sees class names that appear as complete literal strings.** `'bg-question-soft'` works; `` `bg-${status}-soft` `` does not. `statusStyles.js` exists for exactly this reason.
+3. **Tailwind 4 tree-shakes unused `@theme` variables, not just unused utilities.** A token declared in `@theme` reaches the built CSS only once something references it — a utility a component uses, or a `var()` in the stylesheet's own rules. So a freshly added token is legitimately absent from `dist/` until a component uses it, and grepping the build for it proves nothing. This does not weaken the theming mechanism: the theme files under `themes/` are ordinary CSS, always emitted, and they are what supply the values; the `@theme` block supplies the fallback and, more importantly, makes Tailwind generate the semantic utilities in the first place.
 
 Commands you will use:
 
@@ -663,19 +664,15 @@ Leave the existing `button:not(:disabled)` and `input::placeholder` rules in pla
 - [ ] **Step 3: Build to verify the utilities exist**
 
 Run: `npm run board:build`
-Expected: the build succeeds. Then confirm the utilities were generated:
+Expected: the build succeeds.
+
+Do **not** expect to find `bg-surface` or `--color-surface` in the built CSS yet — see the third Tailwind trap in the preamble. At this point only the tokens the new `@layer base` rules reference by `var()` are emitted. Confirm exactly those:
 
 ```bash
-grep -c 'bg-surface\|rounded-card\|text-ink' apps/board/dist/assets/*.css
+grep -o -- '--color-ground:\|--color-ink:\|--color-ink-faint:\|--font-ui:' apps/board/dist/assets/*.css | sort -u
 ```
 
-Expected: `0` is a failure — Tailwind only emits a utility once something uses it, and nothing does yet. Instead confirm the variables themselves landed:
-
-```bash
-grep -c -- '--color-surface:' apps/board/dist/assets/*.css
-```
-
-Expected: at least `1`.
+Expected: all four listed. Everything else in the contract appears in the build only once a component uses its utility, which starts in Task 14.
 
 - [ ] **Step 4: Commit**
 

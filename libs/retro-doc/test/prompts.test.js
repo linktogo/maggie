@@ -190,10 +190,46 @@ test('a domain with no summary leaves the table cell empty rather than printing 
   const markdown = renderIndex({
     body: 'body',
     context: { name: 'x' },
-    domains: [{ slug: 'x', title: 'X', summary: '', sources: [] }],
+    domains: [{ slug: 'x', title: 'X', sources: [] }],
     sources: [],
     generator: 'g',
     generatedAt: '2026-09-14',
   });
   assert.match(markdown, /\| \[X\]\(x.md\) \| {2}\| 0 \|/);
+});
+
+test('a title or summary that would break a table row is escaped, backslash first', () => {
+  const nasty = [{ path: 'specs/a.md', title: 'Windows path C:\\ | and a pipe', kind: 'spec', date: '2026-01-01' }];
+  const row = renderIndex({
+    body: 'body',
+    context: { name: 'x' },
+    domains: [{ slug: 'd', title: 'A | B', summary: 'ends with a backslash \\', sources: ['specs/a.md'] }],
+    sources: nasty,
+    generator: 'g',
+    generatedAt: '2026-09-14',
+  });
+
+  // Every pipe inside a cell is escaped, and no escaped backslash is left
+  // standing in front of a live pipe (which would split the row in two).
+  assert.match(row, /\| Windows path C:\\\\ \\\| and a pipe \|/);
+  assert.match(row, /\| \[A \\\| B\]\(d.md\) \| ends with a backslash \\\\ \| 1 \|/);
+  for (const line of row.split('\n').filter((candidate) => candidate.startsWith('| ['))) {
+    assert.equal(line.replace(/\\\\/g, '').split('\\|').join('').split('|').length - 1, 4, `${line} keeps its four cell borders`);
+  }
+});
+
+test('renderOutput and renderDomain escape their source index the same way', () => {
+  const nasty = [{ path: 'specs/a.md', title: 'pipe | and backslash \\', kind: 'spec', date: null }];
+  const single = renderOutput({ body: 'b', context: { name: 'x' }, sources: nasty, generator: 'g', generatedAt: '2026-09-14' });
+  const page = renderDomain({
+    body: 'b',
+    context: { name: 'x' },
+    domain: { slug: 'd', title: 'D', summary: '', sources: ['specs/a.md'] },
+    sources: nasty,
+    generator: 'g',
+    generatedAt: '2026-09-14',
+  });
+  for (const markdown of [single, page]) {
+    assert.match(markdown, /\| pipe \\\| and backslash \\\\ \|/);
+  }
 });

@@ -1,4 +1,4 @@
-import { test, expect, afterEach } from 'vitest';
+import { test, expect, afterEach, vi } from 'vitest';
 import {
   DEFAULT_THEME, DEFAULT_MODE, THEMES, MODES, THEME_STORAGE_KEY, MODE_STORAGE_KEY,
   isSupportedTheme, isSupportedMode, isLightOnly,
@@ -12,6 +12,11 @@ function fakeStorage(initial = {}) {
 function throwingStorage() {
   return { getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); } };
 }
+// Stands in for a matchMedia that throws when invoked (sandboxed or
+// permission-restricted runtime), rather than simply being absent.
+function throwingMedia() {
+  return () => { throw new Error('denied'); };
+}
 function fakeDoc() {
   const attrs = {};
   return { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, attrs } };
@@ -21,6 +26,7 @@ function fakeMedia(matches = false) {
   const listeners = [];
   const mql = {
     matches,
+    listeners,
     addEventListener: (_event, fn) => listeners.push(fn),
     flip(next) { mql.matches = next; for (const fn of listeners) fn({ matches: next }); },
   };
@@ -131,12 +137,45 @@ test('initTheme falls back to the defaults and overwrites a bogus stored value',
   expect(storage.getItem(MODE_STORAGE_KEY)).toBe('system');
 });
 
+test('initTheme resolves a stored legacy theme with a stored dark mode to a light stamp', () => {
+  const doc = fakeDoc();
+  const storage = fakeStorage({ [THEME_STORAGE_KEY]: 'legacy', [MODE_STORAGE_KEY]: 'dark' });
+  initTheme({ storage, doc, media: fakeMedia() });
+  expect(doc.documentElement.attrs['data-mode']).toBe('light');
+  expect(mode.value).toBe('dark');
+});
+
 test('survives a storage that throws, and a runtime with no matchMedia', () => {
   initTheme({ storage: throwingStorage(), doc: null, media: undefined });
   expect(theme.value).toBe('m3');
   const doc = fakeDoc();
   setMode('system', { storage: throwingStorage(), doc, media: undefined });
   expect(doc.documentElement.attrs['data-mode']).toBe('light');
+});
+
+test('a matchMedia that throws when invoked is tolerated and reads as light', async () => {
+  const doc = fakeDoc();
+  setMode('system', { storage: fakeStorage(), doc, media: throwingMedia() });
+  expect(doc.documentElement.attrs['data-mode']).toBe('light');
+
+  // A fresh module instance so the listener-registration guard has not
+  // already been tripped by an earlier test, and its catch actually runs.
+  vi.resetModules();
+  const fresh = await import('./theme.js');
+  const freshDoc = fakeDoc();
+  fresh.initTheme({ storage: fakeStorage(), doc: freshDoc, media: throwingMedia() });
+  expect(fresh.theme.value).toBe('m3');
+  expect(freshDoc.documentElement.attrs['data-mode']).toBe('light');
+});
+
+test('initTheme registers the OS media-query listener at most once across repeated calls', async () => {
+  vi.resetModules();
+  const fresh = await import('./theme.js');
+  const doc = fakeDoc();
+  const media = fakeMedia();
+  fresh.initTheme({ storage: fakeStorage(), doc, media });
+  fresh.initTheme({ storage: fakeStorage(), doc, media });
+  expect(media.mql.listeners.length).toBe(1);
 });
 
 test('useTheme exposes the reactive state, the setters and the lists', () => {

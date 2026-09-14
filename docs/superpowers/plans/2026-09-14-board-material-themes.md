@@ -697,7 +697,7 @@ git commit -m "feat(board): declare the theme token contract"
 - Create: `apps/board/src/themes/legacy.css`
 - Modify: `apps/board/src/style.css`
 
-The guard is the test that matters most in this plan: a theme that forgets `--color-ink-faint` would otherwise ship invisible text, and nobody reviews 69 hex values by eye. Writing it before the first theme file means every theme after it is checked on arrival.
+The guard is the test that matters most in this plan: a theme that forgets `--color-ink-faint` would otherwise ship invisible text, and nobody reviews 72 values by eye. Writing it before the first theme file means every theme after it is checked on arrival.
 
 `legacy.css` is a pure transcription of what the board renders today. Do not improve anything in it — a shade that moves is a migration bug.
 

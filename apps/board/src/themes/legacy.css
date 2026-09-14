@@ -1,0 +1,103 @@
+/*
+ * The board's pre-Material look, frozen. It stays selectable so nobody loses
+ * their bearings, but no new work targets it: fix bugs here only if they are
+ * migration bugs — a value that no longer matches what the board rendered
+ * before this feature. Light only by design; giving it a dark palette would
+ * be evolving it.
+ *
+ * Acceptance: the screenshots in docs/images/board/ must still be accurate
+ * with this theme selected.
+ */
+html[data-theme='legacy'] {
+  /* Surfaces */
+  --color-ground: #f1f5f9;                  /* slate-100, <main> */
+  --color-surface: #ffffff;                 /* cards, panels */
+  --color-panel: rgb(255 255 255 / 0.5);    /* column body */
+  --color-surface-muted: #f8fafc;           /* slate-50, session rows */
+  --color-surface-hover: #f1f5f9;           /* slate-100, table hover */
+  --color-overlay: rgb(15 23 42 / 0.3);     /* slate-900/30, detail overlay */
+
+  /* Hairlines */
+  --color-line: #e2e8f0;                    /* slate-200 */
+  --color-line-soft: #f1f5f9;               /* slate-100 */
+
+  /* Text */
+  --color-ink-strong: #0f172a;              /* slate-900, headings */
+  --color-ink: #1e293b;                     /* slate-800, card and row titles */
+  --color-ink-soft: #475569;                /* slate-600, prompts */
+  --color-ink-muted: #64748b;               /* slate-500, meta lines */
+  --color-ink-faint: #94a3b8;               /* slate-400, placeholders */
+
+  /* Accent */
+  --color-accent: #2563eb;                  /* blue-600, send button */
+  --color-accent-strong: #1d4ed8;           /* blue-700, its hover */
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #eff6ff;             /* blue-50 */
+  --color-on-accent-soft: #1d4ed8;          /* blue-700 */
+
+  /* Status */
+  --color-todo-solid: #475569;              /* slate-600 */
+  --color-todo-soft: #f1f5f9;               /* slate-100 */
+  --color-todo-on-soft: #475569;            /* slate-600 */
+  --color-inprogress-solid: #2563eb;        /* blue-600 */
+  --color-inprogress-soft: #eff6ff;         /* blue-50 */
+  --color-inprogress-on-soft: #1d4ed8;      /* blue-700 */
+  --color-question-solid: #d97706;          /* amber-600 */
+  --color-question-soft: #fffbeb;           /* amber-50 */
+  --color-question-on-soft: #b45309;        /* amber-700 */
+  --color-done-solid: #059669;              /* emerald-600 */
+  --color-done-soft: #ecfdf5;               /* emerald-50 */
+  --color-done-on-soft: #047857;            /* emerald-700 */
+  --color-on-status: #ffffff;
+  --color-question-ring: #fcd34d;           /* amber-300, the question alarm */
+  --color-drop-ring: #34d399;               /* emerald-400, drag-to-done */
+
+  /* CI badges */
+  --color-ci-failure-soft: #fee2e2;         /* red-100 */
+  --color-ci-failure-on-soft: #b91c1c;      /* red-700 */
+  --color-ci-failure-line: #fca5a5;         /* red-300 */
+  --color-ci-running-soft: #dbeafe;         /* blue-100 */
+  --color-ci-running-on-soft: #1d4ed8;      /* blue-700 */
+  --color-ci-running-line: #93c5fd;         /* blue-300 */
+  --color-ci-neutral-soft: #f1f5f9;         /* slate-100 */
+  --color-ci-neutral-on-soft: #475569;      /* slate-600 */
+  --color-ci-neutral-line: #cbd5e1;         /* slate-300 */
+  --color-ci-success-soft: #d1fae5;         /* emerald-100 */
+  --color-ci-success-on-soft: #047857;      /* emerald-700 */
+  --color-ci-success-line: #6ee7b7;         /* emerald-300 */
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #fef3c7;       /* amber-100 */
+  --color-agent-claude-on-soft: #b45309;    /* amber-700 */
+  --color-agent-copilot-soft: #e0f2fe;      /* sky-100 */
+  --color-agent-copilot-on-soft: #0369a1;   /* sky-700 */
+  --color-worktree-soft: #ede9fe;           /* violet-100 */
+  --color-worktree-on-soft: #6d28d9;        /* violet-700 */
+
+  /* Chart series — today's hardcoded Chart.js colors */
+  --color-series-1: #2563eb;
+  --color-series-2: #10b981;
+  --color-series-3: #f59e0b;
+  --color-series-4: #94a3b8;
+  --color-series-5: #8b5cf6;
+  --color-series-6: #ec4899;
+
+  /* Shape, spacing and type */
+  --radius-card: 0.75rem;                   /* rounded-xl */
+  --radius-panel: 0.75rem;                  /* rounded-xl */
+  --radius-control: 0.5rem;                 /* rounded-lg */
+  --radius-badge: 0.25rem;                  /* rounded-sm */
+  --radius-chip: 0.375rem;                  /* rounded-md */
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);  /* shadow-xl */
+  --spacing-card: 0.75rem;                  /* p-3 */
+  --spacing-gutter: 0.5rem;                 /* gap-2 */
+  --font-ui: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  /* Component-layer properties */
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --title-weight: 600;
+  --progress-fill: linear-gradient(90deg, #34d399, #059669);
+}

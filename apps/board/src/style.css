@@ -5,6 +5,7 @@
  */
 @import 'tailwindcss' source(none);
 @import './themes/contract.css';
+@import './themes/legacy.css';
 
 @source '../index.html';
 @source './**/*.{vue,js}';

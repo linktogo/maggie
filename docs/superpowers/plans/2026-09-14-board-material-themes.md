@@ -62,7 +62,7 @@ npm start                                                        # build + serve
 | `apps/board/src/style.css` | `@theme` mapping, theme imports, `@layer base` ground, `@layer components` typography, Roboto import. |
 | `apps/board/src/main.js` | `initTheme()` next to `initLocale()`. |
 | `apps/board/src/App.vue` | Mount both switchers; migrate classes. |
-| `apps/board/src/locales/{en,fr,de,es}.js` | Seven new keys each. |
+| `apps/board/src/locales/{en,fr,de,es}.js` | Ten new keys each. |
 | `apps/board/src/statusStyles.js` | Semantic class strings. |
 | `apps/board/src/ciBadge.js`, `agentBadge.js` | Semantic class strings. |
 | `apps/board/src/{Board,Column,Card,SessionRow,SummaryHeader,FilterBar,RepoDetail,HistoryPage,HistoryTable,LocaleSwitcher}.vue` | Migrate classes. |
@@ -384,7 +384,7 @@ export function useTheme() {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/theme.test.js --root apps/board`
-Expected: PASS, 12 tests.
+Expected: PASS, 13 tests.
 
 - [ ] **Step 5: Commit**
 

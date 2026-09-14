@@ -3,6 +3,19 @@ export default {
   'nav.history': 'Historial',
   'nav.language': 'Idioma',
   'nav.retroDoc': 'Retro-doc',
+  'nav.theme': 'Tema',
+  'nav.mode': 'Apariencia',
+
+  'theme.m3': 'Material 3',
+  'theme.expressive': 'Material 3 Expressive',
+  'theme.classic': 'Material clásico',
+  'theme.legacy': 'Anterior (congelado)',
+
+  'mode.light': 'Claro',
+  'mode.dark': 'Oscuro',
+  'mode.system': 'Sistema',
+  'mode.legacyLocked': 'El tema anterior solo existe en claro.',
+
   'retro.title': 'Retro-documentación',
   'retro.intro': 'Condensa las specs y los planes de un repo en un único documento de referencia, escrito para el agente de IA que va a trabajar en él.',
   'retro.writes': 'Escribe docs/ai/retro-documentation.md dentro del checkout. Una ejecución a la vez por repositorio.',

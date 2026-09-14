@@ -5,6 +5,19 @@ export default {
   'nav.history': 'History',
   'nav.language': 'Language',
   'nav.retroDoc': 'Retro-doc',
+  'nav.theme': 'Theme',
+  'nav.mode': 'Appearance',
+
+  'theme.m3': 'Material 3',
+  'theme.expressive': 'Material 3 Expressive',
+  'theme.classic': 'Material classic',
+  'theme.legacy': 'Legacy (frozen)',
+
+  'mode.light': 'Light',
+  'mode.dark': 'Dark',
+  'mode.system': 'System',
+  'mode.legacyLocked': 'The legacy theme is light only.',
+
   'retro.title': 'Retro-documentation',
   'retro.intro': 'Folds a repository’s specs and plans into one reference document, written for the AI agent about to work in it.',
   'retro.writes': 'Writes docs/ai/retro-documentation.md inside the checkout. One run at a time per repository.',

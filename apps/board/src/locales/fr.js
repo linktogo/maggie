@@ -3,6 +3,19 @@ export default {
   'nav.history': 'Historique',
   'nav.language': 'Langue',
   'nav.retroDoc': 'Rétro-doc',
+  'nav.theme': 'Thème',
+  'nav.mode': 'Apparence',
+
+  'theme.m3': 'Material 3',
+  'theme.expressive': 'Material 3 Expressive',
+  'theme.classic': 'Material classique',
+  'theme.legacy': 'Historique (figé)',
+
+  'mode.light': 'Clair',
+  'mode.dark': 'Sombre',
+  'mode.system': 'Système',
+  'mode.legacyLocked': 'Le thème historique est clair uniquement.',
+
   'retro.title': 'Rétro-documentation',
   'retro.intro': 'Condense les specs et plans d’un dépôt en un document de référence unique, écrit pour l’agent IA qui va y travailler.',
   'retro.writes': 'Écrit docs/ai/retro-documentation.md dans le checkout. Une génération à la fois par dépôt.',

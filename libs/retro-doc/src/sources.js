@@ -3,6 +3,9 @@ import path from 'node:path';
 
 export const DEFAULT_OUT = 'docs/ai/retro-documentation.md';
 
+/** Split output: a front page plus one document per domain, under this directory. */
+export const DEFAULT_OUT_DIR = 'docs/ai/retro-doc';
+
 export const DEFAULT_LANG = 'English';
 
 export const DEFAULT_MAX_CHARS = 200000;

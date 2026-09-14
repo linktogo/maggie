@@ -16,25 +16,37 @@ architecture, decision log, invariants, workflows, drift, open questions.
 import { createComplete, describeProvider, runRetroDoc } from '@linktogo/maggie-retro-doc';
 
 const provider = 'copilot'; // or 'claude' (Anthropic API), or 'claude-cli'
-const { outPath } = await runRetroDoc({
+const { outPath, written, domains } = await runRetroDoc({
   repoRoot: '/home/me/wk/api',
   complete: await createComplete({ provider }),
   generator: describeProvider({ provider }),
   log: console.error,
+  // split: false, // one document instead of a front page plus one per domain
 });
 ```
 
-## Two phases
+## Three phases
 
-A large design record does not fit in one useful prompt, so `runRetroDoc`:
+A large design record does not fit in one useful prompt, and one document
+covering a whole repository is a document an agent reads none of, so
+`runRetroDoc`:
 
 1. groups the sources into batches of `maxChars` (200 000 by default) and asks
    for a structured **digest** of each — decisions with their stated rationale,
    constraints, vocabulary, components, status signals. A document is never
    split across batches and never truncated: one larger than the limit gets a
    batch of its own;
-2. sends every digest, plus the repository's README and top-level layout, into a
-   single **synthesis** call that writes the document.
+2. asks, from the digests, for the **domains** of this repository as JSON — the
+   2 to 8 areas a contributor would name. `parseDomains` is what refuses to
+   trust that answer blindly: unique slugs, known source paths only, every
+   document assigned somewhere, and a fall back to documenting the repository in
+   one piece when the answer cannot be read at all;
+3. writes one **document per domain**, then a **front page** carrying what
+   belongs to no single domain — orientation, glossary, cross-cutting
+   invariants, workflows — and the table of domains.
+
+`split: false` collapses phases 2 and 3 into the single synthesis call that
+produces one document.
 
 Sources are read chronologically, so the model can tell a decision that still
 holds from one that was later reversed. The source index at the bottom of the
@@ -63,13 +75,16 @@ CLI provider never loads it.
 - **Sources** — `collectSourceFiles`, `readSource`, `orderSources`,
   `planBatches`, `collectRepoContext`, `listRepoCandidates`, `resolveRepoArg`,
   `classifyKind`, `parseFrontmatter`.
-- **Prompts** — `DIGEST_SYSTEM`, `SYNTHESIS_SYSTEM`, `buildDigestPrompt`,
-  `buildSynthesisPrompt`, `renderOutput`.
+- **Prompts** — `DIGEST_SYSTEM`, `PLAN_SYSTEM`, `DOMAIN_SYSTEM`,
+  `OVERVIEW_SYSTEM`, `SYNTHESIS_SYSTEM`, their `build*Prompt` counterparts, and
+  the renderers `renderIndex`, `renderDomain`, `renderOutput`.
 - **Providers** — `PROVIDERS`, `createComplete`, `createCliComplete`,
   `createAnthropicComplete`, `providerCommand`, `runCommand`,
   `describeProvider`, `estimateTokens`, `estimateCost`.
-- **Pipeline** — `generateRetroDoc` (the two phases), `runRetroDoc` (the whole
-  job, from a repository path to a written file).
+- **Domains** — `parseDomains`, `slugify`, `extractJsonArray`, `wholeRepository`.
+- **Pipeline** — `generateRetroDoc` (one document), `generateDomainRetroDoc`
+  (a front page plus one per domain), `runRetroDoc` (the whole job, from a
+  repository path to files on disk).
 
 Every I/O boundary is injectable — `complete`, `write`, `spawn`, `loadSdk`,
 `now` — so a caller can exercise the whole pipeline without an API key, a

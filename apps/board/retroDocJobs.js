@@ -16,8 +16,8 @@ export function resolveCheckout({ boardPath, config, repo }) {
 
 /** What the API hands out: the job without the promise driving it. */
 export function publicJob(job) {
-  const { repo, id, provider, generator, status, startedAt, finishedAt, out, error, log } = job;
-  return { id, repo, provider, generator, status, startedAt, finishedAt, out, error, log };
+  const { repo, id, provider, generator, status, startedAt, finishedAt, out, files, error, log } = job;
+  return { id, repo, provider, generator, status, startedAt, finishedAt, out, files, error, log };
 }
 
 /**
@@ -61,6 +61,7 @@ export function createRetroDocRunner({
       startedAt: now().toISOString(),
       finishedAt: null,
       out: null,
+      files: [],
       error: null,
       log: [],
     };
@@ -82,7 +83,8 @@ export function createRetroDocRunner({
         });
         job.status = 'done';
         job.out = path.relative(repoRoot, result.outPath);
-        note(`wrote ${job.out}`);
+        job.files = (result.written ?? [result.outPath]).map((file) => path.relative(repoRoot, file));
+        note(`wrote ${job.files.length} file(s): ${job.files.join(', ')}`);
       } catch (err) {
         job.status = 'error';
         job.error = err.message;

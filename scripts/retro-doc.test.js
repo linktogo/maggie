@@ -6,6 +6,7 @@ import path from 'node:path';
 import {
   DEFAULT_MODEL,
   DEFAULT_OUT,
+  DEFAULT_OUT_DIR,
   DEFAULT_PROVIDER,
   DEFAULT_TIMEOUT_SECONDS,
   DEFAULT_WORKSPACE,
@@ -38,7 +39,8 @@ test('parseArgs leaves the repository and the provider unset, so a terminal can 
   assert.equal(options.repo, null);
   assert.equal(options.provider, null);
   assert.equal(options.model, null);
-  assert.equal(options.out, DEFAULT_OUT);
+  assert.equal(options.out, null, 'left unset so the default depends on --single-file');
+  assert.equal(options.singleFile, false);
   assert.equal(options.workspace, DEFAULT_WORKSPACE);
   assert.equal(options.timeout, DEFAULT_TIMEOUT_SECONDS);
   assert.deepEqual(options.include, []);
@@ -51,13 +53,14 @@ test('parseArgs reads every flag, and --include repeats', () => {
     '--workspace', 'checkouts',
     '--provider', 'copilot',
     '--provider-command', 'copilot --allow-all-tools',
-    '--out', 'docs/out.md',
+    '--out', 'docs/out',
     '--include', 'a',
     '--include', 'b',
     '--model', 'claude-sonnet-5',
     '--lang', 'français',
     '--max-chars', '1234',
     '--timeout', '60',
+    '--single-file',
     '--stdout',
     '--dry-run',
   ]);
@@ -66,7 +69,8 @@ test('parseArgs reads every flag, and --include repeats', () => {
     workspace: 'checkouts',
     provider: 'copilot',
     providerCommand: 'copilot --allow-all-tools',
-    out: 'docs/out.md',
+    out: 'docs/out',
+    singleFile: true,
     include: ['a', 'b'],
     model: 'claude-sonnet-5',
     lang: 'français',
@@ -111,6 +115,7 @@ test('formatDryRun lists the sources, the call count and an indicative price', (
     provider: 'claude',
     model: 'claude-opus-5',
     generator: 'claude-opus-5',
+    singleFile: true,
     out: '/tmp/repo/docs/ai/retro-documentation.md',
   });
   assert.match(out, /Sources: 2 document\(s\), 8000 characters/);
@@ -169,7 +174,7 @@ test('main --dry-run never calls the model', async () => {
   assert.match(io.out.join('\n'), /Sources: 1 document\(s\)/);
 });
 
-test('main writes the document under the repository and reports where', async () => {
+test('main --single-file writes the document under the repository and reports where', async () => {
   const root = makeRepo({
     'package.json': JSON.stringify({ name: 'target', description: 'a target repo' }),
     'README.md': '# target\n',
@@ -178,7 +183,7 @@ test('main writes the document under the repository and reports where', async ()
   });
   const io = capture();
   const seen = [];
-  const code = await main(['--repo', root, '--model', 'claude-sonnet-5'], {
+  const code = await main(['--repo', root, '--model', 'claude-sonnet-5', '--single-file'], {
     ...io,
     completeFactory: async ({ model }) => {
       seen.push(model);
@@ -257,7 +262,9 @@ test('main asks which repository and which LLM to use when neither was given', a
   assert.equal(asked[1], 'provider');
   assert.equal(factoryArgs[0].provider, 'copilot');
   assert.equal(factoryArgs[0].timeoutMs, DEFAULT_TIMEOUT_SECONDS * 1000);
-  assert.match(readFileSync(path.join(root, DEFAULT_OUT), 'utf8'), /by `GitHub Copilot CLI`/);
+  const index = readFileSync(path.join(root, DEFAULT_OUT_DIR, 'README.md'), 'utf8');
+  assert.match(index, /by `GitHub Copilot CLI`/);
+  assert.match(io.out.join('\n'), /Wrote 2 file\(s\) under .*retro-doc/);
 });
 
 test('main asks nothing when it is not attached to a terminal', async () => {
@@ -317,4 +324,49 @@ test('main passes --provider-command through to the factory', async () => {
   });
   assert.deepEqual(factoryArgs, [{ provider: 'copilot', model: null, providerCommand: 'copilot --banner off', timeoutMs: 30000 }]);
   assert.match(io.out.join('\n'), /by `GitHub Copilot CLI`/);
+});
+
+test('main writes a front page and one document per domain, and lists them', async () => {
+  const root = makeRepo({
+    'package.json': JSON.stringify({ name: 'target' }),
+    'docs/superpowers/specs/2026-06-14-sync-design.md': SPEC,
+    'docs/superpowers/plans/2026-06-20-sync-plan.md': PLAN,
+  });
+  const io = capture();
+  const plan = JSON.stringify([
+    { slug: 'skill-sync', title: 'Skill sync', summary: 'Rendering skills.', sources: ['docs/superpowers/specs/2026-06-14-sync-design.md'] },
+    { slug: 'board', title: 'Status board', summary: 'The dashboard.', sources: ['docs/superpowers/plans/2026-06-20-sync-plan.md'] },
+  ]);
+  const code = await main(['--repo', root], {
+    ...io,
+    cwd: root,
+    interactive: false,
+    completeFactory: async () => async ({ label }) => (label === 'plan' ? plan : '## Section\n\nBody.'),
+  });
+
+  assert.equal(code, 0);
+  for (const file of ['README.md', 'skill-sync.md', 'board.md']) {
+    assert.ok(existsSync(path.join(root, DEFAULT_OUT_DIR, file)), `${file} was written`);
+  }
+  assert.equal(existsSync(path.join(root, DEFAULT_OUT)), false, 'the single-file output is not written too');
+  const printed = io.out.join('\n');
+  assert.match(printed, /Wrote 3 file\(s\) under .*docs\/ai\/retro-doc, from 2 source document\(s\)/);
+  assert.match(printed, /\n {2}skill-sync.md/);
+  assert.match(readFileSync(path.join(root, DEFAULT_OUT_DIR, 'board.md'), 'utf8'), /# Status board — target/);
+});
+
+test('main --stdout prints every document it would have written, named', async () => {
+  const root = makeRepo({ 'specs/a.md': SPEC });
+  const io = capture();
+  const code = await main(['--repo', root, '--stdout'], {
+    ...io,
+    cwd: root,
+    interactive: false,
+    completeFactory: async () => async () => '## Section\n\nBody.',
+  });
+  assert.equal(code, 0);
+  const printed = io.out.join('\n');
+  assert.match(printed, /<!-- README.md -->/);
+  assert.match(printed, /<!-- overview.md -->/, 'an unreadable plan still produces one domain document');
+  assert.equal(existsSync(path.join(root, DEFAULT_OUT_DIR)), false);
 });

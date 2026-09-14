@@ -144,3 +144,16 @@ test('the console of a running row can be closed', async () => {
   await w.get('[data-test=retro-toggle-log-oc-be]').trigger('click');
   expect(w.find('[data-test=retro-row-oc-be] [data-test=retro-log]').exists()).toBe(false);
 });
+
+test('a finished run says how many documents it produced', async () => {
+  const w = await page(fetchWith({
+    jobs: [{
+      id: 'x', repo: 'oc-be', status: 'done', generator: 'claude-opus-5',
+      out: 'docs/ai/retro-doc/README.md', finishedAt: '2026-09-14T09:58:00.000Z',
+      files: ['docs/ai/retro-doc/README.md', 'docs/ai/retro-doc/sync.md', 'docs/ai/retro-doc/board.md'],
+    }],
+  }));
+  const line = w.get('[data-test=retro-done-oc-be]').text();
+  expect(line).toContain('docs/ai/retro-doc/README.md');
+  expect(line).toContain('3 documents');
+});

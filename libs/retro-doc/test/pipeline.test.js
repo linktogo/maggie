@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { formatDuration, generateRetroDoc, runRetroDoc } from '../src/pipeline.js';
+import { formatDuration, generateDomainRetroDoc, generateRetroDoc, runRetroDoc } from '../src/pipeline.js';
 
 function makeRepo(files) {
   const root = mkdtempSync(path.join(tmpdir(), 'retro-doc-'));
@@ -74,7 +74,7 @@ test('generateRetroDoc sends the full text of every source, never a truncation',
   assert.ok(sent[0].includes(text));
 });
 
-test('runRetroDoc reads a repository, writes the document under it, and says what it used', async () => {
+test('runRetroDoc --single-file reads a repository, writes the document under it, and says what it used', async () => {
   const root = makeRepo({
     'package.json': JSON.stringify({ name: 'target', description: 'a target repo' }),
     'README.md': '# target\n',
@@ -84,6 +84,7 @@ test('runRetroDoc reads a repository, writes the document under it, and says wha
   const prompts = [];
   const result = await runRetroDoc({
     repoRoot: root,
+    split: false,
     complete: async ({ prompt, label }) => {
       prompts.push({ prompt, label });
       return label === 'synthesis' ? '## Orientation\n\nBody.' : 'digest';
@@ -109,6 +110,7 @@ test('runRetroDoc honours the include list, the output path and the language', a
     repoRoot: root,
     include: ['design'],
     out: 'ai/doc.md',
+    split: false,
     lang: 'français',
     complete: async ({ prompt }) => {
       prompts.push(prompt);
@@ -136,6 +138,7 @@ test('runRetroDoc lets the caller supply the writer, so nothing has to touch the
   const written = [];
   const result = await runRetroDoc({
     repoRoot: root,
+    split: false,
     complete: async () => '## Orientation\n\nBody.',
     generator: 'x',
     write: async (file, contents) => written.push({ file, contents }),
@@ -169,4 +172,121 @@ test('generateRetroDoc times each call from the clock it was given', async () =>
   });
   assert.ok(logged.includes('  ↳ digest 1/1 answered in 1m 00s — 4 chars'), logged.join('\n'));
   assert.ok(logged.includes('  ↳ synthesis answered in 1m 00s — 4 chars'), logged.join('\n'));
+});
+
+const DOMAIN_PLAN = JSON.stringify([
+  { slug: 'skill-sync', title: 'Skill sync', summary: 'Rendering skills.', sources: ['docs/superpowers/specs/2026-06-14-sync-design.md'] },
+  { slug: 'board', title: 'Status board', summary: 'The dashboard.', sources: ['docs/superpowers/plans/2026-06-20-sync-plan.md'] },
+]);
+
+function splitRepo() {
+  return makeRepo({
+    'package.json': JSON.stringify({ name: 'target', description: 'a target repo' }),
+    'README.md': '# target\n',
+    'docs/superpowers/specs/2026-06-14-sync-design.md': SPEC,
+    'docs/superpowers/plans/2026-06-20-sync-plan.md': PLAN,
+  });
+}
+
+
+test('generateDomainRetroDoc plans the domains, then writes one page each plus a front page', async () => {
+  const calls = [];
+  const { index, pages, domains } = await generateDomainRetroDoc({
+    sources: [
+      { path: 'docs/superpowers/specs/2026-06-14-sync-design.md', title: 'Sync', kind: 'spec', date: '2026-06-14', text: 'a', chars: 1 },
+      { path: 'docs/superpowers/plans/2026-06-20-sync-plan.md', title: 'Plan', kind: 'plan', date: '2026-06-20', text: 'b', chars: 1 },
+    ],
+    context: { name: 'target', description: '', entries: [], readme: '' },
+    complete: async ({ label }) => {
+      calls.push(label);
+      return label === 'plan' ? DOMAIN_PLAN : `## Section\n\nBody of ${label}.`;
+    },
+    generator: 'claude-opus-5',
+    now: () => new Date('2026-09-14T00:00:00Z'),
+  });
+
+  assert.deepEqual(calls, ['digest 1/1', 'plan', 'domain 1/2 (skill-sync)', 'domain 2/2 (board)', 'front page']);
+  assert.deepEqual(domains.map((domain) => domain.slug), ['skill-sync', 'board']);
+  assert.deepEqual(pages.map((page) => page.file), ['skill-sync.md', 'board.md']);
+  assert.match(pages[0].markdown, /# Skill sync — target/);
+  assert.match(pages[0].markdown, /Body of domain 1\/2 \(skill-sync\)/);
+  assert.equal(index.file, 'README.md');
+  assert.match(index.markdown, /\| \[Status board\]\(board.md\) \|/);
+  assert.match(index.markdown, /Body of front page/);
+});
+
+test('generateDomainRetroDoc reports the plan it is about to execute', async () => {
+  const logged = [];
+  await generateDomainRetroDoc({
+    sources: [{ path: 'docs/superpowers/specs/2026-06-14-sync-design.md', title: 'S', kind: 'spec', date: null, text: 'a', chars: 1 }],
+    context: { name: 'x', description: '', entries: [], readme: '' },
+    complete: async ({ label }) => (label === 'plan' ? DOMAIN_PLAN : 'body'),
+    generator: 'x',
+    log: (message) => logged.push(message),
+  });
+  assert.ok(logged.some((line) => line.startsWith('plan: splitting 1 document(s) into domains')));
+  assert.ok(logged.some((line) => /^plan: 2 domain\(s\) — skill-sync \(1\), board \(0\)/.test(line)), logged.join('\n'));
+  assert.ok(logged.some((line) => line.startsWith('domain 2/2 (board): 0 source document(s) — Status board')));
+  assert.ok(logged.some((line) => line === 'done — 1 source document(s) folded into 3 files'));
+});
+
+test('runRetroDoc writes a directory of documents by default', async () => {
+  const root = splitRepo();
+  const result = await runRetroDoc({
+    repoRoot: root,
+    complete: async ({ label }) => (label === 'plan' ? DOMAIN_PLAN : `## Section\n\nBody.`),
+    generator: 'claude-opus-5',
+  });
+
+  assert.equal(result.outPath, path.join(root, 'docs/ai/retro-doc/README.md'));
+  assert.deepEqual(result.written.map((file) => path.relative(root, file)), [
+    path.join('docs/ai/retro-doc/README.md'),
+    path.join('docs/ai/retro-doc/skill-sync.md'),
+    path.join('docs/ai/retro-doc/board.md'),
+  ]);
+  assert.deepEqual(result.domains.map((domain) => domain.slug), ['skill-sync', 'board']);
+  for (const file of result.written) assert.ok(existsSync(file), `${file} was written`);
+  assert.match(readFileSync(result.outPath, 'utf8'), /# Retro-documentation — target/);
+  assert.match(readFileSync(path.join(root, 'docs/ai/retro-doc/board.md'), 'utf8'), /# Status board — target/);
+});
+
+test('runRetroDoc puts the documents where --out points', async () => {
+  const root = splitRepo();
+  const result = await runRetroDoc({
+    repoRoot: root,
+    out: 'ai',
+    complete: async ({ label }) => (label === 'plan' ? DOMAIN_PLAN : 'body'),
+    generator: 'x',
+  });
+  assert.equal(result.outPath, path.join(root, 'ai/README.md'));
+  assert.ok(existsSync(path.join(root, 'ai/skill-sync.md')));
+});
+
+test('runRetroDoc still writes a single document when asked to', async () => {
+  const root = splitRepo();
+  const labels = [];
+  const result = await runRetroDoc({
+    repoRoot: root,
+    split: false,
+    complete: async ({ label }) => {
+      labels.push(label);
+      return 'body';
+    },
+    generator: 'x',
+  });
+  assert.ok(!labels.includes('plan'), 'no domain planning happens in single-file mode');
+  assert.equal(result.outPath, path.join(root, 'docs/ai/retro-documentation.md'));
+  assert.deepEqual(result.written, [result.outPath]);
+  assert.deepEqual(result.domains, []);
+});
+
+test('a repository whose plan cannot be read is documented in one piece, not dropped', async () => {
+  const root = splitRepo();
+  const result = await runRetroDoc({
+    repoRoot: root,
+    complete: async ({ label }) => (label === 'plan' ? 'I am afraid I cannot do that' : 'body'),
+    generator: 'x',
+  });
+  assert.deepEqual(result.domains.map((domain) => domain.slug), ['overview']);
+  assert.deepEqual(result.written.map((file) => path.basename(file)), ['README.md', 'overview.md']);
 });

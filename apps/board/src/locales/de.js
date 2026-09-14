@@ -3,6 +3,19 @@ export default {
   'nav.history': 'Verlauf',
   'nav.language': 'Sprache',
   'nav.retroDoc': 'Retro-Doc',
+  'nav.theme': 'Design',
+  'nav.mode': 'Darstellung',
+
+  'theme.m3': 'Material 3',
+  'theme.expressive': 'Material 3 Expressive',
+  'theme.classic': 'Material klassisch',
+  'theme.legacy': 'Bisheriges (eingefroren)',
+
+  'mode.light': 'Hell',
+  'mode.dark': 'Dunkel',
+  'mode.system': 'System',
+  'mode.legacyLocked': 'Das bisherige Design gibt es nur in Hell.',
+
   'retro.title': 'Retro-Dokumentation',
   'retro.intro': 'Fasst Specs und Pläne eines Repos zu einem Referenzdokument zusammen, geschrieben für den KI-Agenten, der darin arbeiten wird.',
   'retro.writes': 'Schreibt docs/ai/retro-documentation.md im Checkout. Ein Lauf pro Repository zur Zeit.',

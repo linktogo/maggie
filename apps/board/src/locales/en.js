@@ -16,7 +16,7 @@ export default {
   'mode.light': 'Light',
   'mode.dark': 'Dark',
   'mode.system': 'System',
-  'mode.legacyLocked': 'The legacy theme is light only.',
+  'mode.legacyLocked': 'This theme is light only.',
 
   'retro.title': 'Retro-documentation',
   'retro.intro': 'Folds a repository’s specs and plans into one reference document, written for the AI agent about to work in it.',

@@ -14,7 +14,7 @@ export default {
   'mode.light': 'Claro',
   'mode.dark': 'Oscuro',
   'mode.system': 'Sistema',
-  'mode.legacyLocked': 'El tema anterior solo existe en claro.',
+  'mode.legacyLocked': 'Este tema solo está disponible en modo claro.',
 
   'retro.title': 'Retro-documentación',
   'retro.intro': 'Condensa las specs y los planes de un repo en un único documento de referencia, escrito para el agente de IA que va a trabajar en él.',

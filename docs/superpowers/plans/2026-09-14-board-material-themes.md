@@ -419,7 +419,7 @@ In `apps/board/src/locales/en.js`, after the `'nav.language': 'Language',` line:
   'mode.light': 'Light',
   'mode.dark': 'Dark',
   'mode.system': 'System',
-  'mode.legacyLocked': 'The legacy theme is light only.',
+  'mode.legacyLocked': 'This theme is light only.',
 ```
 
 - [ ] **Step 2: Run the i18n tests to verify parity fails**
@@ -438,19 +438,19 @@ Expected: FAIL on *"every locale defines the same keys as the English catalog"*.
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material classique',
-  'theme.legacy': 'Historique (figé)',
+  'theme.legacy': 'Ancien (figé)',
 
   'mode.light': 'Clair',
   'mode.dark': 'Sombre',
   'mode.system': 'Système',
-  'mode.legacyLocked': 'Le thème historique est clair uniquement.',
+  'mode.legacyLocked': 'Ce thème n’existe qu’en version claire.',
 ```
 
 `apps/board/src/locales/de.js`:
 
 ```js
   'nav.theme': 'Design',
-  'nav.mode': 'Darstellung',
+  'nav.mode': 'Erscheinungsbild',
 
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
@@ -460,7 +460,7 @@ Expected: FAIL on *"every locale defines the same keys as the English catalog"*.
   'mode.light': 'Hell',
   'mode.dark': 'Dunkel',
   'mode.system': 'System',
-  'mode.legacyLocked': 'Das bisherige Design gibt es nur in Hell.',
+  'mode.legacyLocked': 'Dieses Design gibt es nur in Hell.',
 ```
 
 `apps/board/src/locales/es.js`:
@@ -477,7 +477,7 @@ Expected: FAIL on *"every locale defines the same keys as the English catalog"*.
   'mode.light': 'Claro',
   'mode.dark': 'Oscuro',
   'mode.system': 'Sistema',
-  'mode.legacyLocked': 'El tema anterior solo existe en claro.',
+  'mode.legacyLocked': 'Este tema solo está disponible en modo claro.',
 ```
 
 - [ ] **Step 4: Run the i18n tests to verify they pass**

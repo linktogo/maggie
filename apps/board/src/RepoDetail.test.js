@@ -146,3 +146,9 @@ test('the panel explains itself away when the board has no config', () => {
   expect(w.find('[data-test=retro-doc-run]').exists()).toBe(false);
   expect(w.get('[data-test=retro-doc-unavailable]').text()).toContain('--config');
 });
+
+test('a repo with no running session still gets its retro-documentation panel', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-be', sessionId: null, session: null, meta, now } });
+  expect(w.find('[data-test=detail-message-form]').exists()).toBe(false);
+  expect(w.find('[data-test=retro-doc-run]').exists()).toBe(true);
+});

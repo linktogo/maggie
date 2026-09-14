@@ -29,6 +29,7 @@ export default {
   'filter.ciUnknown': 'desconocido',
 
   'card.noActiveSession': 'Ninguna sesión activa',
+  'card.openRepo': 'Abrir {repo} — detalles, CI, retro-documentación',
   'card.confirmClose': '¿Marcar la sesión «{title}» de {repo} como terminada?',
 
   'session.untitled': '(sin título)',

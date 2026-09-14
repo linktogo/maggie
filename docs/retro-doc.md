@@ -195,7 +195,8 @@ never reaches an LLM, and never even asks which one to use.
 
 ## From the board
 
-The dashboard can run it for you: open a repository's detail panel and the
+The dashboard can run it for you: **click a repository's name** on its card —
+which opens the detail panel whether or not a session is running on it — and the
 **Retro-documentation** section offers the same three LLMs and a button.
 
 The board runs the generation in its own process and the panel polls it, so the

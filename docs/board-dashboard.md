@@ -139,8 +139,9 @@ session's status.
 
 ## Generating a retro-documentation
 
-Each repository's detail panel carries a **Retro-documentation** section: pick an
-LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
+Clicking a repository's **name** on its card opens its detail panel — a session
+is not needed, which is the point: an idle repo is exactly the one you want to
+document. The panel carries a **Retro-documentation** section: pick an LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
 the board reconstructs that repository's reference document from its specs and
 plans, into `docs/ai/retro-documentation.md` inside the checkout. See
 [Retro-documentation](retro-doc.md) for what it reads and what it writes.

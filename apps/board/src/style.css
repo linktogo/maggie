@@ -4,6 +4,7 @@
  * used to declare, and the `@source` lines below replace its `content` array.
  */
 @import 'tailwindcss' source(none);
+@import './themes/contract.css';
 
 @source '../index.html';
 @source './**/*.{vue,js}';
@@ -25,6 +26,21 @@
  * restyle of every button and input.
  */
 @layer base {
+  /*
+   * The ground used to come from `bg-slate-100` on <main>, so it only painted
+   * once Vue had mounted. Painting it on <html> means the stored theme's
+   * ground is there on the first frame, with no flash of the default.
+   */
+  html {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+  }
+
+  body {
+    background: var(--color-ground);
+  }
+
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
@@ -32,6 +48,6 @@
 
   input::placeholder,
   textarea::placeholder {
-    color: var(--color-gray-400);
+    color: var(--color-ink-faint);
   }
 }

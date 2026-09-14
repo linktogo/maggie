@@ -10,16 +10,11 @@
 @source './**/*.{vue,js}';
 
 /*
- * v4.3 dropped `ui-sans-serif, system-ui` from the default sans stack. Keeping
- * the v3 stack means the board keeps rendering in the platform UI font, so the
- * screenshots in docs/ stay accurate and this migration changes no typography.
+ * Typography is a theme token now: --font-ui, set by each theme file. The
+ * Material themes ask for Roboto (shipped locally in Task 13); the legacy
+ * theme reproduces the platform UI stack this file used to pin, so the
+ * screenshots in docs/images/board/ stay accurate under it.
  */
-@theme {
-  --font-sans:
-    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-    'Segoe UI Symbol', 'Noto Color Emoji';
-}
-
 /*
  * Preflight defaults that v4 dropped and the board still relies on. Keeping
  * them here means the migration is visually neutral instead of a silent

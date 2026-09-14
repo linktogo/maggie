@@ -41,9 +41,11 @@ const ciUnavailable = computed(() => {
   return null;
 });
 
-const routeProps = computed(() => (route.name === 'history'
-  ? { fetchImpl }
-  : { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh }));
+const routeProps = computed(() => {
+  if (route.name === 'history') return { fetchImpl };
+  if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
+  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh };
+});
 </script>
 
 <template>
@@ -60,6 +62,10 @@ const routeProps = computed(() => (route.name === 'history'
             data-test="view-history" to="/history"
             :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
           >{{ t('nav.history') }}</router-link>
+          <router-link
+            data-test="view-retro-doc" to="/retro-doc"
+            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'retro-doc' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+          >{{ t('nav.retroDoc') }}</router-link>
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">

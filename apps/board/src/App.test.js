@@ -300,3 +300,15 @@ test('a session send-message posts the queued message to the API and refreshes t
   const boardCallsAfter = calls.filter((u) => u === '/api/board').length;
   expect(boardCallsAfter).toBeGreaterThan(boardCallsBefore);
 });
+
+test('the retro-doc tab mounts its page, with the repos of the config', async () => {
+  const router = createBoardRouter(createMemoryHistory());
+  const w = mount(App, { props: { fetchImpl: routedFetch(), intervalMs: 100000 }, global: { plugins: [router] } });
+  await router.isReady();
+  await flushPromises();
+
+  await w.get('[data-test=view-retro-doc]').trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.name).toBe('retro-doc');
+  expect(w.get('[data-test=retro-run-a]').exists()).toBe(true);
+});

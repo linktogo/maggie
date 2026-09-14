@@ -500,9 +500,9 @@ git commit -m "feat(board): translate the theme and mode labels"
 - Create: `apps/board/src/themes/contract.css`
 - Modify: `apps/board/src/style.css`
 
-The contract is **70 variables**. Sixty-six sit in an `@theme` block, which is what makes Tailwind emit the semantic utilities (`--color-surface` yields `bg-surface`/`text-surface`/`border-surface`, `--radius-card` yields `rounded-card`, `--spacing-card` yields `p-card`/`m-card`, `--shadow-card` yields `shadow-card`, `--font-ui` yields `font-ui`). The remaining four are plain custom properties consumed by the component layer in Task 17 — `text-transform`, `letter-spacing`, `font-weight` and a gradient have no Tailwind namespace.
+The contract is **72 variables**. Sixty-eight sit in an `@theme` block, which is what makes Tailwind emit the semantic utilities (`--color-surface` yields `bg-surface`/`text-surface`/`border-surface`, `--radius-card` yields `rounded-card`, `--spacing-card` yields `p-card`/`m-card`, `--shadow-card` yields `shadow-card`, `--font-ui` yields `font-ui`). The remaining four are plain custom properties consumed by the component layer in Task 17 — `text-transform`, `letter-spacing`, `font-weight` and a gradient have no Tailwind namespace.
 
-The values in `contract.css` are the Material 3 tonal light palette. They are the fallback: if `data-theme` is never stamped — JavaScript disabled, a boot error — the board still renders in its default look rather than unstyled.
+The values in `contract.css` are the Material 3 tonal light palette. A token reaches the build only once something references it (see the third Tailwind trap in the preamble), so `contract.css` cannot promise the whole board renders styled before `data-theme` is stamped — but the four tokens the base layer references by `var()` are always emitted, so an unstamped board keeps its ground, its body text colour and its font: the page stays readable rather than unstyled, while the rest of the contract reaches the build as components come to use it.
 
 Specificity is deliberate: `@theme` emits onto `:root` (0,1,0) while every theme file selects `html[data-theme='…']` (0,1,1), so a theme always wins over the fallback regardless of import order.
 
@@ -522,7 +522,12 @@ Create `apps/board/src/themes/contract.css`:
  * dumb regex rather than a CSS parser.
  */
 @theme {
-  /* Surfaces */
+  /*
+   * Surfaces, outermost to innermost: ground is the page behind everything,
+   * surface a card or a panel that sits on it, panel the tinted well a column
+   * body forms around its cards, surface-muted a row or chip inside a card,
+   * surface-hover its hover state, overlay the scrim behind the detail drawer.
+   */
   --color-ground: #fef7ff;
   --color-surface: #fffbff;
   --color-panel: #f7f2fa;
@@ -599,9 +604,11 @@ Create `apps/board/src/themes/contract.css`:
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
   --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -615,7 +622,7 @@ Create `apps/board/src/themes/contract.css`:
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
-  --progress-fill: #6750a4;
+  --progress-fill: #6750a4;               /* a colour or a gradient — whatever background the progress bar paints */
 }
 ```
 
@@ -722,9 +729,9 @@ const CONTRACT = [...contract['@theme'], ...contract[':root']].sort();
 
 const THEMEABLE = ['m3', 'expressive', 'classic'];
 
-test('the contract declares 70 variables', () => {
-  expect(CONTRACT).toHaveLength(70);
-  expect(new Set(CONTRACT).size).toBe(70);
+test('the contract declares 72 variables', () => {
+  expect(CONTRACT).toHaveLength(72);
+  expect(new Set(CONTRACT).size).toBe(72);
 });
 
 test.each(THEMEABLE)('%s defines the whole contract in light', (name) => {
@@ -842,9 +849,11 @@ html[data-theme='legacy'] {
   --radius-card: 0.75rem;                   /* rounded-xl */
   --radius-panel: 0.75rem;                  /* rounded-xl */
   --radius-control: 0.5rem;                 /* rounded-lg */
+  --radius-badge: 0.25rem;                  /* rounded-sm */
   --radius-chip: 0.375rem;                  /* rounded-md */
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);  /* shadow-xl */
   --spacing-card: 0.75rem;                  /* p-3 */
   --spacing-gutter: 0.5rem;                 /* gap-2 */
   --font-ui: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -868,7 +877,7 @@ In `apps/board/src/style.css`, below the contract import:
 - [ ] **Step 5: Run the test — the legacy case passes, the other three still fail**
 
 Run: `npx vitest run src/themes/contract.test.js --root apps/board`
-Expected: the `legacy` test and the `69 variables` test PASS; the six `m3`/`expressive`/`classic` cases FAIL with `ENOENT`. That is the state Task 5 and Task 6 close.
+Expected: the `legacy` test and the `72 variables` test PASS; the six `m3`/`expressive`/`classic` cases FAIL with `ENOENT`. That is the state Task 5 and Task 6 close.
 
 - [ ] **Step 6: Commit**
 
@@ -971,9 +980,11 @@ html[data-theme='m3'] {
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
   --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -1058,9 +1069,11 @@ html[data-theme='m3'][data-mode='dark'] {
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.6), 0 1px 3px 1px rgb(0 0 0 / 0.3);
   --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.6);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -1101,7 +1114,7 @@ git commit -m "feat(board): add the Material 3 tonal theme"
 - Create: `apps/board/src/themes/classic.css`
 - Modify: `apps/board/src/style.css`
 
-Both files carry the same 70 variables in the same order as `m3.css` — copy that file and replace the values. The guard test is what tells you a variable went missing.
+Both files carry the same 72 variables in the same order as `m3.css` — copy that file and replace the values. The guard test is what tells you a variable went missing.
 
 **Expressive** leans on color rather than elevation: shadows are `none`, radii are large, `--title-weight` is 700. **Classic** is the Material everyone recognizes: indigo 500 with a pink accent, 4px radii, real elevation shadows, uppercase nav with wide tracking.
 
@@ -1183,9 +1196,11 @@ html[data-theme='expressive'] {
   --radius-card: 1.375rem;
   --radius-panel: 1.75rem;
   --radius-control: 999px;
+  --radius-badge: 999px;
   --radius-chip: 999px;
   --shadow-card: none;
   --shadow-panel: none;
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.18);
   --spacing-card: 1rem;
   --spacing-gutter: 0.625rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -1265,9 +1280,11 @@ html[data-theme='expressive'][data-mode='dark'] {
   --radius-card: 1.375rem;
   --radius-panel: 1.75rem;
   --radius-control: 999px;
+  --radius-badge: 999px;
   --radius-chip: 999px;
   --shadow-card: none;
   --shadow-panel: none;
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.5);
   --spacing-card: 1rem;
   --spacing-gutter: 0.625rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -1357,9 +1374,11 @@ html[data-theme='classic'] {
   --radius-card: 0.25rem;
   --radius-panel: 0.25rem;
   --radius-control: 0.25rem;
+  --radius-badge: 0.125rem;
   --radius-chip: 0.125rem;
   --shadow-card: 0 1px 3px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.24);
   --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.12);
+  --shadow-overlay: 0 8px 10px -5px rgb(0 0 0 / 0.2), 0 16px 24px 2px rgb(0 0 0 / 0.14), 0 6px 30px 5px rgb(0 0 0 / 0.12);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -1439,9 +1458,11 @@ html[data-theme='classic'][data-mode='dark'] {
   --radius-card: 0.25rem;
   --radius-panel: 0.25rem;
   --radius-control: 0.25rem;
+  --radius-badge: 0.125rem;
   --radius-chip: 0.125rem;
   --shadow-card: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.6);
   --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.5);
+  --shadow-overlay: 0 8px 10px -5px rgb(0 0 0 / 0.5), 0 16px 24px 2px rgb(0 0 0 / 0.4), 0 6px 30px 5px rgb(0 0 0 / 0.35);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -2183,9 +2204,11 @@ Tasks 14 to 16 apply the same substitution across every component. This table is
 | `focus:ring-blue-500/30`, `focus:border-blue-400` | `focus:ring-accent/30`, `focus:border-accent` | every input and select |
 | `rounded-xl` | `rounded-card` (cards, summary) or `rounded-panel` (column body) | — |
 | `rounded-lg` | `rounded-control` | inputs, selects, buttons, session rows |
-| `rounded-md`, `rounded-sm`, `rounded-full` on a chip or badge | `rounded-chip` | chips, badges, pills |
+| `rounded-md`, `rounded-full` on a chip | `rounded-chip` | chips, pills |
+| `rounded-sm` on a badge | `rounded-badge` | CI, agent, worktree and token badges |
 | `shadow-md` | `shadow-card` | cards |
-| `shadow-xs`, `shadow-sm`, `shadow-xl` | `shadow-panel` | summary, controls, detail panel |
+| `shadow-xs`, `shadow-sm` | `shadow-panel` | summary, controls |
+| `shadow-xl` | `shadow-overlay` | detail panel |
 | `p-3` on a card | `p-card` | `Card.vue` |
 | `gap-2` between cards or columns | `gap-gutter` | `Board.vue`, `Column.vue` |
 | `bg-slate-200/70 text-slate-600` token badge | `bg-surface-muted text-ink-soft` | `SessionRow.vue` |
@@ -2350,7 +2373,7 @@ text-xs text-slate-600   (the prompt)          → text-xs text-ink-soft
 text-blue-600 hover:underline  ("show more")   → text-accent hover:underline
 bg-violet-100 text-violet-700  (worktree)      → bg-worktree-soft text-worktree-on-soft
 bg-slate-200/70 text-slate-600 (token badge)   → bg-surface-muted text-ink-soft
-rounded-sm on all three badges                 → rounded-chip
+rounded-sm on all three badges                 → rounded-badge
 border border-slate-200 bg-white … focus:border-blue-400  (the message input)
   → border border-line bg-surface … focus:border-accent
 bg-blue-600 … text-white hover:bg-blue-700     (the send button)
@@ -2410,7 +2433,7 @@ Expected: FAIL.
 
 ```
 bg-slate-900/30                     → bg-overlay
-bg-white shadow-xl p-4              → bg-surface shadow-panel p-4
+bg-white shadow-xl p-4              → bg-surface shadow-overlay p-4
 text-slate-400 hover:text-slate-600 → text-ink-faint hover:text-ink-soft   (the close button)
 border-b border-slate-100           → border-b border-line-soft
 font-bold text-slate-900            → font-bold text-ink-strong
@@ -2424,7 +2447,7 @@ text-xs font-semibold text-slate-500 uppercase  (3 headings) → text-xs font-se
 text-xs text-slate-600 / text-slate-500 / text-slate-400     → text-ink-soft / text-ink-muted / text-ink-faint
 border border-slate-200 bg-white … focus:border-blue-400 (textarea) → border border-line bg-surface … focus:border-accent
 bg-blue-600 … text-white hover:bg-blue-700 (send)                   → bg-accent … text-on-accent hover:bg-accent-strong
-rounded-sm on the textarea, the send button and the CI pill         → rounded-control (controls) / rounded-chip (pill)
+rounded-sm on the textarea, the send button and the CI pill         → rounded-control (controls) / rounded-badge (pill)
 ```
 
 The close button's `✕` becomes `<Icon name="close" emoji="✕" />` and the pending list's `↩` becomes `<Icon name="reply" emoji="↩" />`; import `Icon`.
@@ -2456,7 +2479,7 @@ border border-slate-200 rounded-lg shadow-xs … bg-white … focus:ring-blue-50
 text-slate-500 bg-slate-50 … border-b border-slate-200   (thead) → text-ink-muted bg-surface-muted … border-b border-line
 border-b border-slate-100 odd:bg-slate-50/60 hover:bg-slate-50  (rows)
   → border-b border-line-soft odd:bg-surface-muted hover:bg-surface-hover
-bg-slate-100 rounded-sm  (the total badge) → bg-surface-muted rounded-chip
+bg-slate-100 rounded-sm  (the total badge) → bg-surface-muted rounded-badge
 text-xs text-slate-400   (the empty line)  → text-xs text-ink-faint
 ```
 

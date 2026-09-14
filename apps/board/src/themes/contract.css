@@ -9,7 +9,12 @@
  * dumb regex rather than a CSS parser.
  */
 @theme {
-  /* Surfaces */
+  /*
+   * Surfaces, outermost to innermost: ground is the page behind everything,
+   * surface a card or a panel that sits on it, panel the tinted well a column
+   * body forms around its cards, surface-muted a row or chip inside a card,
+   * surface-hover its hover state, overlay the scrim behind the detail drawer.
+   */
   --color-ground: #fef7ff;
   --color-surface: #fffbff;
   --color-panel: #f7f2fa;
@@ -86,9 +91,11 @@
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
   --radius-chip: 999px;
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
   --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
   --spacing-card: 0.875rem;
   --spacing-gutter: 0.5rem;
   --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
@@ -102,5 +109,5 @@
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
-  --progress-fill: #6750a4;
+  --progress-fill: #6750a4;               /* a colour or a gradient — whatever background the progress bar paints */
 }

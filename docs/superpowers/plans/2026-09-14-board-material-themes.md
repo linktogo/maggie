@@ -708,13 +708,22 @@ Create `apps/board/src/themes/contract.test.js`:
 ```js
 import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// The board's vitest config runs under jsdom, whose global `URL` resolves a
+// relative path against a `file:` base non-deterministically (sometimes
+// returning the base unchanged instead of appending the path) — even after
+// importing Node's own URL class to shadow it. Resolving the directory once
+// via `fileURLToPath` and joining plain path strings sidesteps that entirely.
+const THEMES_DIR = dirname(fileURLToPath(import.meta.url));
 
 // A deliberately dumb parser: theme files are flat lists of declarations, so
 // matching `selector { … }` and pulling the custom property names out is
 // enough — and it fails loudly if someone nests a rule or hides a brace in a
 // comment, which is exactly the discipline these files need.
 function blocks(file) {
-  const css = readFileSync(new URL(`./${file}`, import.meta.url), 'utf8');
+  const css = readFileSync(join(THEMES_DIR, file), 'utf8');
   const out = {};
   for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const key = selector.trim().replace(/\s+/g, ' ').replace(/^[\s\S]*\*\//, '').trim();
@@ -2837,6 +2846,8 @@ Create `apps/board/src/themes/contrast.test.js`:
 ```js
 import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const FILES = {
   'm3 light': ["m3.css", "html[data-theme='m3']"],
@@ -2883,8 +2894,13 @@ const PAIRS = [
 // the bar, and it is named here rather than hidden behind a lower threshold.
 const EXEMPT = new Set(['legacy|--color-ink-faint|--color-surface']);
 
+// Same jsdom caveat as themes/contract.test.js: resolve the directory once
+// through fileURLToPath rather than letting jsdom's URL resolve a relative
+// path against a file: base.
+const THEMES_DIR = dirname(fileURLToPath(import.meta.url));
+
 function declarations(file, selector) {
-  const css = readFileSync(new URL(`./${file}`, import.meta.url), 'utf8');
+  const css = readFileSync(join(THEMES_DIR, file), 'utf8');
   for (const [, sel, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     if (sel.trim().replace(/\s+/g, ' ').replace(/^[\s\S]*\*\//, '').trim() !== selector) continue;
     const out = {};

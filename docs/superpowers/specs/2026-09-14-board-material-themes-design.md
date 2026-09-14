@@ -67,17 +67,22 @@ apps/board/src/themes/classic.css     Material of the M2 era
 apps/board/src/themes/legacy.css      today's look, frozen
 ```
 
-The set, about 60 variables in seven families:
+The set, 70 variables in eight families:
 
 | Family | Variables | Covers |
 |---|---|---|
 | Surfaces | `--color-ground`, `--color-surface`, `--color-surface-muted`, `--color-line` | page ground, card, column body and session row, hairlines |
 | Text | `--color-ink`, `--color-ink-muted`, `--color-ink-faint` | title, meta line, placeholder |
 | Accent | `--color-accent`, `--color-on-accent`, `--color-accent-soft`, `--color-on-accent-soft` | send button, active tab, progress bar |
-| Status | `--color-{todo,inprogress,question,done}-{solid,soft,on-soft}`, `--color-question-ring`, `--color-drop-ring` | column pill, summary chip, card border, the question alarm, the drag-to-done target |
+| Status | `--color-{todo,inprogress,question,done}-{solid,soft,on-soft}`, `--color-on-status`, `--color-question-ring`, `--color-drop-ring` | column pill, summary chip, card border, the question alarm, the drag-to-done target |
 | Badges | `--color-ci-*`, `--color-agent-*`, `--color-worktree-{soft,on-soft}` | CI, agent and worktree pills |
 | Shape and type | `--radius-{card,panel,control,chip}`, `--shadow-{card,panel}`, `--spacing-{card,gap}`, `--font-ui`, `--nav-transform`, `--nav-tracking`, `--title-weight` | what separates the directions as much as color does |
 | Charts | `--color-series-1` … `--color-series-6` | Chart.js datasets (see below) |
+
+`--color-on-status` is the ink on a filled status pill. It cannot reuse
+`--color-on-accent`: in the dark palettes the accent inverts to a light
+violet whose ink is dark, while the status solids stay light-on-dark, so one
+token would make the column pills unreadable in dark mode.
 
 CI badges and agent badges keep small families of their own —
 `--color-ci-{failure,running,neutral,success}-{soft,on-soft,line}` and
@@ -105,16 +110,21 @@ constructed class names.
 
 ### Light and dark
 
-`initTheme()` always stamps both attributes on `<html>`, so there is no
-implicit third state to reason about:
+`system` is resolved in JavaScript, not in CSS: `theme.js` reads
+`matchMedia('(prefers-color-scheme: dark)')` and stamps `<html>` with
+`data-mode="light"` or `data-mode="dark"` — never `"system"`, which stays in
+`mode.value` as the user's preference. A listener on that media query
+restamps when the OS flips.
 
 ```css
-[data-theme='m3']                     { /* light palette */ }
-[data-theme='m3'][data-mode='dark']   { /* dark palette */ }
-@media (prefers-color-scheme: dark) {
-  [data-theme='m3'][data-mode='system'] { /* same dark palette */ }
-}
+html[data-theme='m3']                     { /* light palette */ }
+html[data-theme='m3'][data-mode='dark']   { /* dark palette */ }
 ```
+
+Resolving in CSS instead would mean repeating each dark palette inside a
+`@media (prefers-color-scheme: dark)` block for the `system` case — around
+70 duplicated declarations per theme, and two copies to keep in step. A
+runtime without `matchMedia` reads as light.
 
 `legacy` defines the light palette only. When it is active the mode control
 is disabled (greyed, with a tooltip explaining why) and the screen stays

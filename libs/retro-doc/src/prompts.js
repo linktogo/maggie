@@ -125,3 +125,218 @@ ${body.trim()}
 ${index}
 `;
 }
+
+export const PLAN_SYSTEM = `You organise a repository's design record into domains: the handful of
+areas a contributor would name when asked "what parts does this repository have?".
+
+Rules:
+- Work only from the digests you are given. A domain must be something the record actually
+  describes, not a category you would expect a project like this to have.
+- Between 2 and 8 domains. Prefer the coarse grouping: a domain worth its own document is one an
+  agent would open on its own.
+- Every source path must land in exactly one domain. Use the paths exactly as given.
+- Order them the way someone would read them: what the repository is for first, the surrounding
+  machinery (release, CI, tooling) last.
+
+Answer with a JSON array and nothing else — no prose, no code fence:
+
+[{"slug": "kebab-case-id", "title": "Human readable name", "summary": "one sentence on what this
+domain covers", "sources": ["docs/…/a.md", "docs/…/b.md"]}]`;
+
+export const OVERVIEW_SYSTEM = `You write the front page of a repository's retro-documentation: the
+page an AI coding agent reads before anything else, above a set of per-domain documents it links to.
+
+Rules:
+- Work only from the digests and repository context you are given. Never invent an API, a file or a
+  decision. Where the record is silent, say so instead of guessing.
+- Be specific: name real paths, real commands, real module names.
+- Do not document the domains one by one — each has its own document. Say what holds them together.
+- Start at heading level 2. No title, no preamble, no closing summary.
+
+Structure, in this order:
+
+## Orientation
+What the repository is, who it serves, and the shape of a change to it.
+
+## Glossary
+Domain terms an agent must use correctly, one per line as "**term** — meaning".
+
+## Invariants that cut across domains
+Numbered rules the whole codebase must keep holding, each with the source that established it.
+Rules that belong to a single domain stay in that domain's document.
+
+## How work gets done here
+The workflows the record describes — testing, review, release, conventions.`;
+
+export const DOMAIN_SYSTEM = `You write one domain's page of a repository's retro-documentation,
+read by an AI coding agent about to change that domain. It is not a tutorial and not a changelog.
+
+Rules:
+- Write about the named domain only. Other domains have their own documents; mention them only
+  where this one depends on them.
+- Work only from the digests you are given, and lean on the documents listed as this domain's
+  sources. Never invent an API, a file or a decision. Where the record is silent, say so.
+- Prefer the recent over the old: when two documents conflict, state the current answer, then note
+  the earlier one under drift.
+- Be specific: name real paths, real commands, real module names. Write constraints as imperatives
+  an agent can check itself against.
+- Keep every section; write "The design record says nothing about this." under a section rather
+  than dropping it.
+- Start at heading level 2. No title, no preamble, no closing summary.
+
+Structure, in this order:
+
+## What it does
+The purpose of this domain and where its code lives.
+
+## Architecture as designed
+Components, responsibilities, how they fit together.
+
+## Decision log
+A table: Decision | Rationale | Where it lives | Source. Newest first. One row per decision that
+still holds.
+
+## Invariants
+Numbered rules this domain must keep holding, each with the source that established it.
+
+## Drift and superseded decisions
+Decisions later reversed or overtaken, and anything the record describes that may no longer match
+the code. Say plainly that this is the risky part of the document.
+
+## Open questions
+What the record leaves undecided, and what an agent should ask a human about before changing.`;
+
+export function buildPlanPrompt({ context, digests, sources }) {
+  const inventory = sources.map((source) => `- ${source.path} — ${source.title} (${source.kind}, ${source.date ?? 'undated'})`).join('\n');
+  return `Split the design record of the repository "${context.name}" into domains.
+
+<repository>
+name: ${context.name}
+description: ${context.description || 'none declared'}
+top-level entries: ${context.entries.join(', ') || 'unknown'}
+</repository>
+
+<design-record-inventory>
+${inventory || 'none'}
+</design-record-inventory>
+
+<digests>
+${digests.join('\n\n')}
+</digests>`;
+}
+
+export function buildOverviewPrompt({ context, digests, domains, lang = DEFAULT_LANG }) {
+  const list = domains.map((domain) => `- ${domain.title} (${domain.slug}) — ${domain.summary || 'no summary'}`).join('\n');
+  return `Write the front page of the retro-documentation of "${context.name}" in ${lang}.
+
+<repository>
+name: ${context.name}
+description: ${context.description || 'none declared'}
+top-level entries: ${context.entries.join(', ') || 'unknown'}
+</repository>
+
+<readme>
+${context.readme || 'No README found.'}
+</readme>
+
+<domains>
+${list}
+</domains>
+
+<digests>
+${digests.join('\n\n')}
+</digests>`;
+}
+
+export function buildDomainPrompt({ context, domain, domains, digests, sources, lang = DEFAULT_LANG }) {
+  const known = new Map(sources.map((source) => [source.path, source]));
+  const own = domain.sources
+    .map((file) => known.get(file))
+    .filter(Boolean)
+    .map((source) => `- ${source.path} — ${source.title} (${source.kind}, ${source.date ?? 'undated'})`)
+    .join('\n');
+  const siblings = domains
+    .filter((other) => other.slug !== domain.slug)
+    .map((other) => `- ${other.title} (${other.slug}.md)`)
+    .join('\n');
+  return `Write the "${domain.title}" page of the retro-documentation of "${context.name}" in ${lang}.
+
+<domain>
+title: ${domain.title}
+summary: ${domain.summary || 'none given'}
+</domain>
+
+<this-domain-sources>
+${own || 'none listed — work from the digests'}
+</this-domain-sources>
+
+<other-domains>
+${siblings || 'none'}
+</other-domains>
+
+<digests>
+${digests.join('\n\n')}
+</digests>`;
+}
+
+function sourceIndex(sources) {
+  return sources
+    .map((source) => `| ${source.date ?? '—'} | ${source.kind} | ${source.title.replace(/\|/g, '\\|')} | \`${source.path}\` |`)
+    .join('\n');
+}
+
+function header(context, sources, generator, generatedAt) {
+  return `<!-- Generated by maggie retro-doc. Do not edit by hand: regenerate it. -->
+
+# Retro-documentation — ${context.name}
+
+> Reconstructed from ${sources.length} design document(s) by \`${generator}\` on ${generatedAt}.
+> It describes the repository **as designed**, not as it stands today: the code is the
+> authority, this is the intent behind it. Regenerate after a design change, from
+> the command line (\`npm run retro-doc\`) or from the board's Retro-documentation
+> panel.`;
+}
+
+/** The front page: what the repository is, then the door to each domain. */
+export function renderIndex({ body, context, domains, sources, generator, generatedAt }) {
+  const table = domains
+    .map((domain) => `| [${domain.title}](${domain.slug}.md) | ${(domain.summary || '').replace(/\|/g, '\\|')} | ${domain.sources.length} |`)
+    .join('\n');
+  return `${header(context, sources, generator, generatedAt)}
+
+## Domains
+
+| Document | What it covers | Sources |
+|---|---|---|
+${table}
+
+${body.trim()}
+
+## Source index
+
+| Date | Kind | Title | Path |
+|---|---|---|---|
+${sourceIndex(sources)}
+`;
+}
+
+/** One domain's page, with its own source index and a way back to the front page. */
+export function renderDomain({ body, context, domain, sources, generator, generatedAt }) {
+  const own = sources.filter((source) => domain.sources.includes(source.path));
+  return `<!-- Generated by maggie retro-doc. Do not edit by hand: regenerate it. -->
+
+# ${domain.title} — ${context.name}
+
+> [← Retro-documentation](README.md) · reconstructed from ${own.length} design document(s) by
+> \`${generator}\` on ${generatedAt}. It describes this domain **as designed**, not as it stands
+> today: the code is the authority, this is the intent behind it.
+
+${body.trim()}
+
+## Sources
+
+| Date | Kind | Title | Path |
+|---|---|---|---|
+${sourceIndex(own)}
+`;
+}

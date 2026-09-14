@@ -109,6 +109,7 @@ function generate(repo) {
               </span>
               <span v-else-if="jobFor(row.name).status === 'done'" :data-test="`retro-done-${row.name}`" class="text-slate-600">
                 ✓ {{ t('detail.retroDocDone', { out: jobFor(row.name).out }) }}
+                <span v-if="jobFor(row.name).files?.length > 1">· {{ t('retro.files', { count: jobFor(row.name).files.length }) }}</span>
                 · {{ jobFor(row.name).generator }}
                 · {{ relativeTime(jobFor(row.name).finishedAt, now) }}
               </span>

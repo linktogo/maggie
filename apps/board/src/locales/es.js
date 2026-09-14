@@ -10,6 +10,7 @@ export default {
   'retro.llm': 'LLM',
   'retro.lastRun': 'Última ejecución',
   'retro.never': 'No generada en esta sesión del board',
+  'retro.files': '{count} documentos',
   'retro.noRepos': 'Ningún repositorio en la configuración.',
   'retro.showLog': 'registro',
   'retro.hideLog': 'ocultar registro',

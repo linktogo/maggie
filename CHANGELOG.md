@@ -12,25 +12,33 @@ changes in minor releases.
 
 ### Added
 
-- `scripts/retro-doc.js` (`npm run retro-doc`) reconstructs a single
-  **retro-documentation** file from a repository's specs and plans, using an
-  LLM. It collects the design record of any target repo (`--repo`), digests
-  it in batches that never split or truncate a document, then synthesises one
+- `scripts/retro-doc.js` (`npm run retro-doc`) reconstructs a
+  **retro-documentation** from a repository's specs and plans, using an LLM: a
+  front page plus one document per domain of that repository, under
+  `docs/ai/retro-doc/` (`--single-file` keeps the one-document shape). The
+  domains are not a fixed list — after digesting, the model is asked to split
+  *this* record into the areas a contributor would name, and each becomes its
+  own document with its own decision log, invariants and drift section; an
+  unreadable plan falls back to documenting the repository in one piece rather
+  than failing the run.
+  It collects the design record of any target repo (`--repo`), digests it in
+  batches that never split or truncate a document, then synthesises the
   agent-facing reference — orientation, glossary, architecture, decision log,
   invariants, workflows, drift and open questions — with a source index the
   script appends itself so every claim stays traceable. Every LLM call is
   announced before it goes out and reported when it comes back (how long it
   took, how much came back), since a single call over a 200 000-character batch
-  runs for minutes in silence and would otherwise look like a freeze. `--dry-run` lists the
-  sources, the call count and an indicative cost without touching the API.
+  runs for minutes in silence and would otherwise look like a freeze.
+  `--dry-run` lists the sources, the call count and an indicative cost without
+  touching the API.
   Run with no argument on a terminal, it asks which repository of the workspace
   to document and which LLM to use; `--provider` picks between the Anthropic API
   (`claude`), the local `claude` CLI and the local `copilot` CLI, the two CLIs
   reusing the login they already have and taking the prompt on stdin. See
   [Retro-documentation](docs/retro-doc.md).
 - The generation itself ships as a seventh published library,
-  **`@linktogo/maggie-retro-doc`** — source collection, prompts, providers and
-  the two-phase pipeline, every I/O boundary injectable — so the CLI and the
+  **`@linktogo/maggie-retro-doc`** — source collection, prompts, providers,
+  domain planning and the pipeline, every I/O boundary injectable — so the CLI and the
   board run the same code.
 - The board dashboard can run it, from a dedicated **Retro-doc** page listing
   every repository of the config — technologies, choice of LLM, state of the

@@ -39,7 +39,13 @@ test('start runs the generation against the checkout and records where it landed
     },
     run: async ({ repoRoot, generator, log }) => {
       log('digesting batch 1/1');
-      return { outPath: path.join(repoRoot, 'docs/ai/retro-documentation.md'), markdown: `# ${generator}`, sources: [] };
+      const dir = path.join(repoRoot, 'docs/ai/retro-doc');
+      return {
+        outPath: path.join(dir, 'README.md'),
+        markdown: `# ${generator}`,
+        sources: [],
+        written: [path.join(dir, 'README.md'), path.join(dir, 'skill-sync.md')],
+      };
     },
   });
 
@@ -51,11 +57,15 @@ test('start runs the generation against the checkout and records where it landed
 
   const finished = await runner.settled(started.job.id);
   assert.equal(finished.status, 'done');
-  assert.equal(finished.out, path.join('docs', 'ai', 'retro-documentation.md'));
+  assert.equal(finished.out, path.join('docs', 'ai', 'retro-doc', 'README.md'));
+  assert.deepEqual(finished.files, [
+    path.join('docs', 'ai', 'retro-doc', 'README.md'),
+    path.join('docs', 'ai', 'retro-doc', 'skill-sync.md'),
+  ]);
   assert.deepEqual(finished.log.map((entry) => entry.text), [
     `starting on ${path.join(workspaceDir, 'api')} through GitHub Copilot CLI`,
     'digesting batch 1/1',
-    'wrote docs/ai/retro-documentation.md',
+    `wrote 2 file(s): ${path.join('docs/ai/retro-doc/README.md')}, ${path.join('docs/ai/retro-doc/skill-sync.md')}`,
   ]);
   assert.match(finished.log[0].at, /^\d{4}-\d{2}-\d{2}T/, 'every line carries the time it appeared');
   assert.equal(finished.error, null);

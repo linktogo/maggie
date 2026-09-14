@@ -7,6 +7,7 @@ import {
   DEFAULT_MAX_CHARS,
   DEFAULT_MODEL,
   DEFAULT_OUT,
+  DEFAULT_OUT_DIR,
   DEFAULT_PROVIDER,
   DEFAULT_TIMEOUT_SECONDS,
   DEFAULT_WORKSPACE,
@@ -27,8 +28,8 @@ import {
 export const USAGE = `Usage: node scripts/retro-doc.js [options]
 
 Reads every spec and plan of a target repository and asks an LLM to write a
-single retro-documentation file, structured for an AI agent about to work in
-that repository.
+set of retro-documentation files — a front page plus one document per domain —
+structured for an AI agent about to work in that repository.
 
 With no --repo and no --provider on a terminal, it asks which repository of the
 workspace to document and which LLM to use.
@@ -45,7 +46,10 @@ Options:
                       "copilot --allow-all-tools --model claude-sonnet-4.5"
   --model <id>        Model id (default: ${DEFAULT_MODEL} for the API provider,
                       the CLI's own default otherwise)
-  --out <path>        Output file, relative to the repo (default: ${DEFAULT_OUT})
+  --out <path>        Output, relative to the repo: the directory the documents
+                      go in (default: ${DEFAULT_OUT_DIR}), or the file to write
+                      with --single-file (default: ${DEFAULT_OUT})
+  --single-file       One document instead of a front page plus one per domain
   --include <path>    Extra file or directory to read; repeatable. Replaces the
                       default spec/plan locations when given.
   --lang <language>   Language of the generated document (default: ${DEFAULT_LANG})
@@ -65,7 +69,8 @@ export function parseArgs(argv) {
     workspace: DEFAULT_WORKSPACE,
     provider: null,
     providerCommand: null,
-    out: DEFAULT_OUT,
+    out: null,
+    singleFile: false,
     include: [],
     model: null,
     lang: DEFAULT_LANG,
@@ -134,6 +139,9 @@ export function parseArgs(argv) {
         i += 1;
         break;
       }
+      case '--single-file':
+        options.singleFile = true;
+        break;
       case '--stdout':
         options.stdout = true;
         break;
@@ -151,7 +159,7 @@ export function parseArgs(argv) {
   return options;
 }
 
-export function formatDryRun({ sources, batches, provider, model, generator, out }) {
+export function formatDryRun({ sources, batches, provider, model, generator, singleFile = false, out }) {
   const chars = sources.reduce((sum, source) => sum + source.chars, 0);
   const inputTokens = estimateTokens(chars) + batches.length * 700;
   const outputTokens = batches.length * 2500 + 12000;
@@ -159,12 +167,14 @@ export function formatDryRun({ sources, batches, provider, model, generator, out
   const lines = [
     `Sources: ${sources.length} document(s), ${chars} characters`,
     ...sources.map((source) => `  ${source.date ?? '        —'}  ${source.kind.padEnd(15)} ${source.path}`),
-    `Calls: ${batches.length} digest + 1 synthesis, through ${generator}`,
+    singleFile
+      ? `Calls: ${batches.length} digest + 1 synthesis, through ${generator}`
+      : `Calls: ${batches.length} digest + 1 plan + 1 per domain (2 to 8) + 1 front page, through ${generator}`,
     `Estimated tokens: ~${inputTokens} in, ~${outputTokens} out`,
     provider === 'claude'
       ? (cost === null ? 'Estimated cost: unknown for this model' : `Estimated cost: ~$${cost.toFixed(2)} (list price, indicative)`)
       : 'Estimated cost: billed by your CLI subscription, not by the Anthropic API',
-    `Would write: ${out}`,
+    singleFile ? `Would write: ${out}` : `Would write: ${out}/ — README.md and one file per domain`,
   ];
   return lines.join('\n');
 }
@@ -241,7 +251,8 @@ export async function main(argv, {
       provider,
       model: options.model,
       generator,
-      out: path.resolve(repoRoot, options.out),
+      singleFile: options.singleFile,
+      out: path.resolve(repoRoot, options.out ?? (options.singleFile ? DEFAULT_OUT : DEFAULT_OUT_DIR)),
     }));
     return 0;
   }
@@ -253,20 +264,23 @@ export async function main(argv, {
     timeoutMs: options.timeout * 1000,
   });
 
+  const printed = [];
   let result;
   try {
     result = await runRetroDoc({
       repoRoot,
       include: options.include,
       out: options.out,
+      split: !options.singleFile,
       complete,
       generator,
       lang: options.lang,
       maxChars: options.maxChars,
       log: (message) => error(message),
       ...(write ? { write } : {}),
-      // --stdout must not touch the filesystem, whoever else supplied a writer.
-      ...(options.stdout ? { write: async () => {} } : {}),
+      // --stdout must not touch the filesystem, whoever else supplied a writer:
+      // it prints every document instead, each under the name it would have had.
+      ...(options.stdout ? { write: async (file, markdown) => printed.push({ file, markdown }) } : {}),
     });
   } catch (err) {
     error(err.message);
@@ -274,10 +288,15 @@ export async function main(argv, {
   }
 
   if (options.stdout) {
-    log(result.markdown);
+    log(printed.map(({ file, markdown }) => `<!-- ${path.basename(file)} -->\n${markdown}`).join('\n'));
     return 0;
   }
-  log(`Wrote ${result.outPath} (${result.markdown.length} characters, from ${result.sources.length} source document(s))`);
+  if (options.singleFile) {
+    log(`Wrote ${result.outPath} (${result.markdown.length} characters, from ${result.sources.length} source document(s))`);
+    return 0;
+  }
+  log(`Wrote ${result.written.length} file(s) under ${path.dirname(result.outPath)}, from ${result.sources.length} source document(s):`);
+  for (const file of result.written) log(`  ${path.basename(file)}`);
   return 0;
 }
 

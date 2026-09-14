@@ -10,6 +10,7 @@ export default {
   'retro.llm': 'LLM',
   'retro.lastRun': 'Dernière génération',
   'retro.never': 'Jamais générée depuis le démarrage du board',
+  'retro.files': '{count} documents',
   'retro.noRepos': 'Aucun dépôt dans la configuration.',
   'retro.showLog': 'journal',
   'retro.hideLog': 'masquer le journal',

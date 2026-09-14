@@ -18,6 +18,9 @@ node scripts/retro-doc.js --repo ../some-repo --dry-run   # what it would read a
 npm run retro-doc -- --repo api --provider copilot        # a workspace checkout, through Copilot
 ```
 
+The output is a **directory**: a front page plus one document per domain of the
+repository. `--single-file` keeps everything in one document instead.
+
 Run with no arguments on a terminal and it asks two questions — which repository
 of the workspace to document, and which LLM to use — then runs. Every answer can
 be given upfront as a flag instead, which is what makes it usable from a script,
@@ -112,8 +115,11 @@ Two phases, because a large design record does not fit in one useful prompt:
    constraints, vocabulary, components, status signals. A document is never
    split across batches and never truncated — one larger than the limit simply
    gets a batch of its own.
-2. **Synthesis** — every digest, plus the repository's own README, package name
-   and top-level layout, goes into a single call that writes the document.
+2. **Plan** — one call turns the digests into the list of domains, as JSON.
+3. **Synthesis** — one call per domain writes that domain's document, then one
+   more writes the front page from the digests, the README and the domain list.
+   With `--single-file`, phases 2 and 3 collapse into the single synthesis call
+   this tool used to make.
 
 On the `claude` provider both calls run on `claude-opus-5` with adaptive
 thinking, streamed. On a CLI provider they are two invocations of that CLI, each
@@ -121,24 +127,45 @@ fed the same prompt on stdin.
 
 ## What it writes
 
-One Markdown file, `docs/ai/retro-documentation.md` by default (`--out`), with a
-fixed structure — the sections are the reason the output is usable by an agent
-rather than merely readable:
+By default, a directory — `docs/ai/retro-doc/` unless `--out` says otherwise —
+holding one document per domain and a front page tying them together:
+
+```
+docs/ai/retro-doc/
+  README.md        the front page: orientation, glossary, cross-cutting
+                   invariants, workflows, and the table of domains
+  skill-sync.md    one domain
+  status-board.md  …
+  releases.md      …
+```
+
+The domains are not a fixed list: after digesting, the model is asked to split
+*this* repository's record into the 2 to 8 areas a contributor would name, and
+each becomes a document. A plan that comes back unreadable is not a failed run —
+the record is then documented in one piece, as `overview.md`.
+
+Each domain document has the same shape, so an agent knows where to look:
 
 | Section | What it holds |
 |---|---|
-| Orientation | What the repository is and what a change to it looks like |
-| Glossary | Domain terms, so the agent names things the way the team does |
+| What it does | The purpose of the domain and where its code lives |
 | Architecture as designed | Components, responsibilities, real directory names |
 | Decision log | Decision, rationale, where it lives, source — newest first |
-| Invariants | Numbered rules the codebase must keep holding |
-| How work gets done here | Testing, review, release, conventions |
+| Invariants | Numbered rules this domain must keep holding |
 | Drift and superseded decisions | What the record says that the code may no longer do |
 | Open questions | What to ask a human about before changing |
 
-A header warns that the file is generated, and a **source index** table is
-appended deterministically by the script — not by the model — so every claim
+The front page carries what belongs to no single domain: orientation, the
+glossary, the invariants that cut across domains, and how work gets done here.
+
+Every document is headed by a warning that it is generated, links back to the
+front page, and ends with the **source index** of the documents it was
+reconstructed from — appended by the script, not by the model, so every claim
 stays traceable to the file it came from.
+
+`--single-file` writes the whole thing as one document (`docs/ai/retro-documentation.md`
+by default), the shape this tool had before domains: orientation, glossary,
+architecture, decision log, invariants, workflows, drift, open questions.
 
 The document describes the repository **as designed**. The code remains the
 authority; this is the intent behind it. That is also why `Drift` is a section
@@ -153,7 +180,8 @@ of its own rather than a footnote.
 | `--provider <name>` | ask, else `claude` | `claude`, `claude-cli` or `copilot` |
 | `--provider-command` | — | Replace the command a CLI provider runs |
 | `--model <id>` | `claude-opus-5` on the API | Model id, passed to whichever provider runs |
-| `--out <path>` | `docs/ai/retro-documentation.md` | Output, relative to the repo |
+| `--out <path>` | `docs/ai/retro-doc` | Output directory, relative to the repo (the file, with `--single-file`) |
+| `--single-file` | — | One document instead of a front page plus one per domain |
 | `--include <path>` | the list above | Extra source location; repeatable, replaces the defaults |
 | `--lang <language>` | `English` | Language of the generated document |
 | `--max-chars <n>` | `200000` | Source characters per digest call |
@@ -168,7 +196,7 @@ of its own rather than a footnote.
 Sources: 30 document(s), 809943 characters
   2026-06-14  spec            docs/superpowers/specs/2026-06-14-skill-sync-design.md
   …
-Calls: 5 digest + 1 synthesis, through claude-opus-5
+Calls: 5 digest + 1 plan + 1 per domain (2 to 8) + 1 front page, through claude-opus-5
 Estimated tokens: ~205986 in, ~24500 out
 Estimated cost: ~$1.64 (list price, indicative)
 Would write: /home/user/maggie/docs/ai/retro-documentation.md

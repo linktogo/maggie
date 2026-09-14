@@ -12,6 +12,7 @@ export default {
   'retro.llm': 'LLM',
   'retro.lastRun': 'Last run',
   'retro.never': 'Not generated in this board session',
+  'retro.files': '{count} documents',
   'retro.noRepos': 'No repository in the config.',
   'retro.showLog': 'log',
   'retro.hideLog': 'hide log',

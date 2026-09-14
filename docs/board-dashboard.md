@@ -140,7 +140,8 @@ session's status.
 ## Generating a retro-documentation
 
 The **Retro-doc** tab, next to Board and History, lists every repository of the
-config: technologies, choice of LLM, state of the last run, and a button. The
+config: technologies, choice of LLM, state of the last run (with how many
+documents it produced), and a button. The
 same controls also sit in a repository's detail panel — clicking a repository's
 **name** on its card opens it, no session needed, which is the point: an idle
 repo is exactly the one you want to document. Either way: pick an LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and

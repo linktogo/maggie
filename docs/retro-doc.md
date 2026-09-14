@@ -195,9 +195,13 @@ never reaches an LLM, and never even asks which one to use.
 
 ## From the board
 
-The dashboard can run it for you: **click a repository's name** on its card —
-which opens the detail panel whether or not a session is running on it — and the
-**Retro-documentation** section offers the same three LLMs and a button.
+The dashboard can run it for you, from either of two places:
+
+- the **Retro-doc** tab — one row per repository of the config, with its
+  technologies, the choice of LLM, the state of its last run and a button. This
+  is the page to open when documenting is what you came to do;
+- a repository's **detail panel** — click its name on its card, session running
+  or not — which carries the same section next to that repo's CI and history.
 
 The board runs the generation in its own process and the panel polls it, so the
 tab can be closed and reopened while it works: a running job shows the batch it

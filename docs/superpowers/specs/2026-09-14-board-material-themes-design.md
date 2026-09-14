@@ -67,19 +67,24 @@ apps/board/src/themes/classic.css     Material of the M2 era
 apps/board/src/themes/legacy.css      today's look, frozen
 ```
 
-The set, about 40 variables in six families:
+The set, about 60 variables in seven families:
 
 | Family | Variables | Covers |
 |---|---|---|
 | Surfaces | `--color-ground`, `--color-surface`, `--color-surface-muted`, `--color-line` | page ground, card, column body and session row, hairlines |
 | Text | `--color-ink`, `--color-ink-muted`, `--color-ink-faint` | title, meta line, placeholder |
 | Accent | `--color-accent`, `--color-on-accent`, `--color-accent-soft`, `--color-on-accent-soft` | send button, active tab, progress bar |
-| Status | `--color-{todo,inprogress,question,done}-{solid,soft,on-soft}` | column pill, summary chip, card border |
+| Status | `--color-{todo,inprogress,question,done}-{solid,soft,on-soft}`, `--color-question-ring`, `--color-drop-ring` | column pill, summary chip, card border, the question alarm, the drag-to-done target |
+| Badges | `--color-ci-*`, `--color-agent-*`, `--color-worktree-{soft,on-soft}` | CI, agent and worktree pills |
 | Shape and type | `--radius-{card,panel,control,chip}`, `--shadow-{card,panel}`, `--spacing-{card,gap}`, `--font-ui`, `--nav-transform`, `--nav-tracking`, `--title-weight` | what separates the directions as much as color does |
 | Charts | `--color-series-1` … `--color-series-6` | Chart.js datasets (see below) |
 
-CI badges (`ok` / `ko` / `unknown`) and agent badges (`claude` / `copilot`)
-reuse the status and accent variables rather than opening their own family.
+CI badges and agent badges keep small families of their own —
+`--color-ci-{failure,running,neutral,success}-{soft,on-soft,line}` and
+`--color-agent-{claude,copilot}-{soft,on-soft}` — rather than borrowing the
+status colors: today's CI running badge is `blue-100` where the `inprogress`
+chip is `blue-50`, and CI failure is red where `question` is amber. Borrowing
+would shift `legacy` by a shade, which its freeze forbids.
 
 ### Wiring into Tailwind 4
 

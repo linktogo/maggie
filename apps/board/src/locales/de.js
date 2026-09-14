@@ -4,7 +4,7 @@ export default {
   'nav.language': 'Sprache',
   'nav.retroDoc': 'Retro-Doc',
   'nav.theme': 'Design',
-  'nav.mode': 'Darstellung',
+  'nav.mode': 'Erscheinungsbild',
 
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
@@ -14,7 +14,7 @@ export default {
   'mode.light': 'Hell',
   'mode.dark': 'Dunkel',
   'mode.system': 'System',
-  'mode.legacyLocked': 'Das bisherige Design gibt es nur in Hell.',
+  'mode.legacyLocked': 'Dieses Design gibt es nur in Hell.',
 
   'retro.title': 'Retro-Dokumentation',
   'retro.intro': 'Fasst Specs und Pläne eines Repos zu einem Referenzdokument zusammen, geschrieben für den KI-Agenten, der darin arbeiten wird.',

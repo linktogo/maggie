@@ -203,10 +203,17 @@ The dashboard can run it for you, from either of two places:
 - a repository's **detail panel** — click its name on its card, session running
   or not — which carries the same section next to that repo's CI and history.
 
-The board runs the generation in its own process and the panel polls it, so the
+The board runs the generation in its own process and the page polls it, so the
 tab can be closed and reopened while it works: a running job shows the batch it
-is on, a finished one the path it wrote, a failed one what the LLM or its CLI
-said. One run at a time per repository.
+is on and a timestamped console of everything it has done, a finished one the
+path it wrote, a failed one what the LLM or its CLI said. One run at a time per
+repository.
+
+The console is what tells a slow run from a stuck one. Every LLM call is
+announced before it goes out and reported when it comes back, with how long it
+took and how much came back — a single call over a 200 000-character batch runs
+for minutes in complete silence, and without the second line there is nothing to
+distinguish that from a freeze. The same lines go to stderr on the command line.
 
 Two things the board needs, and says so when it does not have them:
 

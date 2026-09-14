@@ -118,10 +118,22 @@ test('the retro-documentation panel defaults to the Claude API', async () => {
 
 test('a running job disables the button and shows the progress line it last logged', () => {
   const w = mount(RepoDetail, {
-    props: { ...retroProps, retroDoc: { status: 'running', log: ['digesting batch 1/5', 'digesting batch 2/5'] } },
+    props: {
+      ...retroProps,
+      retroDoc: {
+        status: 'running',
+        log: [
+          { at: '2026-09-14T09:00:00.000Z', text: 'digest 1/5: 9 document(s), 192135 chars' },
+          { at: '2026-09-14T09:02:00.000Z', text: 'digesting batch 2/5' },
+        ],
+      },
+    },
   });
   expect(w.get('[data-test=retro-doc-run]').attributes('disabled')).toBeDefined();
   expect(w.get('[data-test=retro-doc-progress]').text()).toContain('digesting batch 2/5');
+  const console_ = w.get('[data-test=retro-log]').text();
+  expect(console_).toContain('digest 1/5: 9 document(s), 192135 chars');
+  expect(console_).toContain('digesting batch 2/5');
 });
 
 test('a finished job says where the document landed and who wrote it', () => {

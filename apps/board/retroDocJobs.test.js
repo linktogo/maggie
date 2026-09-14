@@ -47,17 +47,22 @@ test('start runs the generation against the checkout and records where it landed
   assert.equal(started.status, 202);
   assert.equal(started.job.status, 'running');
   assert.equal(started.job.generator, 'GitHub Copilot CLI');
+  assert.match(started.job.log[0].text, /^starting on /, 'the console says what it is doing before the first call');
 
   const finished = await runner.settled(started.job.id);
   assert.equal(finished.status, 'done');
   assert.equal(finished.out, path.join('docs', 'ai', 'retro-documentation.md'));
-  assert.deepEqual(finished.log, ['digesting batch 1/1']);
+  assert.deepEqual(finished.log.map((entry) => entry.text), [
+    `starting on ${path.join(workspaceDir, 'api')} through GitHub Copilot CLI`,
+    'digesting batch 1/1',
+    'wrote docs/ai/retro-documentation.md',
+  ]);
+  assert.match(finished.log[0].at, /^\d{4}-\d{2}-\d{2}T/, 'every line carries the time it appeared');
   assert.equal(finished.error, null);
   assert.ok(finished.finishedAt);
   assert.deepEqual(seen, [{ provider: 'copilot', model: null }]);
   assert.deepEqual(runner.list().map((job) => job.id), [started.job.id]);
   assert.equal(runner.list('web').length, 0);
-  assert.ok(seen.length === 1 && workspaceDir.includes('wk'));
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -73,6 +78,7 @@ test('a job that fails keeps the reason instead of disappearing', async () => {
   const finished = await runner.settled(started.job.id);
   assert.equal(finished.status, 'error');
   assert.match(finished.error, /not logged in/);
+  assert.match(finished.log.at(-1).text, /^error: `copilot` exited with code 1/, 'the failure is the last line of the console');
   await rm(dir, { recursive: true, force: true });
 });
 

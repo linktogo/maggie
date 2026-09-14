@@ -65,9 +65,16 @@ test('each row keeps its own choice of LLM', async () => {
 
 test('a running row shows the batch in flight and cannot be started twice', async () => {
   const w = await page(fetchWith({
-    jobs: [{ id: 'x', repo: 'oc-be', status: 'running', log: ['digesting batch 2/5'] }],
+    jobs: [{
+      id: 'x', repo: 'oc-be', status: 'running', startedAt: '2026-09-14T09:57:30.000Z',
+      log: [
+        { at: '2026-09-14T09:57:30.000Z', text: 'digest 1/5: 9 document(s), 192135 chars' },
+        { at: '2026-09-14T09:59:12.000Z', text: 'digesting batch 2/5' },
+      ],
+    }],
   }));
   expect(w.get('[data-test=retro-running-oc-be]').text()).toContain('digesting batch 2/5');
+  expect(w.get('[data-test=retro-running-oc-be]').text()).toContain('running for 2m 30s');
   expect(w.get('[data-test=retro-run-oc-be]').attributes('disabled')).toBeDefined();
   expect(w.get('[data-test=retro-run-lk-mind]').attributes('disabled')).toBeUndefined();
 });
@@ -104,4 +111,36 @@ test('an empty config says so instead of showing an empty table', async () => {
   await flushPromises();
   expect(w.get('[data-test=retro-empty]').exists()).toBe(true);
   expect(w.find('table').exists()).toBe(false);
+});
+
+const runningJob = {
+  id: 'x', repo: 'oc-be', status: 'running', startedAt: '2026-09-14T09:57:30.000Z',
+  log: [
+    { at: '2026-09-14T09:57:30.000Z', text: 'digest 1/5: 9 document(s), 192135 chars — docs/superpowers/specs/a.md' },
+    { at: '2026-09-14T09:59:12.000Z', text: '  ↳ digest 1/5 answered in 1m 42s — 4821 chars' },
+  ],
+};
+
+test('a running row opens its console, timestamped, without being asked', async () => {
+  const w = await page(fetchWith({ jobs: [runningJob] }));
+  const box = w.get('[data-test=retro-row-oc-be] [data-test=retro-log]').text();
+  expect(box).toContain('digest 1/5: 9 document(s), 192135 chars');
+  expect(box).toContain('answered in 1m 42s — 4821 chars');
+  expect(box).toMatch(/\d{2}:\d{2}:\d{2}/);
+  expect(w.find('[data-test=retro-row-lk-mind] [data-test=retro-log]').exists()).toBe(false);
+});
+
+test('the console of a finished run is kept, one toggle away', async () => {
+  const w = await page(fetchWith({
+    jobs: [{ ...runningJob, status: 'done', out: 'docs/ai/retro-documentation.md', finishedAt: '2026-09-14T09:59:00.000Z' }],
+  }));
+  expect(w.find('[data-test=retro-row-oc-be] [data-test=retro-log]').exists()).toBe(false);
+  await w.get('[data-test=retro-toggle-log-oc-be]').trigger('click');
+  expect(w.get('[data-test=retro-row-oc-be] [data-test=retro-log]').text()).toContain('digest 1/5');
+});
+
+test('the console of a running row can be closed', async () => {
+  const w = await page(fetchWith({ jobs: [runningJob] }));
+  await w.get('[data-test=retro-toggle-log-oc-be]').trigger('click');
+  expect(w.find('[data-test=retro-row-oc-be] [data-test=retro-log]').exists()).toBe(false);
 });

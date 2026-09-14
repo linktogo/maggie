@@ -11,6 +11,9 @@ export default {
   'retro.lastRun': 'Letzter Lauf',
   'retro.never': 'In dieser Board-Sitzung nicht erzeugt',
   'retro.noRepos': 'Kein Repository in der Konfiguration.',
+  'retro.showLog': 'Protokoll',
+  'retro.hideLog': 'Protokoll ausblenden',
+  'retro.elapsed': 'läuft seit {elapsed}',
 
   'notifications.enable': 'aktivieren',
   'notifications.sound': 'Ton',

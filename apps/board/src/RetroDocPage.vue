@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue';
 import { useRetroDoc } from './useRetroDoc.js';
 import { relativeTime } from './useRelativeTime.js';
+import RetroDocLog from './RetroDocLog.vue';
 import { useI18n } from './i18n.js';
 
 const { t } = useI18n();
@@ -25,7 +26,29 @@ const rows = computed(() => Object.entries(props.config)
 // Reading jobs here is what keeps the rows following a running job.
 const jobFor = (repo) => (jobs.value ? latestFor(repo) : null);
 
+// The row shows the head of the last line — "digest 2/5: 5 document(s)" — and
+// leaves the rest (the paths it is chewing on) to the console below it.
+const lastLine = (repo) => {
+  const text = jobFor(repo)?.log?.at(-1)?.text;
+  return text ? text.trim().split(' — ')[0] : null;
+};
+
+// The console is open by default while a run is in flight — that is the moment
+// it is worth looking at — and can be pinned open or shut per row afterwards.
+const opened = reactive({});
+const isOpen = (repo) => opened[repo] ?? jobFor(repo)?.status === 'running';
+const toggle = (repo) => { opened[repo] = !isOpen(repo); };
+
+// How long the run has been going, so a slow call reads as slow, not as frozen.
+function elapsed(repo) {
+  const job = jobFor(repo);
+  if (!job?.startedAt) return null;
+  const seconds = Math.max(0, Math.round((props.now - Date.parse(job.startedAt)) / 1000));
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+}
+
 function generate(repo) {
+  opened[repo] = true;
   start(repo, providerFor(repo));
 }
 </script>
@@ -81,7 +104,8 @@ function generate(repo) {
             <td class="px-4 py-3 text-xs">
               <span v-if="!jobFor(row.name)" :data-test="`retro-never-${row.name}`" class="text-slate-400">{{ t('retro.never') }}</span>
               <span v-else-if="jobFor(row.name).status === 'running'" :data-test="`retro-running-${row.name}`" class="text-slate-600">
-                ⏳ {{ jobFor(row.name).log?.at(-1) ?? t('detail.retroDocRunning') }}
+                ⏳ {{ lastLine(row.name) ?? t('detail.retroDocRunning') }}
+                <span v-if="elapsed(row.name)" class="text-slate-400">· {{ t('retro.elapsed', { elapsed: elapsed(row.name) }) }}</span>
               </span>
               <span v-else-if="jobFor(row.name).status === 'done'" :data-test="`retro-done-${row.name}`" class="text-slate-600">
                 ✓ {{ t('detail.retroDocDone', { out: jobFor(row.name).out }) }}
@@ -91,6 +115,14 @@ function generate(repo) {
               <span v-else :data-test="`retro-failed-${row.name}`" class="text-amber-700">
                 ⚠ {{ t('detail.retroDocFailed', { reason: jobFor(row.name).error }) }}
               </span>
+              <button
+                v-if="jobFor(row.name)?.log?.length"
+                type="button"
+                :data-test="`retro-toggle-log-${row.name}`"
+                class="ml-1 text-blue-600 hover:underline"
+                @click="toggle(row.name)"
+              >{{ isOpen(row.name) ? t('retro.hideLog') : t('retro.showLog') }}</button>
+              <RetroDocLog v-if="isOpen(row.name) && jobFor(row.name)?.log?.length" :log="jobFor(row.name).log" />
             </td>
             <td class="px-4 py-3 text-right">
               <button

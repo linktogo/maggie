@@ -11,6 +11,9 @@ export default {
   'retro.lastRun': 'Dernière génération',
   'retro.never': 'Jamais générée depuis le démarrage du board',
   'retro.noRepos': 'Aucun dépôt dans la configuration.',
+  'retro.showLog': 'journal',
+  'retro.hideLog': 'masquer le journal',
+  'retro.elapsed': 'en cours depuis {elapsed}',
 
   'notifications.enable': 'activer',
   'notifications.sound': 'son',

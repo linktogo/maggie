@@ -29,8 +29,10 @@ changes in minor releases.
   **`@linktogo/maggie-retro-doc`** — source collection, prompts, providers and
   the two-phase pipeline, every I/O boundary injectable — so the CLI and the
   board run the same code.
-- The board dashboard can run it: each repository's detail panel gets a
-  **Retro-documentation** section with the choice of LLM and a button, backed by
+- The board dashboard can run it: clicking a repository's name on its card now
+  opens its detail panel — previously only a session row did, which left an idle
+  repo unreachable — and the panel gets a **Retro-documentation** section with
+  the choice of LLM and a button, backed by
   `POST /api/retro-doc` and `GET /api/retro-doc`. The run happens in the board
   process and the panel polls it, showing the batch in flight, the path written,
   or what the CLI said when it failed — one run at a time per repository. The

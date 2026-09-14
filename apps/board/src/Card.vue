@@ -31,7 +31,13 @@ function open(sessionId) {
     :class="['rounded-xl bg-white shadow-md p-3 border-l-4', style.border, isQuestion ? style.ring : '']"
   >
     <div class="flex items-start justify-between gap-2">
-      <div class="font-medium text-slate-800 min-w-0 truncate">{{ name }}</div>
+      <button
+        type="button"
+        data-test="open-repo"
+        :title="t('card.openRepo', { repo: name })"
+        class="font-medium text-slate-800 min-w-0 truncate text-left hover:text-blue-700 hover:underline"
+        @click="emit('open', { name, sessionId: null })"
+      >{{ name }}</button>
       <div class="flex items-center gap-1 shrink-0">
         <span
           v-for="b in badges.shown" :key="b.login"

@@ -3177,17 +3177,17 @@ git commit -m "test(board): gate every theme palette on WCAG AA contrast"
 - Modify: `CHANGELOG.md`
 - Replace: `docs/images/board/*.png`
 
-- [ ] **Step 1: Check the legacy theme against the committed screenshots**
+- [x] **Step 1: Check the legacy theme against the committed screenshots**
 
 This is the acceptance criterion for the freeze, and it happens before the images are replaced.
 
 Run: `npm start`, open http://localhost:4180, select **Legacy (frozen)**, and compare against `docs/images/board/board-en.png`, `send-message-card.png` and `send-message-detail.png` at the same window width. Ground, card shadows, status colors, badge hues and corner radii must match. A difference is a migration bug in `legacy.css` — fix the token, do not accept the drift.
 
-- [ ] **Step 2: Refresh the screenshots under the new default**
+- [x] **Step 2: Refresh the screenshots under the new default**
 
 With the theme set to **Material 3** in light mode, retake the three screenshots at the same framing as the originals and overwrite the files in `docs/images/board/`. Take one new image, `docs/images/board/theme-picker.png`, showing the header with the theme and mode pickers open.
 
-- [ ] **Step 3: Document the themes**
+- [x] **Step 3: Document the themes**
 
 In `docs/board-dashboard.md`, in the "What the UI does" list, add an entry after the language picker bullet:
 
@@ -3234,7 +3234,7 @@ colour: they use semantic utilities (`bg-surface`, `text-ink`,
 `rounded-card`) that resolve through those variables.
 ```
 
-- [ ] **Step 4: Add the changelog entry**
+- [x] **Step 4: Add the changelog entry**
 
 Under `## Unreleased` in `CHANGELOG.md`:
 
@@ -3247,7 +3247,7 @@ Under `## Unreleased` in `CHANGELOG.md`:
   persist per browser. ([spec](docs/superpowers/specs/2026-09-14-board-material-themes-design.md))
 ```
 
-- [ ] **Step 5: Verify the whole suite and the build**
+- [x] **Step 5: Verify the whole suite and the build**
 
 Run:
 
@@ -3259,7 +3259,7 @@ npm run build
 
 Expected: all three pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/board-dashboard.md docs/images/board CHANGELOG.md
@@ -3275,4 +3275,4 @@ git commit -m "docs(board): document the four themes and refresh the screenshots
 - Both choices survive a reload; a wiped or unreadable `localStorage` lands on Material 3 following the system.
 - `Legacy (frozen)` reproduces the committed screenshots, and disables the mode picker while active.
 - `npm run test:board`, `npm run lint` and `npm run build` pass.
-- No component names a literal colour: `grep -rn "bg-slate-\|text-slate-\|bg-blue-\|text-blue-\|border-slate-\|violet-\|amber-\|emerald-\|sky-" apps/board/src --include=*.vue --include=*.js` returns nothing outside `themes/` and `chartColors.js`.
+- No component names a literal colour: `grep -rn "bg-slate-\|text-slate-\|bg-blue-\|text-blue-\|border-slate-\|violet-\|amber-\|emerald-\|sky-" apps/board/src --include=*.vue --include=*.js` returns nothing outside `themes/` and `chartColors.js`, in `.vue` files or in non-test `.js` files. Running it as written also matches inside `*.test.js` files — a contrast-ratio comment in `themes/contrast.test.js` naming `amber-600`/`emerald-600`, and negative assertions in `RepoDetail.test.js`/`Card.test.js`/`App.test.js` whose regex strings *check these classes are absent* (e.g. `expect(w.html()).not.toMatch(/bg-slate-/)`). Both are legitimate and expected; excluding `*.test.js` from the grep, or reading its output with that in mind, is what this line means in practice.

@@ -58,6 +58,17 @@ test('collapses beyond four contributors into a +N badge', () => {
   expect(w.get('[data-test=ci-overflow]').text()).toBe('+1');
 });
 
+test('the overflow badge shares the CI-neutral pill family, not an ad hoc surface token', () => {
+  const users = {};
+  for (const login of ['a1', 'b2', 'c3', 'd4', 'e5']) users[login] = { state: 'unknown' };
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci: { users } } });
+  const shownNeutral = w.get('[data-test=ci-badge]').classes();
+  const overflow = w.get('[data-test=ci-overflow]').classes();
+  for (const cls of shownNeutral.filter((c) => c.startsWith('bg-ci-') || c.startsWith('text-ci-') || c.startsWith('border-ci-'))) {
+    expect(overflow).toContain(cls);
+  }
+});
+
 test('renders no badges when the repo has no CI status', () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now } });
   expect(w.findAll('[data-test=ci-badge]')).toHaveLength(0);

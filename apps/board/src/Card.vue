@@ -53,7 +53,7 @@ function open(sessionId) {
           role="img"
           :title="overflowTitle"
           :aria-label="overflowTitle"
-          class="text-[10px] leading-none font-semibold border border-line bg-surface-muted text-ink-muted rounded-badge px-1 py-0.5"
+          :class="['text-[10px] leading-none font-semibold border rounded-badge px-1 py-0.5', pillClass('neutral')]"
         >+{{ badges.overflow.length }}</span>
       </div>
     </div>

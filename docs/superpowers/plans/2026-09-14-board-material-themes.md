@@ -2518,7 +2518,7 @@ font-medium text-slate-800                    → font-medium text-ink  (plus th
 text-xs text-slate-400  (empty state)         → text-xs text-ink-faint
 ```
 
-The CI badge classes come from `pillClass()` and the status border from `STATUS_STYLES` — both already migrated. Leave the `border-l-4` width alone: it is shape, and every theme keeps it.
+The shown CI badges get their classes from `pillClass()` and the status border from `STATUS_STYLES` — both already migrated, and both correct as they stand. The overflow `+N` badge does **not** go through `pillClass()`: it has its own template-inline literal (`border border-slate-300 bg-slate-100 text-slate-500 rounded-sm`). Migrate it to `pillClass('neutral')` rather than hand-picking surface/ink tokens — those aren't equivalent to the CI-neutral family in every theme (checked: `text-ink-muted` and `--color-ci-neutral-on-soft` happen to coincide in some themes but not all, and `bg-surface-muted`/`border-line` diverge from `bg-ci-neutral-soft`/`border-ci-neutral-line` outright), so the "+N" badge would visibly mismatch its sibling initials badges in at least Expressive and legacy. Leave the `border-l-4` width alone: it is shape, and every theme keeps it.
 
 - [ ] **Step 4: Migrate `Column.vue`**
 

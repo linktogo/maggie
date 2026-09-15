@@ -312,3 +312,35 @@ test('the retro-doc tab mounts its page, with the repos of the config', async ()
   expect(router.currentRoute.value.name).toBe('retro-doc');
   expect(w.get('[data-test=retro-run-a]').exists()).toBe(true);
 });
+
+test('the header carries the theme and mode pickers', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  expect(wrapper.find('[data-test=theme]').exists()).toBe(true);
+  expect(wrapper.find('[data-test=mode]').exists()).toBe(true);
+  expect(wrapper.find('[data-test=locale]').exists()).toBe(true);
+});
+
+test('the shell paints from theme tokens, not literal Tailwind colors', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  // Scoped to the shell's own elements on purpose — Card.vue/Column.vue get
+  // their own token coverage in Card.test.js/Column.test.js.
+  const main = wrapper.get('main').classes();
+  expect(main).not.toContain('bg-slate-100');
+
+  const container = wrapper.get('[data-test=view-board]').element.parentElement;
+  expect(container.className).toContain('bg-surface-muted');
+
+  const tabs = wrapper.findAll('[data-test^=view-]');
+  expect(tabs).toHaveLength(3);
+  for (const tab of tabs) {
+    const classes = tab.classes().join(' ');
+    expect(classes).not.toMatch(/slate-|bg-white/);
+    expect(tab.classes()).toContain('nav-tab');
+  }
+  // The active tab (board, the default route) actually carries the
+  // "selected" token trio — not just the absence of the old literals.
+  const active = wrapper.get('[data-test=view-board]');
+  expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
+  const inactive = wrapper.get('[data-test=view-history]');
+  expect(inactive.classes()).toContain('text-ink-muted');
+});

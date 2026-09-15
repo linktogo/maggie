@@ -24,17 +24,17 @@ const percentDone = computed(() => (total.value ? Math.round((counts.value.done 
 </script>
 
 <template>
-  <div class="bg-white border border-slate-200 rounded-xl shadow-xs px-4 py-3 mb-4">
+  <div class="bg-surface border border-line rounded-card shadow-panel px-4 py-3 mb-4">
     <div class="flex flex-wrap gap-2 mb-2.5">
-      <span class="rounded-md px-2 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">{{ total }} {{ t('summary.repos') }}</span>
-      <span :class="['rounded-md px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.todo.chip]">{{ counts.todo }} {{ t('status.todo') }}</span>
-      <span :class="['rounded-md px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.inprogress.chip]">{{ counts.inprogress }} {{ t('status.inprogress') }}</span>
-      <span :class="['rounded-md px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.question.chip]">{{ counts.question }} {{ t('status.question') }}</span>
-      <span :class="['rounded-md px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.done.chip]">{{ counts.done }} {{ t('status.done') }}</span>
+      <span class="rounded-chip px-2 py-0.5 text-xs font-semibold bg-surface-muted text-ink-soft">{{ total }} {{ t('summary.repos') }}</span>
+      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.todo.chip]">{{ counts.todo }} {{ t('status.todo') }}</span>
+      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.inprogress.chip]">{{ counts.inprogress }} {{ t('status.inprogress') }}</span>
+      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.question.chip]">{{ counts.question }} {{ t('status.question') }}</span>
+      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.done.chip]">{{ counts.done }} {{ t('status.done') }}</span>
     </div>
-    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-      <div data-test="progress" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" :style="{ width: percentDone + '%' }"></div>
+    <div class="h-2.5 bg-surface-muted rounded-chip overflow-hidden">
+      <div data-test="progress" class="h-full progress-fill rounded-chip" :style="{ width: percentDone + '%' }"></div>
     </div>
-    <div class="text-xs text-slate-400 mt-1">{{ t('summary.percentDone', { percent: percentDone }) }}</div>
+    <div class="text-xs text-ink-faint mt-1">{{ t('summary.percentDone', { percent: percentDone }) }}</div>
   </div>
 </template>

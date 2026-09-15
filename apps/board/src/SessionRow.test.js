@@ -138,5 +138,5 @@ test('shows a copilot badge for a session recorded by the GitHub Copilot hooks',
   const badge = w.get('[data-test=agent-badge]');
   expect(badge.text()).toBe('copilot');
   expect(badge.attributes('title')).toBe('Running on GitHub Copilot CLI');
-  expect(badge.classes().join(' ')).toContain('sky');
+  expect(badge.classes().join(' ')).toContain('agent-copilot');
 });

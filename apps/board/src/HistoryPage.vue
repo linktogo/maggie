@@ -27,25 +27,26 @@ const buckets = computed(() => bucketByPeriod(granularity.value));
 const projectTotals = computed(() => totalsByProject());
 
 function tabClass(active) {
-  return ['rounded-md px-3 py-1 font-medium transition-colors', active ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700'];
+  return ['nav-tab rounded-control px-3 py-1 font-medium transition-colors',
+    active ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft'];
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <div class="inline-flex bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm" role="tablist">
+      <div class="inline-flex bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm" role="tablist">
         <button data-test="tab-period" role="tab" :aria-selected="tab === 'period'" :class="tabClass(tab === 'period')" @click="tab = 'period'">{{ t('history.tabPeriod') }}</button>
         <button data-test="tab-project" role="tab" :aria-selected="tab === 'project'" :class="tabClass(tab === 'project')" @click="tab = 'project'">{{ t('history.tabProject') }}</button>
       </div>
-      <div class="inline-flex bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm">
+      <div class="inline-flex bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
         <button data-test="mode-tokens" :class="tabClass(mode === 'tokens')" @click="mode = 'tokens'">{{ t('history.modeTokens') }}</button>
         <button data-test="mode-cost" :class="tabClass(mode === 'cost')" @click="mode = 'cost'">€</button>
       </div>
     </div>
 
-    <div v-if="tab === 'period'" class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
-      <div class="inline-flex bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm mb-3">
+    <div v-if="tab === 'period'" class="bg-surface border border-line rounded-card shadow-panel p-4">
+      <div class="inline-flex bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm mb-3">
         <button
           v-for="g in GRANULARITIES" :key="g.key"
           :data-test="`granularity-${g.key}`"
@@ -56,7 +57,7 @@ function tabClass(active) {
       <TimeSeriesChart :buckets="buckets" :mode="mode" />
     </div>
 
-    <div v-else class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
+    <div v-else class="bg-surface border border-line rounded-card shadow-panel p-4">
       <ProjectBarChart :totals="projectTotals" :mode="mode" />
     </div>
 

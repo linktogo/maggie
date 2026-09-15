@@ -31,10 +31,10 @@ test('visibleBadges tolerates an absent users map', () => {
 });
 
 test('pillClass colours each state and falls back to neutral', () => {
-  expect(pillClass('failure')).toContain('red');
+  expect(pillClass('failure')).toContain('ci-failure');
   expect(pillClass('running')).toContain('animate-pulse');
-  expect(pillClass('success')).toContain('emerald');
-  expect(pillClass('neutral')).toContain('slate');
+  expect(pillClass('success')).toContain('ci-success');
+  expect(pillClass('neutral')).toContain('ci-neutral');
   expect(pillClass('bogus')).toBe(pillClass('neutral'));
 });
 

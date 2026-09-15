@@ -1176,8 +1176,17 @@ Create `apps/board/src/themes/expressive.css` with the two blocks below.
 /*
  * Material 3 Expressive — color does the work that elevation does elsewhere:
  * no card shadows, large radii, heavy titles, saturated status containers.
+ * Material 3 has no green or teal role, so `done` and `worktree` are custom
+ * tonal families built to the same recipe as m3.css: a solid tone with a
+ * light/dark container pair, same hue held constant across both modes.
+ *
+ * --color-series-2 shares --color-done-solid's hue at a matched lightness
+ * (~46%, same band as the other five series) rather than done-solid's own
+ * darker tone, which sat well below its five siblings and read as heavier
+ * in a stacked chart.
  */
 html[data-theme='expressive'] {
+  /* Surfaces */
   --color-ground: #fdf7ff;
   --color-surface: #ffffff;
   --color-panel: #eceef5;
@@ -1185,21 +1194,25 @@ html[data-theme='expressive'] {
   --color-surface-hover: #e9e6ff;
   --color-overlay: rgb(27 27 33 / 0.35);
 
+  /* Hairlines */
   --color-line: #d9d5e8;
   --color-line-soft: #ece9f5;
 
+  /* Text */
   --color-ink-strong: #1b1b21;
   --color-ink: #26262e;
   --color-ink-soft: #45464f;
   --color-ink-muted: #5a5b66;
   --color-ink-faint: #767680;
 
+  /* Accent */
   --color-accent: #5a47e0;
   --color-accent-strong: #4535c4;
   --color-on-accent: #ffffff;
   --color-accent-soft: #e4deff;
   --color-on-accent-soft: #241c78;
 
+  /* Status */
   --color-todo-solid: #5a5b66;
   --color-todo-soft: #eceef5;
   --color-todo-on-soft: #45464f;
@@ -1216,6 +1229,7 @@ html[data-theme='expressive'] {
   --color-question-ring: #ffb1c8;
   --color-drop-ring: #4fc28c;
 
+  /* CI badges */
   --color-ci-failure-soft: #ffd9e4;
   --color-ci-failure-on-soft: #5c0f38;
   --color-ci-failure-line: #ffb1c8;
@@ -1229,6 +1243,7 @@ html[data-theme='expressive'] {
   --color-ci-success-on-soft: #0b4d33;
   --color-ci-success-line: #7fd7a8;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #e0dbff;
   --color-agent-claude-on-soft: #241c78;
   --color-agent-copilot-soft: #ffd9e4;
@@ -1236,13 +1251,15 @@ html[data-theme='expressive'] {
   --color-worktree-soft: #c8f0db;
   --color-worktree-on-soft: #0b4d33;
 
+  /* Chart series */
   --color-series-1: #5a47e0;
-  --color-series-2: #0f7a4e;
+  --color-series-2: #1ad185;
   --color-series-3: #b3245e;
   --color-series-4: #767680;
   --color-series-5: #2e6bd9;
   --color-series-6: #c4611a;
 
+  /* Shape, spacing and type */
   --radius-card: 1.375rem;
   --radius-panel: 1.75rem;
   --radius-control: 999px;
@@ -1262,7 +1279,13 @@ html[data-theme='expressive'] {
   --progress-fill: #5a47e0;
 }
 
+/*
+ * Dark. `system` is resolved in theme.js, so this one block covers both an
+ * explicit dark choice and an OS that asks for dark — there is no media query
+ * to keep in sync with it.
+ */
 html[data-theme='expressive'][data-mode='dark'] {
+  /* Surfaces */
   --color-ground: #131318;
   --color-surface: #1e1e26;
   --color-panel: #22222c;
@@ -1270,21 +1293,25 @@ html[data-theme='expressive'][data-mode='dark'] {
   --color-surface-hover: #343444;
   --color-overlay: rgb(0 0 0 / 0.55);
 
+  /* Hairlines */
   --color-line: #45465a;
   --color-line-soft: #2e2e3c;
 
+  /* Text */
   --color-ink-strong: #ededf4;
   --color-ink: #e2e2ec;
   --color-ink-soft: #c9c9d6;
   --color-ink-muted: #a9a9b8;
   --color-ink-faint: #8a8a99;
 
+  /* Accent */
   --color-accent: #bfb2ff;
   --color-accent-strong: #d6ccff;
   --color-on-accent: #241c78;
   --color-accent-soft: #3a2f86;
   --color-on-accent-soft: #e4deff;
 
+  /* Status */
   --color-todo-solid: #a9a9b8;
   --color-todo-soft: #2a2a36;
   --color-todo-on-soft: #c9c9d6;
@@ -1301,6 +1328,7 @@ html[data-theme='expressive'][data-mode='dark'] {
   --color-question-ring: #b3245e;
   --color-drop-ring: #7fd7a8;
 
+  /* CI badges */
   --color-ci-failure-soft: #6b1238;
   --color-ci-failure-on-soft: #ffd9e4;
   --color-ci-failure-line: #a3315f;
@@ -1314,6 +1342,7 @@ html[data-theme='expressive'][data-mode='dark'] {
   --color-ci-success-on-soft: #c8f0db;
   --color-ci-success-line: #2f7150;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #3a2f86;
   --color-agent-claude-on-soft: #e4deff;
   --color-agent-copilot-soft: #6b1238;
@@ -1321,6 +1350,7 @@ html[data-theme='expressive'][data-mode='dark'] {
   --color-worktree-soft: #11402b;
   --color-worktree-on-soft: #c8f0db;
 
+  /* Chart series */
   --color-series-1: #bfb2ff;
   --color-series-2: #7fd7a8;
   --color-series-3: #ffb1c8;
@@ -1328,6 +1358,7 @@ html[data-theme='expressive'][data-mode='dark'] {
   --color-series-5: #8fb6ff;
   --color-series-6: #f0a868;
 
+  /* Shape, spacing and type */
   --radius-card: 1.375rem;
   --radius-panel: 1.75rem;
   --radius-control: 999px;
@@ -1355,9 +1386,20 @@ Create `apps/board/src/themes/classic.css`:
 ```css
 /*
  * Material of the M2 era: indigo 500 with a pink accent, 4px corners, real
- * elevation shadows, uppercase nav. Dense and familiar.
+ * elevation shadows, uppercase nav. Dense and familiar. M2 has no defined
+ * role for `done` or `worktree` the way M3 defines roles — done borrows the
+ * era's green (green 800/300, deeper than the swatch used for chart series
+ * and the CI badge so it clears 4.5:1 against the white --color-on-status
+ * pills use), and worktree borrows the era's pink accent family so it reads
+ * distinct from the indigo/orange/green status trio already in use.
+ *
+ * --color-question-solid uses deep-orange 900 rather than orange 500 for the
+ * same reason: orange 500 (#f57c00, still used for the chart series and the
+ * ring) is only 2.7:1 against white text, well under WCAG AA — the filled
+ * pill needs a darker tone than the ring or the chart swatch do.
  */
 html[data-theme='classic'] {
+  /* Surfaces */
   --color-ground: #fafafa;
   --color-surface: #ffffff;
   --color-panel: #f5f5f5;
@@ -1365,37 +1407,42 @@ html[data-theme='classic'] {
   --color-surface-hover: #eeeeee;
   --color-overlay: rgb(0 0 0 / 0.5);
 
+  /* Hairlines */
   --color-line: rgb(0 0 0 / 0.12);
   --color-line-soft: rgb(0 0 0 / 0.06);
 
+  /* Text */
   --color-ink-strong: rgb(0 0 0 / 0.87);
   --color-ink: rgb(0 0 0 / 0.8);
   --color-ink-soft: rgb(0 0 0 / 0.6);
   --color-ink-muted: rgb(0 0 0 / 0.54);
   --color-ink-faint: rgb(0 0 0 / 0.38);
 
+  /* Accent */
   --color-accent: #3f51b5;
   --color-accent-strong: #303f9f;
   --color-on-accent: #ffffff;
   --color-accent-soft: #e8eaf6;
   --color-on-accent-soft: #303f9f;
 
+  /* Status */
   --color-todo-solid: #616161;
   --color-todo-soft: #f5f5f5;
   --color-todo-on-soft: #424242;
   --color-inprogress-solid: #3f51b5;
   --color-inprogress-soft: #e8eaf6;
   --color-inprogress-on-soft: #303f9f;
-  --color-question-solid: #f57c00;
+  --color-question-solid: #bf360c;
   --color-question-soft: #fff3e0;
   --color-question-on-soft: #e65100;
-  --color-done-solid: #388e3c;
+  --color-done-solid: #2e7d32;
   --color-done-soft: #e8f5e9;
   --color-done-on-soft: #2e7d32;
   --color-on-status: #ffffff;
   --color-question-ring: #ffb74d;
   --color-drop-ring: #81c784;
 
+  /* CI badges */
   --color-ci-failure-soft: #ffebee;
   --color-ci-failure-on-soft: #c62828;
   --color-ci-failure-line: #ef9a9a;
@@ -1409,6 +1456,7 @@ html[data-theme='classic'] {
   --color-ci-success-on-soft: #2e7d32;
   --color-ci-success-line: #a5d6a7;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #e8eaf6;
   --color-agent-claude-on-soft: #303f9f;
   --color-agent-copilot-soft: #e0f7fa;
@@ -1416,6 +1464,7 @@ html[data-theme='classic'] {
   --color-worktree-soft: #fce4ec;
   --color-worktree-on-soft: #ad1457;
 
+  /* Chart series */
   --color-series-1: #3f51b5;
   --color-series-2: #388e3c;
   --color-series-3: #f57c00;
@@ -1423,6 +1472,7 @@ html[data-theme='classic'] {
   --color-series-5: #00838f;
   --color-series-6: #c2185b;
 
+  /* Shape, spacing and type */
   --radius-card: 0.25rem;
   --radius-panel: 0.25rem;
   --radius-control: 0.25rem;
@@ -1442,7 +1492,13 @@ html[data-theme='classic'] {
   --progress-fill: #3f51b5;
 }
 
+/*
+ * Dark. `system` is resolved in theme.js, so this one block covers both an
+ * explicit dark choice and an OS that asks for dark — there is no media query
+ * to keep in sync with it.
+ */
 html[data-theme='classic'][data-mode='dark'] {
+  /* Surfaces */
   --color-ground: #121212;
   --color-surface: #1e1e1e;
   --color-panel: #242424;
@@ -1450,21 +1506,25 @@ html[data-theme='classic'][data-mode='dark'] {
   --color-surface-hover: #2c2c2c;
   --color-overlay: rgb(0 0 0 / 0.6);
 
+  /* Hairlines */
   --color-line: rgb(255 255 255 / 0.12);
   --color-line-soft: rgb(255 255 255 / 0.06);
 
+  /* Text */
   --color-ink-strong: rgb(255 255 255 / 0.87);
   --color-ink: rgb(255 255 255 / 0.8);
   --color-ink-soft: rgb(255 255 255 / 0.7);
   --color-ink-muted: rgb(255 255 255 / 0.6);
   --color-ink-faint: rgb(255 255 255 / 0.38);
 
+  /* Accent */
   --color-accent: #9fa8da;
   --color-accent-strong: #c5cae9;
   --color-on-accent: #1a237e;
   --color-accent-soft: #283593;
   --color-on-accent-soft: #e8eaf6;
 
+  /* Status */
   --color-todo-solid: #9e9e9e;
   --color-todo-soft: #2c2c2c;
   --color-todo-on-soft: #e0e0e0;
@@ -1481,6 +1541,7 @@ html[data-theme='classic'][data-mode='dark'] {
   --color-question-ring: #f57c00;
   --color-drop-ring: #81c784;
 
+  /* CI badges */
   --color-ci-failure-soft: #5c1a1a;
   --color-ci-failure-on-soft: #ef9a9a;
   --color-ci-failure-line: #8e3a3a;
@@ -1494,6 +1555,7 @@ html[data-theme='classic'][data-mode='dark'] {
   --color-ci-success-on-soft: #a5d6a7;
   --color-ci-success-line: #2e7d32;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #283593;
   --color-agent-claude-on-soft: #c5cae9;
   --color-agent-copilot-soft: #004d5a;
@@ -1501,6 +1563,7 @@ html[data-theme='classic'][data-mode='dark'] {
   --color-worktree-soft: #4a0e2a;
   --color-worktree-on-soft: #f8bbd0;
 
+  /* Chart series */
   --color-series-1: #9fa8da;
   --color-series-2: #81c784;
   --color-series-3: #ffb74d;
@@ -1508,6 +1571,7 @@ html[data-theme='classic'][data-mode='dark'] {
   --color-series-5: #4dd0e1;
   --color-series-6: #f06292;
 
+  /* Shape, spacing and type */
   --radius-card: 0.25rem;
   --radius-panel: 0.25rem;
   --radius-control: 0.25rem;

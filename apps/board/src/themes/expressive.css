@@ -4,6 +4,11 @@
  * Material 3 has no green or teal role, so `done` and `worktree` are custom
  * tonal families built to the same recipe as m3.css: a solid tone with a
  * light/dark container pair, same hue held constant across both modes.
+ *
+ * --color-series-2 shares --color-done-solid's hue at a matched lightness
+ * (~46%, same band as the other five series) rather than done-solid's own
+ * darker tone, which sat well below its five siblings and read as heavier
+ * in a stacked chart.
  */
 html[data-theme='expressive'] {
   /* Surfaces */
@@ -73,7 +78,7 @@ html[data-theme='expressive'] {
 
   /* Chart series */
   --color-series-1: #5a47e0;
-  --color-series-2: #0f7a4e;
+  --color-series-2: #1ad185;
   --color-series-3: #b3245e;
   --color-series-4: #767680;
   --color-series-5: #2e6bd9;

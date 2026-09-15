@@ -2,9 +2,15 @@
  * Material of the M2 era: indigo 500 with a pink accent, 4px corners, real
  * elevation shadows, uppercase nav. Dense and familiar. M2 has no defined
  * role for `done` or `worktree` the way M3 defines roles — done borrows the
- * era's standard green (#388e3c/#81c784), and worktree borrows the era's
- * pink accent family so it reads distinct from the indigo/orange/green
- * status trio already in use.
+ * era's green (green 800/300, deeper than the swatch used for chart series
+ * and the CI badge so it clears 4.5:1 against the white --color-on-status
+ * pills use), and worktree borrows the era's pink accent family so it reads
+ * distinct from the indigo/orange/green status trio already in use.
+ *
+ * --color-question-solid uses deep-orange 900 rather than orange 500 for the
+ * same reason: orange 500 (#f57c00, still used for the chart series and the
+ * ring) is only 2.7:1 against white text, well under WCAG AA — the filled
+ * pill needs a darker tone than the ring or the chart swatch do.
  */
 html[data-theme='classic'] {
   /* Surfaces */
@@ -40,10 +46,10 @@ html[data-theme='classic'] {
   --color-inprogress-solid: #3f51b5;
   --color-inprogress-soft: #e8eaf6;
   --color-inprogress-on-soft: #303f9f;
-  --color-question-solid: #f57c00;
+  --color-question-solid: #bf360c;
   --color-question-soft: #fff3e0;
   --color-question-on-soft: #e65100;
-  --color-done-solid: #388e3c;
+  --color-done-solid: #2e7d32;
   --color-done-soft: #e8f5e9;
   --color-done-on-soft: #2e7d32;
   --color-on-status: #ffffff;

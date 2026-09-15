@@ -1,12 +1,18 @@
 /*
  * Roboto ships with the board rather than loading from a font CDN: the board
  * has to work offline, and a stylesheet link would leak every page view to a
- * third party. Only the weights the themes use are imported.
+ * third party. Imported weights cover both the theme tokens (--title-weight/
+ * --card-title-weight top out at 700, in Expressive) and the heaviest
+ * Tailwind weight utility still used directly in components (font-semibold,
+ * 600) — without a 600 file, those elements would fall back to the nearest
+ * registered face (700) once a Material theme replaces the system font
+ * stack, rendering visibly bolder than intended. No component or theme asks
+ * for 900; add that file back if one starts to.
  */
 @import '@fontsource/roboto/400.css';
 @import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/600.css';
 @import '@fontsource/roboto/700.css';
-@import '@fontsource/roboto/900.css';
 
 /*
  * Tailwind v4 is configured from CSS: `source(none)` turns off automatic

@@ -19,13 +19,13 @@ defineEmits(['update:name', 'update:tech', 'update:ci']);
       :value="name"
       @input="$emit('update:name', $event.target.value)"
       :placeholder="t('filter.searchRepo')"
-      class="border border-slate-200 rounded-lg shadow-xs px-3 py-1.5 text-sm bg-white flex-1 min-w-0 focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+      class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface flex-1 min-w-0 focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent"
     />
     <select
       data-test="tech"
       :value="tech"
       @change="$emit('update:tech', $event.target.value)"
-      class="border border-slate-200 rounded-lg shadow-xs px-3 py-1.5 text-sm bg-white text-slate-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+      class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface text-ink-soft focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent"
     >
       <option value="">{{ t('filter.techAll') }}</option>
       <option v-for="t in technologies" :key="t" :value="t">{{ t }}</option>
@@ -34,7 +34,7 @@ defineEmits(['update:name', 'update:tech', 'update:ci']);
       data-test="ci"
       :value="ci"
       @change="$emit('update:ci', $event.target.value)"
-      class="border border-slate-300 rounded-md px-3 py-1.5 text-sm bg-white text-slate-600"
+      class="border border-line rounded-control px-3 py-1.5 text-sm bg-surface text-ink-soft"
     >
       <option value="">{{ t('filter.ciAll') }}</option>
       <option value="failure">{{ t('filter.ciFailure') }}</option>

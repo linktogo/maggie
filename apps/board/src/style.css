@@ -78,4 +78,26 @@
   .icon-emoji { display: none; }
   html[data-theme='legacy'] .icon.has-emoji .icon-symbol { display: none; }
   html[data-theme='legacy'] .icon.has-emoji .icon-emoji { display: inline; }
+
+  /*
+   * Properties Tailwind has no namespace for. Classic sets --nav-transform to
+   * uppercase with wide tracking; Expressive sets --title-weight to 700. Every
+   * theme fills all five, so these classes need no per-theme rules.
+   */
+  .nav-tab {
+    text-transform: var(--nav-transform);
+    letter-spacing: var(--nav-tracking);
+  }
+
+  .col-title {
+    font-weight: var(--title-weight);
+  }
+
+  .card-title {
+    font-weight: var(--card-title-weight);
+  }
+
+  .progress-fill {
+    background: var(--progress-fill);
+  }
 }

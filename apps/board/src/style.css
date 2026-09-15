@@ -50,3 +50,16 @@
     color: var(--color-ink-faint);
   }
 }
+
+@layer components {
+  .icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: -0.2em;
+  }
+
+  /* Material themes show the glyph; legacy keeps the emoji it always had. */
+  .icon-emoji { display: none; }
+  html[data-theme='legacy'] .icon.has-emoji .icon-symbol { display: none; }
+  html[data-theme='legacy'] .icon.has-emoji .icon-emoji { display: inline; }
+}

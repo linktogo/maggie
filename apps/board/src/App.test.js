@@ -312,3 +312,10 @@ test('the retro-doc tab mounts its page, with the repos of the config', async ()
   expect(router.currentRoute.value.name).toBe('retro-doc');
   expect(w.get('[data-test=retro-run-a]').exists()).toBe(true);
 });
+
+test('the header carries the theme and mode pickers', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  expect(wrapper.find('[data-test=theme]').exists()).toBe(true);
+  expect(wrapper.find('[data-test=mode]').exists()).toBe(true);
+  expect(wrapper.find('[data-test=locale]').exists()).toBe(true);
+});

@@ -8,6 +8,8 @@ import { useNotifications } from './useNotifications.js';
 import { useNow } from './useRelativeTime.js';
 import { useI18n } from './i18n.js';
 import LocaleSwitcher from './LocaleSwitcher.vue';
+import ThemeSwitcher from './ThemeSwitcher.vue';
+import ModeSwitcher from './ModeSwitcher.vue';
 
 const { t } = useI18n();
 
@@ -69,6 +71,8 @@ const routeProps = computed(() => {
         </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
+        <ThemeSwitcher />
+        <ModeSwitcher />
         <LocaleSwitcher />
         <button
           v-if="permission !== 'granted'"

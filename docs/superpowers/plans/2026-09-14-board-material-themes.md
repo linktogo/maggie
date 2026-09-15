@@ -2278,7 +2278,10 @@ git commit -m "feat(board): add inline Material Symbols with a legacy emoji twin
 
 Material's typeface, without a runtime network request: the project is offline-minded (`--offline` on the workspace CLI, a CI reader that "never touches the network"), so a Google Fonts `<link>` is not an option. `@fontsource/roboto` ships the woff2 files; Vite fingerprints them into `dist/` and the board's own server serves them.
 
-Four weights are enough: 400 for body, 500 for Material 3's medium titles, 700 and 900 for Expressive.
+Four weights are enough: 400 for body, 500 for Material 3's medium titles,
+600 for the `font-semibold` utility still used directly in several
+components (headings, pills), and 700 for Expressive's heavy titles. No
+theme token or component asks for 900.
 
 - [ ] **Step 1: Add the dependency**
 
@@ -2294,12 +2297,18 @@ At the very top of `apps/board/src/style.css`, above the Tailwind import:
 /*
  * Roboto ships with the board rather than loading from a font CDN: the board
  * has to work offline, and a stylesheet link would leak every page view to a
- * third party. Only the weights the themes use are imported.
+ * third party. Imported weights cover both the theme tokens (--title-weight/
+ * --card-title-weight top out at 700, in Expressive) and the heaviest
+ * Tailwind weight utility still used directly in components (font-semibold,
+ * 600) — without a 600 file, those elements would fall back to the nearest
+ * registered face (700) once a Material theme replaces the system font
+ * stack, rendering visibly bolder than intended. No component or theme asks
+ * for 900; add that file back if one starts to.
  */
 @import '@fontsource/roboto/400.css';
 @import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/600.css';
 @import '@fontsource/roboto/700.css';
-@import '@fontsource/roboto/900.css';
 ```
 
 - [ ] **Step 3: Verify the font is bundled, not fetched**

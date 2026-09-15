@@ -7,6 +7,9 @@ const LABELS = {
   copilot: 'GitHub Copilot CLI',
 };
 
+// Semantic classes only — the hues live in the theme files under
+// apps/board/src/themes/. Each string must stay a complete literal:
+// Tailwind's scanner cannot see a class name assembled at runtime.
 const PILL = {
   claude: 'bg-agent-claude-soft text-agent-claude-on-soft',
   copilot: 'bg-agent-copilot-soft text-agent-copilot-on-soft',

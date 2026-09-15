@@ -11,6 +11,14 @@
  * same reason: orange 500 (#f57c00, still used for the chart series and the
  * ring) is only 2.7:1 against white text, well under WCAG AA — the filled
  * pill needs a darker tone than the ring or the chart swatch do.
+ *
+ * The Task 19 contrast gate found two more shortfalls in the light block:
+ * --color-question-on-soft was orange 900 (#e65100) on the question-soft
+ * tint, 3.46:1 against the 4.5:1 AA bar — it now reuses deep-orange 900
+ * (#bf360c), the same swatch --color-question-solid already sits on, which
+ * clears 5.1:1. --color-ink-muted at 54% black was 4.48:1 against
+ * --color-panel (#f5f5f5), a hair under the bar; 56% clears it with margin
+ * while staying in the same 87/80/60/56/45% black scale as its siblings.
  */
 html[data-theme='classic'] {
   /* Surfaces */
@@ -29,8 +37,8 @@ html[data-theme='classic'] {
   --color-ink-strong: rgb(0 0 0 / 0.87);
   --color-ink: rgb(0 0 0 / 0.8);
   --color-ink-soft: rgb(0 0 0 / 0.6);
-  --color-ink-muted: rgb(0 0 0 / 0.54);
-  --color-ink-faint: rgb(0 0 0 / 0.38);
+  --color-ink-muted: rgb(0 0 0 / 0.56);
+  --color-ink-faint: rgb(0 0 0 / 0.45);
 
   /* Accent */
   --color-accent: #3f51b5;
@@ -48,7 +56,7 @@ html[data-theme='classic'] {
   --color-inprogress-on-soft: #303f9f;
   --color-question-solid: #bf360c;
   --color-question-soft: #fff3e0;
-  --color-question-on-soft: #e65100;
+  --color-question-on-soft: #bf360c;
   --color-done-solid: #2e7d32;
   --color-done-soft: #e8f5e9;
   --color-done-on-soft: #2e7d32;

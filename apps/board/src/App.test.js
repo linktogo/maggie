@@ -322,8 +322,8 @@ test('the header carries the theme and mode pickers', async () => {
 
 test('the shell paints from theme tokens, not literal Tailwind colors', async () => {
   const { wrapper } = await mountApp(routedFetch());
-  // Scoped to the shell's own elements on purpose: the cards inside it are
-  // still on literal classes until Task 15.
+  // Scoped to the shell's own elements on purpose — Card.vue/Column.vue get
+  // their own token coverage in Card.test.js/Column.test.js.
   const main = wrapper.get('main').classes();
   expect(main).not.toContain('bg-slate-100');
 

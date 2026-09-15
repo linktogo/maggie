@@ -102,12 +102,16 @@
 }
 
 /*
- * Four properties Tailwind has no namespace for. The component layer in
+ * Five properties Tailwind has no namespace for. The component layer in
  * style.css consumes them; themes set them like any other token.
+ * --title-weight is the column heading's weight; --card-title-weight is the
+ * card/row title's — Column.vue and Card.vue carry different weights today
+ * (font-semibold vs font-medium) and one token can't hold both.
  */
 :root {
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #6750a4;               /* a colour or a gradient — whatever background the progress bar paints */
 }

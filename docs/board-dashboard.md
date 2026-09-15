@@ -106,6 +106,10 @@ or not the server is running.
   agent show as `claude`.
 - **Language picker** in the header: English (the default), French, German and
   Spanish. See below.
+- **Theme picker** in the header: Material 3 (the default), Material 3
+  Expressive, Material classic, and Legacy — the board's pre-Material look,
+  kept selectable but frozen. A second picker sets light, dark or system.
+  See [Themes](#themes).
 
 ## Messaging a session
 
@@ -176,6 +180,38 @@ both routes answer `503` and the panel says so rather than guessing a directory
 to write into. The checkout is resolved the same way hook reconciliation
 resolves it: `path` from the config when it pins one, otherwise
 `<workspace>/<name>`.
+
+## Themes
+
+![The theme and mode pickers](images/board/theme-picker.png)
+
+The board ships four looks, chosen from the header:
+
+| Theme | What it is |
+|---|---|
+| **Material 3** | Material 3's tonal surfaces on a violet seed. The default. |
+| **Material 3 Expressive** | The expressive revision: full-colour column blocks, large radii, heavy titles. |
+| **Material classic** | Material of the M2 era — indigo app bar, 4px corners, elevation shadows. |
+| **Legacy (frozen)** | Exactly what the board looked like before themes existed. Still selectable, no longer maintained: new work targets the Material themes. |
+
+A second picker sets **light**, **dark** or **system** (the default, which
+follows the operating system). The legacy theme is light only, so the mode
+picker is disabled while it is active — the stored preference is kept and
+applies again as soon as another theme is selected.
+
+Both choices live in `localStorage` (`maggie:theme`, `maggie:mode`),
+per browser, like the language. Nothing is stored server-side, so two people
+looking at the same board can each have their own.
+
+### Adding or changing a theme
+
+Every theme is one CSS file under `apps/board/src/themes/` that redefines the
+same contract of custom properties — colours, radii, shadows, spacing and
+type. `contract.css` declares the full set; `themes/contract.test.js` fails
+any theme that misses one, and `themes/contrast.test.js` fails a palette that
+puts text below WCAG AA on its own background. Components never name a
+colour: they use semantic utilities (`bg-surface`, `text-ink`,
+`rounded-card`) that resolve through those variables.
 
 ## Language
 

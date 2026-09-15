@@ -52,6 +52,10 @@ changes in minor releases.
   board must have been started with a config, since that is what tells it where
   each repository is checked out; without one the endpoints answer `503` and the
   panel says so.
+- The board ships four selectable themes — Material 3 (the new default),
+  Material 3 Expressive, Material classic, and the previous look as a frozen
+  `Legacy` theme — with a light/dark/system picker beside them. Both choices
+  persist per browser. ([spec](docs/superpowers/specs/2026-09-14-board-material-themes-design.md))
 - The status board now tracks **GitHub Copilot CLI** sessions locally, alongside
   Claude Code ones. `maggie-workspace --agent copilot` merges Copilot hooks into
   each checkout's `.github/copilot/settings.local.json` (`sessionStart`,

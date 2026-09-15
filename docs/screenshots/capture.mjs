@@ -221,6 +221,14 @@ const scenes = [
     fullPage: true,
   },
   {
+    // A native <select>'s open dropdown is an OS-level overlay that headless
+    // Chromium does not paint into the page, so this shows both pickers in
+    // their closed state rather than attempting to capture one open.
+    out: 'board/theme-picker.png', locale: 'en', width: 1240, height: 430,
+    api: { board: localesBoard, config: { repos: {} }, ci: EMPTY_CI, history: [] },
+    target: (page) => page.locator('div.flex.items-center.justify-between.gap-3.flex-wrap.mb-4'),
+  },
+  {
     out: 'worktree-badge/board.png', locale: 'en', width: 1360, height: 840,
     api: { board: worktree, config: { repos: {} }, ci: EMPTY_CI, history: [] },
     target: 'main',
@@ -240,15 +248,19 @@ for (const scene of scenes) {
     viewport: { width: scene.width, height: scene.height },
     deviceScaleFactor: 2,
   });
-  await context.addInitScript((locale) => {
+  await context.addInitScript(({ locale, theme }) => {
     localStorage.setItem('maggie:locale', locale);
     localStorage.setItem('maggie:sound', '0');
+    // Scenes normally render under the code's default theme (Material 3);
+    // this lets a scene force a specific one instead, e.g. to verify the
+    // frozen `legacy` theme against pre-theme screenshots.
+    if (theme) localStorage.setItem('maggie:theme', theme);
     // Headless Chromium reports notifications as denied, which swaps the
     // "enable" button for a "blocked" notice. The docs show the default state.
     if (globalThis.Notification) {
       Object.defineProperty(Notification, 'permission', { get: () => 'default', configurable: true });
     }
-  }, scene.locale);
+  }, { locale: scene.locale, theme: scene.theme });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${PORT}${scene.route ?? '/'}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(500);

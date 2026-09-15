@@ -1,0 +1,183 @@
+/*
+ * Material 3 tonal — the board's default look.
+ *
+ * Roles map onto the board's vocabulary like this: surface-container-low is
+ * `panel` (column bodies), surface-container is `surface-muted` (session
+ * rows), on-surface-variant is `ink-soft`, and the error role carries the
+ * `question` status. Material 3 has no green role, so `done` is a tonal green
+ * built to the same recipe.
+ */
+html[data-theme='m3'] {
+  --color-ground: #fef7ff;
+  --color-surface: #fffbff;
+  --color-panel: #f7f2fa;
+  --color-surface-muted: #f3edf7;
+  --color-surface-hover: #ece6f0;
+  --color-overlay: rgb(29 27 32 / 0.32);
+
+  --color-line: #cac4d0;
+  --color-line-soft: #e7e0ec;
+
+  --color-ink-strong: #1d1b20;
+  --color-ink: #2b2930;
+  --color-ink-soft: #49454f;
+  --color-ink-muted: #605d66;
+  --color-ink-faint: #79747e;
+
+  --color-accent: #6750a4;
+  --color-accent-strong: #563f9b;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #eaddff;
+  --color-on-accent-soft: #21005d;
+
+  --color-todo-solid: #605d66;
+  --color-todo-soft: #ece6f0;
+  --color-todo-on-soft: #49454f;
+  --color-inprogress-solid: #6750a4;
+  --color-inprogress-soft: #eaddff;
+  --color-inprogress-on-soft: #21005d;
+  --color-question-solid: #b3261e;
+  --color-question-soft: #f9dedc;
+  --color-question-on-soft: #410e0b;
+  --color-done-solid: #386a3c;
+  --color-done-soft: #c8efc9;
+  --color-done-on-soft: #0a2e0c;
+  --color-on-status: #ffffff;
+  --color-question-ring: #f2b8b5;
+  --color-drop-ring: #7abf7e;
+
+  --color-ci-failure-soft: #f9dedc;
+  --color-ci-failure-on-soft: #8c1d18;
+  --color-ci-failure-line: #f2b8b5;
+  --color-ci-running-soft: #eaddff;
+  --color-ci-running-on-soft: #21005d;
+  --color-ci-running-line: #d0bcff;
+  --color-ci-neutral-soft: #ece6f0;
+  --color-ci-neutral-on-soft: #49454f;
+  --color-ci-neutral-line: #cac4d0;
+  --color-ci-success-soft: #c8efc9;
+  --color-ci-success-on-soft: #0a2e0c;
+  --color-ci-success-line: #8fd693;
+
+  --color-agent-claude-soft: #e8def8;
+  --color-agent-claude-on-soft: #1d192b;
+  --color-agent-copilot-soft: #ffd8e4;
+  --color-agent-copilot-on-soft: #31111d;
+  --color-worktree-soft: #d7f0f6;
+  --color-worktree-on-soft: #0b3b45;
+
+  --color-series-1: #6750a4;
+  --color-series-2: #386a3c;
+  --color-series-3: #7d5260;
+  --color-series-4: #79747e;
+  --color-series-5: #3f5f9e;
+  --color-series-6: #8c4a1f;
+
+  --radius-card: 1rem;
+  --radius-panel: 1rem;
+  --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.5rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0.00625em;
+  --title-weight: 500;
+  --card-title-weight: 500;
+  --progress-fill: #6750a4;
+}
+
+/*
+ * Dark. `system` is resolved in theme.js, so this one block covers both an
+ * explicit dark choice and an OS that asks for dark — there is no media query
+ * to keep in sync with it.
+ */
+html[data-theme='m3'][data-mode='dark'] {
+  --color-ground: #141218;
+  --color-surface: #1d1b20;
+  --color-panel: #211f26;
+  --color-surface-muted: #2b2930;
+  --color-surface-hover: #36343b;
+  --color-overlay: rgb(0 0 0 / 0.5);
+
+  --color-line: #49454f;
+  --color-line-soft: #36343b;
+
+  --color-ink-strong: #e6e0e9;
+  --color-ink: #ddd7e0;
+  --color-ink-soft: #cac4d0;
+  --color-ink-muted: #b0a7b8;
+  --color-ink-faint: #938f99;
+
+  --color-accent: #d0bcff;
+  --color-accent-strong: #e0cfff;
+  --color-on-accent: #381e72;
+  --color-accent-soft: #4f378b;
+  --color-on-accent-soft: #eaddff;
+
+  --color-todo-solid: #938f99;
+  --color-todo-soft: #36343b;
+  --color-todo-on-soft: #cac4d0;
+  --color-inprogress-solid: #d0bcff;
+  --color-inprogress-soft: #4f378b;
+  --color-inprogress-on-soft: #eaddff;
+  --color-question-solid: #f2b8b5;
+  --color-question-soft: #8c1d18;
+  --color-question-on-soft: #f9dedc;
+  --color-done-solid: #8fd693;
+  --color-done-soft: #204b24;
+  --color-done-on-soft: #c8efc9;
+  --color-on-status: #1d1b20;
+  --color-question-ring: #b3261e;
+  --color-drop-ring: #8fd693;
+
+  --color-ci-failure-soft: #601410;
+  --color-ci-failure-on-soft: #f9dedc;
+  --color-ci-failure-line: #8c1d18;
+  --color-ci-running-soft: #4f378b;
+  --color-ci-running-on-soft: #eaddff;
+  --color-ci-running-line: #7f67be;
+  --color-ci-neutral-soft: #36343b;
+  --color-ci-neutral-on-soft: #cac4d0;
+  --color-ci-neutral-line: #49454f;
+  --color-ci-success-soft: #204b24;
+  --color-ci-success-on-soft: #c8efc9;
+  --color-ci-success-line: #3c6b40;
+
+  --color-agent-claude-soft: #4a4458;
+  --color-agent-claude-on-soft: #e8def8;
+  --color-agent-copilot-soft: #633b48;
+  --color-agent-copilot-on-soft: #ffd8e4;
+  --color-worktree-soft: #14434d;
+  --color-worktree-on-soft: #b8e8f2;
+
+  --color-series-1: #d0bcff;
+  --color-series-2: #8fd693;
+  --color-series-3: #efb8c8;
+  --color-series-4: #938f99;
+  --color-series-5: #a8c7fa;
+  --color-series-6: #f0a868;
+
+  --radius-card: 1rem;
+  --radius-panel: 1rem;
+  --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.6), 0 1px 3px 1px rgb(0 0 0 / 0.3);
+  --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.4), 0 1px 3px 0 rgb(0 0 0 / 0.6);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.5rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0.00625em;
+  --title-weight: 500;
+  --card-title-weight: 500;
+  --progress-fill: #d0bcff;
+}

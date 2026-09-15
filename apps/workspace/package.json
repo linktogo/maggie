@@ -7,8 +7,8 @@
     "maggie-workspace": "./bin/workspace.js"
   },
   "dependencies": {
-    "@linktogo/maggie-config": "^1.1.0",
-    "@linktogo/maggie-workspace-bootstrap": "^1.1.0",
+    "@linktogo/maggie-config": "^1.2.0",
+    "@linktogo/maggie-workspace-bootstrap": "^1.2.0",
     "@inquirer/prompts": "^8.5.2"
   }
 }

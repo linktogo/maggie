@@ -1,14 +1,14 @@
 {
   "name": "@maggie/board",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "dependencies": {
     "@fontsource/roboto": "^5.3.0",
-    "@linktogo/maggie-ci-status": "^1.1.0",
-    "@linktogo/maggie-config": "^1.1.0",
-    "@linktogo/maggie-retro-doc": "^1.1.0",
-    "@linktogo/maggie-workspace-bootstrap": "^1.1.0",
+    "@linktogo/maggie-ci-status": "^1.2.0",
+    "@linktogo/maggie-config": "^1.2.0",
+    "@linktogo/maggie-retro-doc": "^1.2.0",
+    "@linktogo/maggie-workspace-bootstrap": "^1.2.0",
     "chart.js": "^4.5.1",
     "vue": "^3.5.42",
     "vue-router": "^5.2.0"

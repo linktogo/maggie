@@ -1,6 +1,6 @@
 {
   "name": "@linktogo/maggie-retro-doc",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Retro-documentation for maggie: fold a repository's specs and plans into one reference document written for an AI agent.",
   "license": "Apache-2.0",
   "type": "module",

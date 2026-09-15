@@ -1,6 +1,6 @@
 {
   "name": "@linktogo/maggie-git",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Thin git and GitHub CLI wrapper used by maggie: clone, branch, commit, push, and open pull requests.",
   "license": "Apache-2.0",
   "type": "module",

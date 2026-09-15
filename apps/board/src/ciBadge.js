@@ -2,6 +2,9 @@ import { rankState } from '@linktogo/maggie-ci-status';
 
 const MAX_BADGES = 4;
 
+// Semantic classes only — the hues live in the theme files under
+// apps/board/src/themes/. Each string must stay a complete literal:
+// Tailwind's scanner cannot see a class name assembled at runtime.
 const PILL = {
   failure: 'bg-ci-failure-soft text-ci-failure-on-soft border-ci-failure-line',
   running: 'bg-ci-running-soft text-ci-running-on-soft border-ci-running-line animate-pulse',

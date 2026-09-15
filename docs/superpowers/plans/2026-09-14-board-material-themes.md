@@ -792,7 +792,11 @@ Create `apps/board/src/themes/legacy.css`. Every value is what the board renders
  * screenshots capture, so this theme matches them; a wide-gamut display may
  * paint today's live board a hair outside sRGB while this theme stays inside
  * it, an accepted, imperceptible difference chosen so the theme files stay
- * flat hex that the guard and the contrast test can parse.
+ * flat hex that the guard and the contrast test can parse. A few shades
+ * (emerald-600, emerald-400, amber-600, red-700, sky-700) land outside sRGB
+ * before the 8-bit round; those are clamped per channel, not run through the
+ * CSS gamut-mapping algorithm — re-deriving from a different method will not
+ * reproduce these exact digits.
  */
 html[data-theme='legacy'] {
   /* Surfaces */
@@ -884,9 +888,9 @@ html[data-theme='legacy'] {
   /* Component-layer properties */
   --nav-transform: none;
   --nav-tracking: 0;
-  --title-weight: 600;
+  --title-weight: 600;                     /* font-semibold */
   --card-title-weight: 500;                /* font-medium */
-  --progress-fill: linear-gradient(90deg, #00d492, #009966);
+  --progress-fill: linear-gradient(90deg, #00d492, #009966);  /* = --color-drop-ring, --color-done-solid */
 }
 ```
 

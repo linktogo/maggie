@@ -33,7 +33,7 @@ function onDrop(e) {
 
 <template>
   <section class="min-w-0">
-    <h2 :class="['inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white mb-2', style.pill]">
+    <h2 :class="['inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold mb-2', style.pill]">
       {{ title }} <span class="opacity-80">({{ entries.length }})</span>
     </h2>
     <div

@@ -10,6 +10,7 @@ import { useI18n } from './i18n.js';
 import LocaleSwitcher from './LocaleSwitcher.vue';
 import ThemeSwitcher from './ThemeSwitcher.vue';
 import ModeSwitcher from './ModeSwitcher.vue';
+import Icon from './Icon.vue';
 
 const { t } = useI18n();
 
@@ -51,18 +52,18 @@ const routeProps = computed(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-slate-100 p-6">
+  <main class="min-h-screen p-6">
     <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-slate-900">maggie · workspace board</h1>
-        <div class="inline-flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5 text-sm">
+        <h1 class="text-xl font-bold text-ink-strong">maggie · workspace board</h1>
+        <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"
-            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+            :class="['nav-tab rounded-md px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.board') }}</router-link>
           <router-link
             data-test="view-history" to="/history"
-            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+            :class="['nav-tab rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.history') }}</router-link>
           <router-link
             data-test="view-retro-doc" to="/retro-doc"
@@ -76,21 +77,21 @@ const routeProps = computed(() => {
         <LocaleSwitcher />
         <button
           v-if="permission !== 'granted'"
-          class="border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white"
+          class="border border-line rounded-control shadow-panel hover:shadow-card px-3 py-1.5 text-sm bg-surface"
           @click="requestPermission"
-        >🔔 {{ t('notifications.enable') }}</button>
+        ><Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}</button>
         <button
-          class="border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white"
-          :class="soundOn ? 'text-slate-700' : 'text-slate-400'"
+          class="border border-line rounded-control shadow-panel hover:shadow-card px-3 py-1.5 text-sm bg-surface"
+          :class="soundOn ? 'text-ink-soft' : 'text-ink-faint'"
           @click="toggleSound"
-        >{{ soundOn ? '🔊' : '🔇' }} {{ t('notifications.sound') }}</button>
+        ><Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" /> {{ t('notifications.sound') }}</button>
       </div>
     </div>
 
-    <p v-if="!connected" class="mb-3 text-xs text-amber-700">⚠ {{ t('banner.disconnected') }}</p>
-    <p v-if="ciError" data-test="ci-desync" class="mb-3 text-xs text-amber-700">⚠ {{ t('banner.ciDesync', { reason: ciError }) }}</p>
-    <p v-if="ciUnavailable" data-test="ci-unavailable-banner" class="mb-3 text-xs text-amber-700">⚠ {{ t('banner.ciUnavailable', { reason: ciUnavailable }) }}</p>
-    <p v-if="permission === 'denied'" class="mb-3 text-xs text-slate-500">{{ t('notifications.blocked') }}</p>
+    <p v-if="!connected" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.disconnected') }}</p>
+    <p v-if="ciError" data-test="ci-desync" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.ciDesync', { reason: ciError }) }}</p>
+    <p v-if="ciUnavailable" data-test="ci-unavailable-banner" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.ciUnavailable', { reason: ciUnavailable }) }}</p>
+    <p v-if="permission === 'denied'" class="mb-3 text-xs text-ink-muted">{{ t('notifications.blocked') }}</p>
 
     <router-view v-slot="{ Component }">
       <component :is="Component" v-bind="routeProps" />

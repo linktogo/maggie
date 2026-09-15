@@ -319,3 +319,16 @@ test('the header carries the theme and mode pickers', async () => {
   expect(wrapper.find('[data-test=mode]').exists()).toBe(true);
   expect(wrapper.find('[data-test=locale]').exists()).toBe(true);
 });
+
+test('the shell paints from theme tokens, not literal Tailwind colors', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  // Scoped to the shell's own elements on purpose: the cards inside it are
+  // still on literal classes until Task 15.
+  expect(wrapper.get('main').classes()).not.toContain('bg-slate-100');
+  const tabs = wrapper.findAll('[data-test^=view-]');
+  expect(tabs).toHaveLength(2);
+  for (const tab of tabs) {
+    expect(tab.classes().join(' ')).not.toMatch(/slate-|bg-white/);
+    expect(tab.classes()).toContain('nav-tab');
+  }
+});

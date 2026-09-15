@@ -1780,7 +1780,7 @@ test('is disabled on a light-only theme and explains why', async () => {
   const w = mount(ModeSwitcher);
   const select = w.get('[data-test=mode]');
   expect(select.attributes('disabled')).toBeDefined();
-  expect(select.attributes('title')).toBe('The legacy theme is light only.');
+  expect(select.attributes('title')).toBe('This theme is light only.');
 });
 
 test('leaves the stored preference alone while disabled', async () => {

@@ -2689,7 +2689,7 @@ git commit -m "refactor(board): paint the detail panel and history from theme to
 
 Three properties vary between themes without being colors — Classic's uppercase nav with wide tracking, Expressive's heavy titles — and Tailwind has no namespace for them. The classes added in Tasks 14 to 16 (`nav-tab`, `col-title`, `card-title`) and the progress bar's fill are wired here. Components carry a stable class; themes fill the variables.
 
-- [ ] **Step 1: Extend the components layer**
+- [x] **Step 1: Extend the components layer**
 
 In `apps/board/src/style.css`, add to the `@layer components` block created in Task 12:
 
@@ -2717,7 +2717,7 @@ In `apps/board/src/style.css`, add to the `@layer components` block created in T
   }
 ```
 
-- [ ] **Step 2: Check every hook has a consumer**
+- [x] **Step 2: Check every hook has a consumer**
 
 ```bash
 grep -rn "nav-tab\|col-title\|card-title\|progress-fill" apps/board/src --include=*.vue
@@ -2727,7 +2727,7 @@ Expected: `nav-tab` in `App.vue` (two view links) and `HistoryPage.vue` (`tabCla
 
 The presence of the class is not the same as the rule taking effect. Tailwind 4's cascade layers are ordered `theme, base, components, utilities` regardless of where a class sits in the source list, so a `font-semibold`/`font-medium` utility on the same element as `col-title`/`card-title` always wins over the `@layer components` rule above, silently — Tasks 14 to 16's own instructions have already been corrected to drop those two utilities, but if this step surfaces one anyway (or a future component reintroduces one), remove it rather than fight the layer order. Confirm the fix actually took by reading computed style, not by reading the class list: `getComputedStyle(document.querySelector('.card-title')).fontWeight` must differ between a Material 3 page (`500`) and an Expressive one (`700`).
 
-- [ ] **Step 3: Verify by eye**
+- [x] **Step 3: Verify by eye**
 
 Run: `npm start`, open http://localhost:4180, and walk the four themes:
 
@@ -2736,7 +2736,7 @@ Run: `npm start`, open http://localhost:4180, and walk the four themes:
 - **Legacy**: tabs are sentence case, titles are semibold — the same as before this feature.
 - Toggle to dark on each Material theme: nothing keeps a light background, no text disappears.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/board/src/style.css

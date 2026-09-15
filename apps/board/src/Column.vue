@@ -38,8 +38,8 @@ function onDrop(e) {
     </h2>
     <div
       data-test="column-body"
-      :class="['flex flex-col gap-2 bg-white/50 rounded-xl p-2 min-h-[4rem]',
-               dragOver ? 'ring-2 ring-emerald-400' : '']"
+      :class="['flex flex-col gap-gutter bg-panel rounded-panel p-2 min-h-[4rem]',
+               dragOver ? 'ring-2 ring-drop-ring' : '']"
       v-on="isDropTarget ? { dragover: onDragOver, dragleave: onDragLeave, drop: onDrop } : {}"
     >
       <Card v-for="e in entries" :key="e.name" :name="e.name" :sessions="e.sessions" :status="status" :now="now" :ci="ci[e.name] ?? null" @open="$emit('open', $event)" @send-message="$emit('send-message', $event)" />

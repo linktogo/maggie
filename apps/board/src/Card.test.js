@@ -28,7 +28,7 @@ test('shows a placeholder when the repo has no active sessions', () => {
 
 test('highlights a question card', () => {
   const w = mount(Card, { props: { name: 'oc-auth', sessions: [session()], status: 'question', now } });
-  expect(w.classes().join(' ')).toContain('ring-amber-300');
+  expect(w.classes().join(' ')).toContain('ring-question-ring');
 });
 
 test('emits "open" with the repo name and session id when a row is clicked', async () => {

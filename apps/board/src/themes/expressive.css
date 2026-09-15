@@ -1,0 +1,199 @@
+/*
+ * Material 3 Expressive — color does the work that elevation does elsewhere:
+ * no card shadows, large radii, heavy titles, saturated status containers.
+ * Material 3 has no green or teal role, so `done` and `worktree` are custom
+ * tonal families built to the same recipe as m3.css: a solid tone with a
+ * light/dark container pair, same hue held constant across both modes.
+ */
+html[data-theme='expressive'] {
+  /* Surfaces */
+  --color-ground: #fdf7ff;
+  --color-surface: #ffffff;
+  --color-panel: #eceef5;
+  --color-surface-muted: #f2eff7;
+  --color-surface-hover: #e9e6ff;
+  --color-overlay: rgb(27 27 33 / 0.35);
+
+  /* Hairlines */
+  --color-line: #d9d5e8;
+  --color-line-soft: #ece9f5;
+
+  /* Text */
+  --color-ink-strong: #1b1b21;
+  --color-ink: #26262e;
+  --color-ink-soft: #45464f;
+  --color-ink-muted: #5a5b66;
+  --color-ink-faint: #767680;
+
+  /* Accent */
+  --color-accent: #5a47e0;
+  --color-accent-strong: #4535c4;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #e4deff;
+  --color-on-accent-soft: #241c78;
+
+  /* Status */
+  --color-todo-solid: #5a5b66;
+  --color-todo-soft: #eceef5;
+  --color-todo-on-soft: #45464f;
+  --color-inprogress-solid: #5a47e0;
+  --color-inprogress-soft: #e4deff;
+  --color-inprogress-on-soft: #241c78;
+  --color-question-solid: #b3245e;
+  --color-question-soft: #ffd9e4;
+  --color-question-on-soft: #5c0f38;
+  --color-done-solid: #0f7a4e;
+  --color-done-soft: #c8f0db;
+  --color-done-on-soft: #0b4d33;
+  --color-on-status: #ffffff;
+  --color-question-ring: #ffb1c8;
+  --color-drop-ring: #4fc28c;
+
+  /* CI badges */
+  --color-ci-failure-soft: #ffd9e4;
+  --color-ci-failure-on-soft: #5c0f38;
+  --color-ci-failure-line: #ffb1c8;
+  --color-ci-running-soft: #e4deff;
+  --color-ci-running-on-soft: #241c78;
+  --color-ci-running-line: #b9aeff;
+  --color-ci-neutral-soft: #eceef5;
+  --color-ci-neutral-on-soft: #45464f;
+  --color-ci-neutral-line: #d0d2de;
+  --color-ci-success-soft: #c8f0db;
+  --color-ci-success-on-soft: #0b4d33;
+  --color-ci-success-line: #7fd7a8;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #e0dbff;
+  --color-agent-claude-on-soft: #241c78;
+  --color-agent-copilot-soft: #ffd9e4;
+  --color-agent-copilot-on-soft: #5c0f38;
+  --color-worktree-soft: #c8f0db;
+  --color-worktree-on-soft: #0b4d33;
+
+  /* Chart series */
+  --color-series-1: #5a47e0;
+  --color-series-2: #0f7a4e;
+  --color-series-3: #b3245e;
+  --color-series-4: #767680;
+  --color-series-5: #2e6bd9;
+  --color-series-6: #c4611a;
+
+  /* Shape, spacing and type */
+  --radius-card: 1.375rem;
+  --radius-panel: 1.75rem;
+  --radius-control: 999px;
+  --radius-badge: 999px;
+  --radius-chip: 999px;
+  --shadow-card: none;
+  --shadow-panel: none;
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.18);
+  --spacing-card: 1rem;
+  --spacing-gutter: 0.625rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --title-weight: 700;
+  --card-title-weight: 700;
+  --progress-fill: #5a47e0;
+}
+
+/*
+ * Dark. `system` is resolved in theme.js, so this one block covers both an
+ * explicit dark choice and an OS that asks for dark — there is no media query
+ * to keep in sync with it.
+ */
+html[data-theme='expressive'][data-mode='dark'] {
+  /* Surfaces */
+  --color-ground: #131318;
+  --color-surface: #1e1e26;
+  --color-panel: #22222c;
+  --color-surface-muted: #2a2a36;
+  --color-surface-hover: #343444;
+  --color-overlay: rgb(0 0 0 / 0.55);
+
+  /* Hairlines */
+  --color-line: #45465a;
+  --color-line-soft: #2e2e3c;
+
+  /* Text */
+  --color-ink-strong: #ededf4;
+  --color-ink: #e2e2ec;
+  --color-ink-soft: #c9c9d6;
+  --color-ink-muted: #a9a9b8;
+  --color-ink-faint: #8a8a99;
+
+  /* Accent */
+  --color-accent: #bfb2ff;
+  --color-accent-strong: #d6ccff;
+  --color-on-accent: #241c78;
+  --color-accent-soft: #3a2f86;
+  --color-on-accent-soft: #e4deff;
+
+  /* Status */
+  --color-todo-solid: #a9a9b8;
+  --color-todo-soft: #2a2a36;
+  --color-todo-on-soft: #c9c9d6;
+  --color-inprogress-solid: #bfb2ff;
+  --color-inprogress-soft: #3a2f86;
+  --color-inprogress-on-soft: #e4deff;
+  --color-question-solid: #ffb1c8;
+  --color-question-soft: #6b1238;
+  --color-question-on-soft: #ffd9e4;
+  --color-done-solid: #7fd7a8;
+  --color-done-soft: #11402b;
+  --color-done-on-soft: #c8f0db;
+  --color-on-status: #131318;
+  --color-question-ring: #b3245e;
+  --color-drop-ring: #7fd7a8;
+
+  /* CI badges */
+  --color-ci-failure-soft: #6b1238;
+  --color-ci-failure-on-soft: #ffd9e4;
+  --color-ci-failure-line: #a3315f;
+  --color-ci-running-soft: #3a2f86;
+  --color-ci-running-on-soft: #e4deff;
+  --color-ci-running-line: #6d5cc4;
+  --color-ci-neutral-soft: #2a2a36;
+  --color-ci-neutral-on-soft: #c9c9d6;
+  --color-ci-neutral-line: #45465a;
+  --color-ci-success-soft: #11402b;
+  --color-ci-success-on-soft: #c8f0db;
+  --color-ci-success-line: #2f7150;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #3a2f86;
+  --color-agent-claude-on-soft: #e4deff;
+  --color-agent-copilot-soft: #6b1238;
+  --color-agent-copilot-on-soft: #ffd9e4;
+  --color-worktree-soft: #11402b;
+  --color-worktree-on-soft: #c8f0db;
+
+  /* Chart series */
+  --color-series-1: #bfb2ff;
+  --color-series-2: #7fd7a8;
+  --color-series-3: #ffb1c8;
+  --color-series-4: #a9a9b8;
+  --color-series-5: #8fb6ff;
+  --color-series-6: #f0a868;
+
+  /* Shape, spacing and type */
+  --radius-card: 1.375rem;
+  --radius-panel: 1.75rem;
+  --radius-control: 999px;
+  --radius-badge: 999px;
+  --radius-chip: 999px;
+  --shadow-card: none;
+  --shadow-panel: none;
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.5);
+  --spacing-card: 1rem;
+  --spacing-gutter: 0.625rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --title-weight: 700;
+  --card-title-weight: 700;
+  --progress-fill: #bfb2ff;
+}

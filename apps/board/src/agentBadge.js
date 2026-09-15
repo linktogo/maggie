@@ -8,8 +8,8 @@ const LABELS = {
 };
 
 const PILL = {
-  claude: 'bg-amber-100 text-amber-700',
-  copilot: 'bg-sky-100 text-sky-700',
+  claude: 'bg-agent-claude-soft text-agent-claude-on-soft',
+  copilot: 'bg-agent-copilot-soft text-agent-copilot-on-soft',
 };
 
 export function agentOf(session) {
@@ -21,5 +21,5 @@ export function agentLabel(agent) {
 }
 
 export function agentPillClass(agent) {
-  return PILL[agent] ?? 'bg-slate-200 text-slate-600';
+  return PILL[agent] ?? 'bg-ci-neutral-soft text-ci-neutral-on-soft';
 }

@@ -47,7 +47,7 @@ test('renders one badge per contributor, worst first', () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci } });
   const badges = w.findAll('[data-test=ci-badge]');
   expect(badges.map((b) => b.text())).toEqual(['AL', 'ZO']);
-  expect(badges[0].classes().join(' ')).toContain('red');
+  expect(badges[0].classes().join(' ')).toContain('ci-failure');
 });
 
 test('collapses beyond four contributors into a +N badge', () => {

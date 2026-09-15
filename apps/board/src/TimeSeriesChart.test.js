@@ -1,8 +1,11 @@
 import { test, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import TimeSeriesChart from './TimeSeriesChart.vue';
+import { DEFAULT_THEME, DEFAULT_MODE, theme, mode, setTheme } from './theme.js';
 
 const chartInstances = [];
+let updateCallCount = 0;
 vi.mock('chart.js', () => {
   class Chart {
     static register() {}
@@ -12,13 +15,26 @@ vi.mock('chart.js', () => {
       this.options = config.options;
       chartInstances.push(this);
     }
-    update() {}
+    update() { updateCallCount += 1; }
     destroy() { this.destroyed = true; }
   }
   return { Chart, BarController: {}, BarElement: {}, CategoryScale: {}, LinearScale: {}, Tooltip: {}, Legend: {} };
 });
 
-afterEach(() => { chartInstances.length = 0; vi.restoreAllMocks(); });
+function updateCalls() { return updateCallCount; }
+
+afterEach(() => {
+  chartInstances.length = 0;
+  updateCallCount = 0;
+  vi.restoreAllMocks();
+  theme.value = DEFAULT_THEME;
+  mode.value = DEFAULT_MODE;
+  window.localStorage.clear();
+  // setTheme() stamps the real document — resetting the refs above doesn't
+  // undo that, the way ThemeSwitcher.test.js resets document.documentElement.
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-mode');
+});
 
 function bucket(overrides = {}) {
   return {
@@ -66,4 +82,13 @@ test('destroys the chart instance on unmount', () => {
 test('shows an empty-state message when there are no buckets', () => {
   const wrapper = mount(TimeSeriesChart, { props: { buckets: [], mode: 'tokens' } });
   expect(wrapper.text()).toContain('No completed session yet');
+});
+
+test('re-renders when the theme changes', async () => {
+  const w = mount(TimeSeriesChart, { props: { buckets: [], mode: 'tokens' } });
+  const before = updateCalls();
+  setTheme('classic', { storage: window.localStorage, doc: document });
+  await nextTick();
+  expect(updateCalls()).toBeGreaterThan(before);
+  w.unmount();
 });

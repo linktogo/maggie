@@ -100,3 +100,80 @@ test('lists queued pending messages, and shows an empty hint when there are none
   expect(empty.find('[data-test=pending-messages]').exists()).toBe(false);
   expect(empty.find('[data-test=pending-empty]').exists()).toBe(true);
 });
+
+const retroProps = { name: 'oc-auth', session, meta, now };
+
+test('the retro-documentation panel emits the repo and the LLM the user picked', async () => {
+  const w = mount(RepoDetail, { props: retroProps });
+  await w.get('[data-test=retro-doc-provider]').setValue('copilot');
+  await w.get('[data-test=retro-doc-run]').trigger('click');
+  expect(w.emitted('generate-retro-doc')).toEqual([[{ repo: 'oc-auth', provider: 'copilot' }]]);
+});
+
+test('the retro-documentation panel defaults to the Claude API', async () => {
+  const w = mount(RepoDetail, { props: retroProps });
+  await w.get('[data-test=retro-doc-run]').trigger('click');
+  expect(w.emitted('generate-retro-doc')[0][0].provider).toBe('claude');
+});
+
+test('a running job disables the button and shows the progress line it last logged', () => {
+  const w = mount(RepoDetail, {
+    props: {
+      ...retroProps,
+      retroDoc: {
+        status: 'running',
+        log: [
+          { at: '2026-09-14T09:00:00.000Z', text: 'digest 1/5: 9 document(s), 192135 chars' },
+          { at: '2026-09-14T09:02:00.000Z', text: 'digesting batch 2/5' },
+        ],
+      },
+    },
+  });
+  expect(w.get('[data-test=retro-doc-run]').attributes('disabled')).toBeDefined();
+  expect(w.get('[data-test=retro-doc-progress]').text()).toContain('digesting batch 2/5');
+  const console_ = w.get('[data-test=retro-log]').text();
+  expect(console_).toContain('digest 1/5: 9 document(s), 192135 chars');
+  expect(console_).toContain('digesting batch 2/5');
+});
+
+test('a finished job says where the document landed and who wrote it', () => {
+  const w = mount(RepoDetail, {
+    props: { ...retroProps, retroDoc: { status: 'done', out: 'docs/ai/retro-documentation.md', generator: 'GitHub Copilot CLI' } },
+  });
+  const line = w.get('[data-test=retro-doc-done]').text();
+  expect(line).toContain('docs/ai/retro-documentation.md');
+  expect(line).toContain('GitHub Copilot CLI');
+  expect(w.get('[data-test=retro-doc-run]').attributes('disabled')).toBeUndefined();
+});
+
+test('a failed job shows the reason instead of a silent no-op', () => {
+  const w = mount(RepoDetail, {
+    props: { ...retroProps, retroDoc: { status: 'error', error: '`copilot` exited with code 1: not logged in' } },
+  });
+  expect(w.get('[data-test=retro-doc-error]').text()).toContain('not logged in');
+});
+
+test('the panel explains itself away when the board has no config', () => {
+  const w = mount(RepoDetail, { props: { ...retroProps, retroDocAvailable: false } });
+  expect(w.find('[data-test=retro-doc-run]').exists()).toBe(false);
+  expect(w.get('[data-test=retro-doc-unavailable]').text()).toContain('--config');
+});
+
+test('a repo with no running session still gets its retro-documentation panel', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-be', sessionId: null, session: null, meta, now } });
+  expect(w.find('[data-test=detail-message-form]').exists()).toBe(false);
+  expect(w.find('[data-test=retro-doc-run]').exists()).toBe(true);
+});
+
+test('the detail panel paints from theme tokens, not literal Tailwind colors', () => {
+  const w = mount(RepoDetail, {
+    props: { name: 'oc-be', sessionId: 's1', session: { title: 't', events: [] }, meta: null, ci: null, now: Date.now() },
+  });
+  expect(w.html()).not.toMatch(/bg-white|bg-slate-|text-slate-|bg-blue-|text-blue-/);
+  expect(w.get('[data-test=overlay]').classes()).toContain('bg-overlay');
+  expect(w.get('aside').classes()).toContain('shadow-overlay');
+  // The close button's "✕" is now an aria-hidden <Icon>, so this label is
+  // its only accessible name — a dropped aria-label would be invisible to
+  // a screen reader with no other test to catch it.
+  expect(w.get('button').attributes('aria-label')).toBe('Close');
+});

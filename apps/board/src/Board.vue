@@ -7,6 +7,7 @@ import RepoDetail from './RepoDetail.vue';
 import { STATUS_ORDER } from './statusStyles.js';
 import { matchesCiFilter } from './ciBadge.js';
 import { useI18n } from './i18n.js';
+import { useRetroDoc } from './useRetroDoc.js';
 
 const { t } = useI18n();
 
@@ -18,6 +19,13 @@ const props = defineProps({
   fetchImpl: { type: Function, required: true },
   refresh: { type: Function, required: true },
 });
+
+const {
+  available: retroDocAvailable,
+  start: startRetroDoc,
+  latestFor: latestRetroDoc,
+  jobs: retroDocJobs,
+} = useRetroDoc({ fetchImpl: props.fetchImpl });
 
 const nameFilter = ref('');
 const techFilter = ref('');
@@ -76,6 +84,10 @@ async function onCloseSession({ repo, sessionId }) {
   await props.refresh();
 }
 
+async function onGenerateRetroDoc({ repo, provider }) {
+  await startRetroDoc(repo, provider);
+}
+
 async function onSendMessage({ repo, sessionId, text }) {
   await props.fetchImpl('/api/sessions/message', {
     method: 'POST',
@@ -89,6 +101,9 @@ const selectedRepo = computed(() => (selected.value ? props.repos[selected.value
 const selectedSession = computed(() => selectedRepo.value?.sessions?.[selected.value?.sessionId] ?? null);
 const selectedMeta = computed(() => (selected.value ? props.config[selected.value.name] ?? null : null));
 const selectedCi = computed(() => (selected.value ? props.ci[selected.value.name] ?? null : null));
+// Reading retroDocJobs here is what makes the panel follow a running job:
+// latestFor() alone would not be a reactive dependency.
+const selectedRetroDoc = computed(() => (selected.value && retroDocJobs.value ? latestRetroDoc(selected.value.name) : null));
 </script>
 
 <template>
@@ -102,7 +117,7 @@ const selectedCi = computed(() => (selected.value ? props.ci[selected.value.name
 
     <SummaryHeader :repos="repos" />
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
       <Column
         v-for="c in grouped" :key="c.status"
         :title="c.title" :status="c.status" :entries="c.entries" :now="now" :ci="ci"
@@ -115,8 +130,10 @@ const selectedCi = computed(() => (selected.value ? props.ci[selected.value.name
     <RepoDetail
       :name="selected?.name ?? null" :session-id="selected?.sessionId ?? null"
       :session="selectedSession" :meta="selectedMeta" :ci="selectedCi" :now="now"
+      :retro-doc="selectedRetroDoc" :retro-doc-available="retroDocAvailable"
       @close="selected = null"
       @send-message="onSendMessage"
+      @generate-retro-doc="onGenerateRetroDoc"
     />
   </div>
 </template>

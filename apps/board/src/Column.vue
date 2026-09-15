@@ -33,13 +33,13 @@ function onDrop(e) {
 
 <template>
   <section class="min-w-0">
-    <h2 :class="['inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white mb-2', style.pill]">
+    <h2 :class="['inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs col-title mb-2', style.pill]">
       {{ title }} <span class="opacity-80">({{ entries.length }})</span>
     </h2>
     <div
       data-test="column-body"
-      :class="['flex flex-col gap-2 bg-white/50 rounded-xl p-2 min-h-[4rem]',
-               dragOver ? 'ring-2 ring-emerald-400' : '']"
+      :class="['flex flex-col gap-gutter bg-panel rounded-panel p-2 min-h-[4rem]',
+               dragOver ? 'ring-2 ring-drop-ring' : '']"
       v-on="isDropTarget ? { dragover: onDragOver, dragleave: onDragLeave, drop: onDrop } : {}"
     >
       <Card v-for="e in entries" :key="e.name" :name="e.name" :sessions="e.sessions" :status="status" :now="now" :ci="ci[e.name] ?? null" @open="$emit('open', $event)" @send-message="$emit('send-message', $event)" />

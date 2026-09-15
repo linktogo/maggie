@@ -54,6 +54,8 @@ and prints where it settled, so avoid starting a second instance by accident.
 | `GET /api/ci` | Per-contributor CI status — see [CI status](ci-status.md). |
 | `POST /api/sessions/close` | Closes a session: removes it from the board and appends a history entry. Body: `{ repo, sessionId }`. |
 | `POST /api/sessions/message` | Queues a message for a session (see [Messaging a session](#messaging-a-session)). Body: `{ repo, sessionId, message }`. |
+| `POST /api/retro-doc` | Starts a retro-documentation of a repo (see [Generating a retro-documentation](#generating-a-retro-documentation)). Body: `{ repo, provider, model }`. |
+| `GET /api/retro-doc` | The jobs of this board session, newest first; `?repo=<name>` narrows it. |
 | anything else | The built front-end, with an SPA fallback to `index.html`. |
 
 ## `board.json`
@@ -104,6 +106,10 @@ or not the server is running.
   agent show as `claude`.
 - **Language picker** in the header: English (the default), French, German and
   Spanish. See below.
+- **Theme picker** in the header: Material 3 (the default), Material 3
+  Expressive, Material classic, and Legacy — the board's pre-Material look,
+  kept selectable but frozen. A second picker sets light, dark or system.
+  See [Themes](#themes).
 
 ## Messaging a session
 
@@ -134,6 +140,78 @@ you to type the next prompt. The `messages` subcommand
 (`maggie-workspace messages <repo> --agent copilot`) is the delivery-only entry
 point the `sessionStart` hook uses; it drains the queue without touching the
 session's status.
+
+## Generating a retro-documentation
+
+The **Retro-doc** tab, next to Board and History, lists every repository of the
+config: technologies, choice of LLM, state of the last run (with how many
+documents it produced), and a button. The
+same controls also sit in a repository's detail panel — clicking a repository's
+**name** on its card opens it, no session needed, which is the point: an idle
+repo is exactly the one you want to document. Either way: pick an LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
+the board reconstructs that repository's reference document from its specs and
+plans, into `docs/ai/retro-documentation.md` inside the checkout. See
+[Retro-documentation](retro-doc.md) for what it reads and what it writes.
+
+The run takes minutes, so `POST /api/retro-doc` answers `202` as soon as the job
+is accepted and the panel polls `GET /api/retro-doc` for what became of it. One
+run at a time per repository — a second `POST` gets a `409`. Jobs live in the
+board process, so restarting it forgets them; the generated file stays.
+
+Each job carries a **console**: timestamped lines, open by default while the run
+is in flight and one toggle away afterwards. A single LLM call over a 200 000-
+character batch takes minutes and says nothing while it runs, so every call is
+both announced and reported:
+
+```
+09:19:14  starting on /home/fabien/wk/lk-mind through GitHub Copilot CLI
+09:19:15  digest 1/5: 6 document(s), 187432 chars — docs/superpowers/plans/…
+09:20:57    ↳ digest 1/5 answered in 1m 42s — 4821 chars
+09:20:58  digest 2/5: 5 document(s), 192135 chars — docs/superpowers/plans/…
+```
+
+That is how you tell a slow run from a stuck one: the row also shows how long it
+has been running, so a last line two minutes old with a call in flight is
+normal, and a last line ten minutes old is the call about to hit its timeout.
+
+The board needs to know **where each repository is checked out**, which it only
+knows when started with a config (`--config`, or `AI_SYNC_CONFIG`). Without one
+both routes answer `503` and the panel says so rather than guessing a directory
+to write into. The checkout is resolved the same way hook reconciliation
+resolves it: `path` from the config when it pins one, otherwise
+`<workspace>/<name>`.
+
+## Themes
+
+![The theme and mode pickers](images/board/theme-picker.png)
+
+The board ships four looks, chosen from the header:
+
+| Theme | What it is |
+|---|---|
+| **Material 3** | Material 3's tonal surfaces on a violet seed. The default. |
+| **Material 3 Expressive** | The expressive revision: full-colour column blocks, large radii, heavy titles. |
+| **Material classic** | Material of the M2 era — indigo app bar, 4px corners, elevation shadows. |
+| **Legacy (frozen)** | Exactly what the board looked like before themes existed. Still selectable, no longer maintained: new work targets the Material themes. |
+
+A second picker sets **light**, **dark** or **system** (the default, which
+follows the operating system). The legacy theme is light only, so the mode
+picker is disabled while it is active — the stored preference is kept and
+applies again as soon as another theme is selected.
+
+Both choices live in `localStorage` (`maggie:theme`, `maggie:mode`),
+per browser, like the language. Nothing is stored server-side, so two people
+looking at the same board can each have their own.
+
+### Adding or changing a theme
+
+Every theme is one CSS file under `apps/board/src/themes/` that redefines the
+same contract of custom properties — colours, radii, shadows, spacing and
+type. `contract.css` declares the full set; `themes/contract.test.js` fails
+any theme that misses one, and `themes/contrast.test.js` fails a palette that
+puts text below WCAG AA on its own background. Components never name a
+colour: they use semantic utilities (`bg-surface`, `text-ink`,
+`rounded-card`) that resolve through those variables.
 
 ## Language
 

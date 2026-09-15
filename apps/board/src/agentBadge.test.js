@@ -19,8 +19,8 @@ describe('agentBadge', () => {
   });
 
   it('gives each known agent its own pill, and an unknown one a neutral pill', () => {
-    expect(agentPillClass('claude')).toContain('amber');
-    expect(agentPillClass('copilot')).toContain('sky');
-    expect(agentPillClass('cursor')).toContain('slate');
+    expect(agentPillClass('claude')).toContain('agent-claude');
+    expect(agentPillClass('copilot')).toContain('agent-copilot');
+    expect(agentPillClass('cursor')).toContain('ci-neutral');
   });
 });

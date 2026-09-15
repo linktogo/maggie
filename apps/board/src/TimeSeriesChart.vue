@@ -3,8 +3,11 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
 import { UNKNOWN_MODEL } from './pricing.js';
 import { useI18n } from './i18n.js';
+import { seriesColors, chartInk } from './chartColors.js';
+import { useTheme } from './theme.js';
 
 const { t, locale } = useI18n();
+const { theme, mode: themeMode } = useTheme();
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -14,13 +17,11 @@ const props = defineProps({
 });
 
 const TOKEN_SERIES = [
-  { key: 'inputTokens', labelKey: 'chart.input', color: '#2563eb' },
-  { key: 'outputTokens', labelKey: 'chart.output', color: '#10b981' },
-  { key: 'cacheCreationInputTokens', labelKey: 'chart.cacheWrite', color: '#f59e0b' },
-  { key: 'cacheReadInputTokens', labelKey: 'chart.cacheRead', color: '#94a3b8' },
+  { key: 'inputTokens', labelKey: 'chart.input' },
+  { key: 'outputTokens', labelKey: 'chart.output' },
+  { key: 'cacheCreationInputTokens', labelKey: 'chart.cacheWrite' },
+  { key: 'cacheReadInputTokens', labelKey: 'chart.cacheRead' },
 ];
-const MODEL_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
-const UNKNOWN_COLOR = '#94a3b8';
 
 function modelLabel(model) {
   return model === UNKNOWN_MODEL ? t('chart.unknownModel') : model;
@@ -32,32 +33,40 @@ const modelKeys = computed(() => {
   return [...keys].sort();
 });
 
-const datasets = computed(() => {
+function buildDatasets(palette) {
   if (props.mode === 'tokens') {
-    return TOKEN_SERIES.map((s) => ({
+    return TOKEN_SERIES.map((s, i) => ({
       label: t(s.labelKey),
-      backgroundColor: s.color,
+      backgroundColor: palette[i],
       data: props.buckets.map((b) => b.tokens[s.key]),
     }));
   }
   return modelKeys.value.map((model, i) => ({
     label: modelLabel(model),
-    backgroundColor: model === UNKNOWN_MODEL ? UNKNOWN_COLOR : MODEL_COLORS[i % MODEL_COLORS.length],
+    // The unknown model keeps the neutral slot rather than taking a hue that
+    // would read as a real model.
+    backgroundColor: model === UNKNOWN_MODEL ? palette[3] : palette[i % palette.length],
     data: props.buckets.map((b) => Number((b.costByModel[model] ?? 0).toFixed(4))),
   }));
-});
+}
 
 const canvas = ref(null);
 let chart = null;
 
 function render() {
+  const options = { el: canvas.value ?? undefined };
+  const palette = seriesColors(options);
+  const ink = chartInk(options);
   const config = {
     type: 'bar',
-    data: { labels: props.buckets.map((b) => b.key), datasets: datasets.value },
+    data: { labels: props.buckets.map((b) => b.key), datasets: buildDatasets(palette) },
     options: {
       responsive: true,
-      scales: { x: { stacked: true }, y: { stacked: true } },
-      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        x: { stacked: true, ticks: { color: ink } },
+        y: { stacked: true, ticks: { color: ink } },
+      },
+      plugins: { legend: { position: 'bottom', labels: { color: ink } } },
     },
   };
   if (chart) {
@@ -70,14 +79,14 @@ function render() {
 }
 
 onMounted(render);
-watch([() => props.buckets, () => props.mode, locale], render);
+watch([() => props.buckets, () => props.mode, locale, theme, themeMode], render);
 onUnmounted(() => { chart?.destroy(); chart = null; });
 </script>
 
 <template>
   <div class="relative h-64">
     <canvas ref="canvas" data-test="time-series-canvas"></canvas>
-    <p v-if="buckets.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+    <p v-if="buckets.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-ink-faint">
       {{ t('history.empty') }}
     </p>
   </div>

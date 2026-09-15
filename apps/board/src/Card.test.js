@@ -28,7 +28,7 @@ test('shows a placeholder when the repo has no active sessions', () => {
 
 test('highlights a question card', () => {
   const w = mount(Card, { props: { name: 'oc-auth', sessions: [session()], status: 'question', now } });
-  expect(w.classes().join(' ')).toContain('ring-amber-300');
+  expect(w.classes().join(' ')).toContain('ring-question-ring');
 });
 
 test('emits "open" with the repo name and session id when a row is clicked', async () => {
@@ -47,7 +47,7 @@ test('renders one badge per contributor, worst first', () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci } });
   const badges = w.findAll('[data-test=ci-badge]');
   expect(badges.map((b) => b.text())).toEqual(['AL', 'ZO']);
-  expect(badges[0].classes().join(' ')).toContain('red');
+  expect(badges[0].classes().join(' ')).toContain('ci-failure');
 });
 
 test('collapses beyond four contributors into a +N badge', () => {
@@ -56,6 +56,17 @@ test('collapses beyond four contributors into a +N badge', () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci: { users } } });
   expect(w.findAll('[data-test=ci-badge]')).toHaveLength(4);
   expect(w.get('[data-test=ci-overflow]').text()).toBe('+1');
+});
+
+test('the overflow badge shares the CI-neutral pill family, not an ad hoc surface token', () => {
+  const users = {};
+  for (const login of ['a1', 'b2', 'c3', 'd4', 'e5']) users[login] = { state: 'unknown' };
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci: { users } } });
+  const shownNeutral = w.get('[data-test=ci-badge]').classes();
+  const overflow = w.get('[data-test=ci-overflow]').classes();
+  for (const cls of shownNeutral.filter((c) => c.startsWith('bg-ci-') || c.startsWith('text-ci-') || c.startsWith('border-ci-'))) {
+    expect(overflow).toContain(cls);
+  }
 });
 
 test('renders no badges when the repo has no CI status', () => {
@@ -80,4 +91,18 @@ test('forwards send-message from a session row up to the parent', async () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'question', now } });
   await w.findComponent(SessionRow).vm.$emit('send-message', { repo: 'oc-be', sessionId: 's1', text: 'hi' });
   expect(w.emitted('send-message')[0]).toEqual([{ repo: 'oc-be', sessionId: 's1', text: 'hi' }]);
+});
+
+test('clicking the repo name opens the repo detail, with no session selected', async () => {
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo' } });
+  await w.get('[data-test=open-repo]').trigger('click');
+  expect(w.emitted('open')[0]).toEqual([{ name: 'oc-be', sessionId: null }]);
+});
+
+test('a card paints from theme tokens, not literal Tailwind colors', () => {
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'inprogress', now } });
+  expect(w.html()).not.toMatch(/bg-white|bg-slate-|text-slate-|bg-blue-|text-blue-|violet-/);
+  expect(w.classes()).toContain('bg-surface');
+  expect(w.classes()).toContain('rounded-card');
+  expect(w.classes()).toContain('shadow-card');
 });

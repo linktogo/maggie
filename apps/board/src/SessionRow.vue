@@ -4,6 +4,7 @@ import { relativeTime } from './useRelativeTime.js';
 import { formatTokens } from './formatTokens.js';
 import { agentOf, agentLabel, agentPillClass } from './agentBadge.js';
 import { useI18n } from './i18n.js';
+import Icon from './Icon.vue';
 
 const { t } = useI18n();
 
@@ -64,35 +65,35 @@ function onDragStart(e) {
     tabindex="0"
     data-test="session-row"
     draggable="true"
-    class="bg-slate-50 hover:bg-slate-100 rounded-lg p-2 cursor-grab active:cursor-grabbing transition-colors"
+    class="bg-surface-muted hover:bg-surface-hover rounded-control p-2 cursor-grab active:cursor-grabbing transition-colors"
     @click="open"
     @keydown.enter="open"
     @keydown.space.prevent="open"
     @dragstart="onDragStart"
   >
-    <div class="font-medium text-slate-800 text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
-    <div class="text-xs text-slate-500">
+    <div class="font-medium text-ink text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
+    <div class="text-xs text-ink-muted">
       {{ session.lastEvent }} · {{ when }}
       <span
         data-test="agent-badge"
         :title="t('session.agentTooltip', { agent: agentLabel(agent) })"
-        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded-sm', agentPillClass(agent)]"
+        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded-badge', agentPillClass(agent)]"
       >{{ agent }}</span>
       <span
         v-if="session.worktree"
         data-test="worktree-badge"
         :title="t('session.worktreeTooltip', { branch: session.worktree })"
-        class="inline-flex items-center ml-1 bg-violet-100 text-violet-700 font-medium px-1.5 py-0.5 rounded-sm"
-      >⎇ {{ session.worktree }}</span>
-      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-block ml-1 bg-slate-200/70 text-slate-600 font-medium px-1.5 py-0.5 rounded-sm">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
+        class="inline-flex items-center ml-1 bg-worktree-soft text-worktree-on-soft font-medium px-1.5 py-0.5 rounded-badge"
+      ><Icon name="account_tree" emoji="⎇" /> {{ session.worktree }}</span>
+      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-block ml-1 bg-surface-muted text-ink-soft font-medium px-1.5 py-0.5 rounded-badge">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
     </div>
-    <p v-if="prompt" class="mt-1 text-xs text-slate-600 whitespace-pre-wrap">
+    <p v-if="prompt" class="mt-1 text-xs text-ink-soft whitespace-pre-wrap">
       {{ displayedPrompt }}
       <button
         v-if="overflows"
         type="button"
         data-test="toggle-prompt"
-        class="text-blue-600 hover:underline"
+        class="text-accent hover:underline"
         @click="toggle"
       >{{ expanded ? t('session.showLess') : t('session.showMore') }}</button>
     </p>
@@ -110,14 +111,14 @@ function onDragStart(e) {
         data-test="message-input"
         type="text"
         :placeholder="t('session.messagePlaceholder')"
-        class="min-w-0 flex-1 rounded-sm border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-blue-400 focus:outline-hidden"
+        class="min-w-0 flex-1 rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
         @keydown.stop
       />
       <button
         type="submit"
         data-test="message-send"
         :disabled="!draft.trim()"
-        class="shrink-0 rounded-sm bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        class="shrink-0 rounded-control bg-accent px-2 py-1 text-xs font-medium text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
       >{{ t('session.send') }}</button>
     </form>
   </div>

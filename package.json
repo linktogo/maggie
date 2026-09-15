@@ -56,13 +56,16 @@
   },
   "overrides": {
     "nx": {
-      "brace-expansion": "^5.0.9"
-    }
+      "brace-expansion": "^5.0.9",
+      "smol-toml": "^1.8.0"
+    },
+    "qs": "^6.16.0"
   },
   "scripts": {
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "test:scripts": "node --test scripts/*.test.js",
+    "retro-doc": "node scripts/retro-doc.js",
     "build": "nx run-many -t build",
     "start": "nx run board:start",
     "sync": "node apps/sync/bin/sync.js",
@@ -90,6 +93,6 @@
     "nx": "^23.1.1",
     "typescript": "~6.0.3",
     "vite": "^8.0.0",
-    "vitest": "~4.1.0"
+    "vitest": "~4.1.11"
   }
 }

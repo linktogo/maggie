@@ -489,3 +489,118 @@ test('POST /api/sessions/message returns 400 for an unparsable body', async () =
   server.close();
   await rm(dir, { recursive: true, force: true });
 });
+
+test('POST /api/retro-doc starts a job and GET /api/retro-doc reports what became of it', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const boardPath = path.join(dir, 'board.json');
+  const started = [];
+  const retroDoc = {
+    start: (request) => {
+      started.push(request);
+      return { status: 202, job: { id: 'api-1', repo: 'api', status: 'running' } };
+    },
+    list: (repo) => [{ id: 'api-1', repo: repo ?? 'api', status: 'done', out: 'docs/ai/retro-documentation.md' }],
+  };
+  const server = createBoardServer({ boardPath, distDir: dir, retroDoc });
+  const port = await listen(server);
+
+  const post = await fetch(`http://127.0.0.1:${port}/api/retro-doc`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ repo: 'api', provider: 'copilot' }),
+  });
+  assert.equal(post.status, 202);
+  assert.deepEqual(await post.json(), { job: { id: 'api-1', repo: 'api', status: 'running' } });
+  assert.deepEqual(started, [{ repo: 'api', provider: 'copilot', model: null }]);
+
+  const get = await fetch(`http://127.0.0.1:${port}/api/retro-doc?repo=api`);
+  assert.equal(get.status, 200);
+  assert.deepEqual(await get.json(), {
+    jobs: [{ id: 'api-1', repo: 'api', status: 'done', out: 'docs/ai/retro-documentation.md' }],
+  });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('POST /api/retro-doc defaults to the Claude API provider', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const started = [];
+  const server = createBoardServer({
+    boardPath: path.join(dir, 'board.json'),
+    distDir: dir,
+    retroDoc: { start: (request) => { started.push(request); return { status: 202, job: {} }; }, list: () => [] },
+  });
+  const port = await listen(server);
+  await fetch(`http://127.0.0.1:${port}/api/retro-doc`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ repo: 'api' }),
+  });
+  assert.deepEqual(started, [{ repo: 'api', provider: 'claude', model: null }]);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('POST /api/retro-doc passes the runner refusal straight through', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({
+    boardPath: path.join(dir, 'board.json'),
+    distDir: dir,
+    retroDoc: { start: () => ({ status: 409, error: 'a retro-documentation of api is already running' }), list: () => [] },
+  });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/retro-doc`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ repo: 'api' }),
+  });
+  assert.equal(res.status, 409);
+  assert.deepEqual(await res.json(), { error: 'a retro-documentation of api is already running' });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('POST /api/retro-doc rejects a body that is not JSON', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({
+    boardPath: path.join(dir, 'board.json'),
+    distDir: dir,
+    retroDoc: { start: () => assert.fail('nothing should start'), list: () => [] },
+  });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/retro-doc`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: 'not json',
+  });
+  assert.equal(res.status, 400);
+  assert.deepEqual(await res.json(), { error: 'invalid JSON body' });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('/api/retro-doc answers 503 when the board was started without a config', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/retro-doc`);
+  assert.equal(res.status, 503);
+  assert.match((await res.json()).error, /no config loaded/);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('a board started with a config can run a retro-documentation', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({
+    boardPath: path.join(dir, 'wk', '.maggie', 'board.json'),
+    distDir: dir,
+    config: { repos: [{ name: 'api' }] },
+  });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/retro-doc`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { jobs: [] });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});

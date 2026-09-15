@@ -1767,6 +1767,14 @@ test('lists the three modes with the active one selected', () => {
   expect(select.element.value).toBe('system');
 });
 
+test('is enabled with a plain label on a themeable theme', () => {
+  const w = mount(ModeSwitcher);
+  const select = w.get('[data-test=mode]');
+  expect(select.attributes('disabled')).toBeUndefined();
+  expect(select.attributes('title')).toBe('Appearance');
+  expect(select.attributes('aria-label')).toBe('Appearance');
+});
+
 test('picking a mode stamps the document and persists the choice', async () => {
   const w = mount(ModeSwitcher);
   await w.get('[data-test=mode]').setValue('dark');
@@ -1781,6 +1789,7 @@ test('is disabled on a light-only theme and explains why', async () => {
   const select = w.get('[data-test=mode]');
   expect(select.attributes('disabled')).toBeDefined();
   expect(select.attributes('title')).toBe('This theme is light only.');
+  expect(select.attributes('aria-label')).toBe('This theme is light only.');
 });
 
 test('leaves the stored preference alone while disabled', async () => {
@@ -1824,7 +1833,7 @@ const locked = computed(() => isLightOnly(theme.value));
     data-test="mode"
     :value="mode"
     :disabled="locked"
-    :aria-label="t('nav.mode')"
+    :aria-label="locked ? t('mode.legacyLocked') : t('nav.mode')"
     :title="locked ? t('mode.legacyLocked') : t('nav.mode')"
     class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface text-ink-muted focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
     @change="setMode($event.target.value)"

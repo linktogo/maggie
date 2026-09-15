@@ -5,6 +5,7 @@
  */
 @import 'tailwindcss' source(none);
 @import './themes/contract.css';
+@import './themes/m3.css';
 @import './themes/legacy.css';
 
 @source '../index.html';

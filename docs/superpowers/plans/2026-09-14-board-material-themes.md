@@ -2428,7 +2428,7 @@ Apply the mapping table. Specifically:
 
 - `<main class="min-h-screen bg-slate-100 p-6">` becomes `<main class="min-h-screen p-6">` — the ground now comes from `html`.
 - The title: `text-xl font-bold text-slate-900` becomes `text-xl font-bold text-ink-strong`.
-- The view segmented control: `bg-slate-100 rounded-lg` becomes `bg-surface-muted rounded-control`; the active link's `bg-white shadow-xs text-slate-900` becomes `bg-surface shadow-panel text-ink-strong`; the inactive `text-slate-500 hover:text-slate-700` becomes `text-ink-muted hover:text-ink-soft`. Add the `nav-tab` class to both links — Task 17 fills it.
+- The view segmented control: `bg-slate-100 rounded-lg` becomes `bg-surface-muted rounded-control`; the active link's `bg-white shadow-xs text-slate-900` becomes `bg-surface shadow-panel text-ink-strong`; the inactive `text-slate-500 hover:text-slate-700` becomes `text-ink-muted hover:text-ink-soft`; the tab's own pre-existing `rounded-md` becomes `rounded-control`, matching the container it sits in rather than a smaller, unrelated radius (`HistoryPage.vue`'s Task 16 tabs already use `rounded-control` for the same reason — keep the two segmented controls in the same shape). Add the `nav-tab` class to both links — Task 17 fills it.
 - The two notification buttons: `border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white` becomes `border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface`. The `hover:bg-surface-hover` is load-bearing, not decorative: Expressive sets both `--shadow-card` and `--shadow-panel` to `none`, so `hover:shadow-card` alone is a no-op in that theme — the buttons need a second, independent hover signal that isn't a shadow. The sound button's `text-slate-700` / `text-slate-400` become `text-ink-soft` / `text-ink-faint`.
 - Their emoji move to `Icon`: `🔔 {{ t('notifications.enable') }}` becomes `<Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}`, and the sound button's `{{ soundOn ? '🔊' : '🔇' }}` becomes `<Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" />`.
 - The three banners: `text-amber-700` becomes `text-question-on-soft`, and their `⚠` becomes `<Icon name="warning" emoji="⚠" />`.
@@ -2587,6 +2587,12 @@ test('the detail panel paints from theme tokens, not literal Tailwind colors', (
     props: { name: 'oc-be', sessionId: 's1', session: { title: 't', events: [] }, meta: null, ci: null, now: Date.now() },
   });
   expect(w.html()).not.toMatch(/bg-white|bg-slate-|text-slate-|bg-blue-|text-blue-/);
+  expect(w.get('[data-test=overlay]').classes()).toContain('bg-overlay');
+  expect(w.get('aside').classes()).toContain('shadow-overlay');
+  // The close button's "✕" is now an aria-hidden <Icon>, so this label is
+  // its only accessible name — a dropped aria-label would be invisible to
+  // a screen reader with no other test to catch it.
+  expect(w.get('button').attributes('aria-label')).toBe('Close');
 });
 ```
 

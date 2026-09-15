@@ -59,11 +59,11 @@ const routeProps = computed(() => {
         <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"
-            :class="['nav-tab rounded-md px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.board') }}</router-link>
           <router-link
             data-test="view-history" to="/history"
-            :class="['nav-tab rounded-md px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.history') }}</router-link>
           <router-link
             data-test="view-retro-doc" to="/retro-doc"

@@ -70,6 +70,7 @@ export default {
   'session.messagePlaceholder': 'Message to the session…',
   'session.send': 'Send',
 
+  'detail.close': 'Close',
   'detail.ci': 'Continuous integration',
   'detail.ciUnavailable': 'Unavailable — {reason}',
   'detail.ciEmpty': 'No status reported.',

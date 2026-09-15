@@ -68,6 +68,7 @@ export default {
   'session.messagePlaceholder': 'Nachricht an die Sitzung…',
   'session.send': 'Senden',
 
+  'detail.close': 'Schließen',
   'detail.ci': 'Continuous Integration',
   'detail.ciUnavailable': 'Nicht verfügbar — {reason}',
   'detail.ciEmpty': 'Kein Status gemeldet.',

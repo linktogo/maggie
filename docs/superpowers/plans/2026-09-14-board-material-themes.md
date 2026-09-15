@@ -2597,6 +2597,15 @@ rounded-sm on the textarea, the send button and the CI pill         → rounded-
 
 The close button's `✕` becomes `<Icon name="close" emoji="✕" />` and the pending list's `↩` becomes `<Icon name="reply" emoji="↩" />`; import `Icon`.
 
+**The close button needs its own accessible name.** Today `✕` is that
+button's only content, so it doubles as its accessible name; `<Icon>` is
+`aria-hidden`, so swapping the emoji for it would leave the button nameless.
+Add `:aria-label="t('detail.close')"` to the `<button>` itself. The key
+already exists in all four locale catalogs (`en`: "Close", `fr`: "Fermer",
+`de`: "Schließen", `es`: "Cerrar") — added ahead of this task, next to
+`detail.ci`, when Task 12's review caught this as the plan's next
+icon-only-control call site.
+
 - [ ] **Step 4: Migrate `HistoryPage.vue`**
 
 The `tabClass()` helper is where the literals hide:

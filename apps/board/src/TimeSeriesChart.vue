@@ -77,7 +77,7 @@ onUnmounted(() => { chart?.destroy(); chart = null; });
 <template>
   <div class="relative h-64">
     <canvas ref="canvas" data-test="time-series-canvas"></canvas>
-    <p v-if="buckets.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+    <p v-if="buckets.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-ink-faint">
       {{ t('history.empty') }}
     </p>
   </div>

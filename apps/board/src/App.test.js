@@ -331,7 +331,7 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   expect(container.className).toContain('bg-surface-muted');
 
   const tabs = wrapper.findAll('[data-test^=view-]');
-  expect(tabs).toHaveLength(2);
+  expect(tabs).toHaveLength(3);
   for (const tab of tabs) {
     const classes = tab.classes().join(' ');
     expect(classes).not.toMatch(/slate-|bg-white/);

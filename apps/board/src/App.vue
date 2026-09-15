@@ -67,7 +67,7 @@ const routeProps = computed(() => {
           >{{ t('nav.history') }}</router-link>
           <router-link
             data-test="view-retro-doc" to="/retro-doc"
-            :class="['rounded-md px-3 py-1 font-medium transition-colors', route.name === 'retro-doc' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'retro-doc' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.retroDoc') }}</router-link>
         </div>
       </div>

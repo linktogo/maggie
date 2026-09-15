@@ -936,10 +936,13 @@ Create `apps/board/src/themes/m3.css`:
  * Roles map onto the board's vocabulary like this: surface-container-low is
  * `panel` (column bodies), surface-container is `surface-muted` (session
  * rows), on-surface-variant is `ink-soft`, and the error role carries the
- * `question` status. Material 3 has no green role, so `done` is a tonal green
- * built to the same recipe.
+ * `question` status. Material 3 has no green or teal role, so `done` and
+ * `worktree` are custom tonal families built to the same recipe: a solid at
+ * tone 40 with a tone 90/10 container in light, inverted to tone 80 with a
+ * tone 30/90 container in dark, same hue held constant across both.
  */
 html[data-theme='m3'] {
+  /* Surfaces */
   --color-ground: #fef7ff;
   --color-surface: #fffbff;
   --color-panel: #f7f2fa;
@@ -947,21 +950,25 @@ html[data-theme='m3'] {
   --color-surface-hover: #ece6f0;
   --color-overlay: rgb(29 27 32 / 0.32);
 
+  /* Hairlines */
   --color-line: #cac4d0;
   --color-line-soft: #e7e0ec;
 
+  /* Text */
   --color-ink-strong: #1d1b20;
   --color-ink: #2b2930;
   --color-ink-soft: #49454f;
   --color-ink-muted: #605d66;
   --color-ink-faint: #79747e;
 
+  /* Accent — the violet seed, primary40 with an on-primary40 label */
   --color-accent: #6750a4;
   --color-accent-strong: #563f9b;
   --color-on-accent: #ffffff;
   --color-accent-soft: #eaddff;
   --color-on-accent-soft: #21005d;
 
+  /* Status */
   --color-todo-solid: #605d66;
   --color-todo-soft: #ece6f0;
   --color-todo-on-soft: #49454f;
@@ -978,6 +985,7 @@ html[data-theme='m3'] {
   --color-question-ring: #f2b8b5;
   --color-drop-ring: #7abf7e;
 
+  /* CI badges */
   --color-ci-failure-soft: #f9dedc;
   --color-ci-failure-on-soft: #8c1d18;
   --color-ci-failure-line: #f2b8b5;
@@ -991,6 +999,7 @@ html[data-theme='m3'] {
   --color-ci-success-on-soft: #0a2e0c;
   --color-ci-success-line: #8fd693;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #e8def8;
   --color-agent-claude-on-soft: #1d192b;
   --color-agent-copilot-soft: #ffd8e4;
@@ -998,6 +1007,7 @@ html[data-theme='m3'] {
   --color-worktree-soft: #d7f0f6;
   --color-worktree-on-soft: #0b3b45;
 
+  /* Chart series */
   --color-series-1: #6750a4;
   --color-series-2: #386a3c;
   --color-series-3: #7d5260;
@@ -1005,6 +1015,7 @@ html[data-theme='m3'] {
   --color-series-5: #3f5f9e;
   --color-series-6: #8c4a1f;
 
+  /* Shape, spacing and type */
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;
@@ -1030,6 +1041,7 @@ html[data-theme='m3'] {
  * to keep in sync with it.
  */
 html[data-theme='m3'][data-mode='dark'] {
+  /* Surfaces */
   --color-ground: #141218;
   --color-surface: #1d1b20;
   --color-panel: #211f26;
@@ -1037,21 +1049,25 @@ html[data-theme='m3'][data-mode='dark'] {
   --color-surface-hover: #36343b;
   --color-overlay: rgb(0 0 0 / 0.5);
 
+  /* Hairlines */
   --color-line: #49454f;
   --color-line-soft: #36343b;
 
+  /* Text */
   --color-ink-strong: #e6e0e9;
   --color-ink: #ddd7e0;
   --color-ink-soft: #cac4d0;
   --color-ink-muted: #b0a7b8;
   --color-ink-faint: #938f99;
 
+  /* Accent — the violet seed, primary80 with an on-primary80 label */
   --color-accent: #d0bcff;
   --color-accent-strong: #e0cfff;
   --color-on-accent: #381e72;
   --color-accent-soft: #4f378b;
   --color-on-accent-soft: #eaddff;
 
+  /* Status */
   --color-todo-solid: #938f99;
   --color-todo-soft: #36343b;
   --color-todo-on-soft: #cac4d0;
@@ -1068,6 +1084,7 @@ html[data-theme='m3'][data-mode='dark'] {
   --color-question-ring: #b3261e;
   --color-drop-ring: #8fd693;
 
+  /* CI badges */
   --color-ci-failure-soft: #601410;
   --color-ci-failure-on-soft: #f9dedc;
   --color-ci-failure-line: #8c1d18;
@@ -1081,6 +1098,7 @@ html[data-theme='m3'][data-mode='dark'] {
   --color-ci-success-on-soft: #c8efc9;
   --color-ci-success-line: #3c6b40;
 
+  /* Agent and worktree badges */
   --color-agent-claude-soft: #4a4458;
   --color-agent-claude-on-soft: #e8def8;
   --color-agent-copilot-soft: #633b48;
@@ -1088,6 +1106,7 @@ html[data-theme='m3'][data-mode='dark'] {
   --color-worktree-soft: #14434d;
   --color-worktree-on-soft: #b8e8f2;
 
+  /* Chart series */
   --color-series-1: #d0bcff;
   --color-series-2: #8fd693;
   --color-series-3: #efb8c8;
@@ -1095,6 +1114,7 @@ html[data-theme='m3'][data-mode='dark'] {
   --color-series-5: #a8c7fa;
   --color-series-6: #f0a868;
 
+  /* Shape, spacing and type */
   --radius-card: 1rem;
   --radius-panel: 1rem;
   --radius-control: 0.5rem;

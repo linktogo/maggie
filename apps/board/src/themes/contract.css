@@ -53,6 +53,12 @@
   --color-done-solid: #386a3c;
   --color-done-soft: #c8efc9;
   --color-done-on-soft: #0a2e0c;
+  /*
+   * The ink on a filled status pill. This can't reuse --color-on-accent
+   * (above) — in dark mode the accent inverts to a light tone whose "on"
+   * colour goes dark, while the status solids stay light-on-dark, so
+   * sharing one token would make the column pills unreadable in dark mode.
+   */
   --color-on-status: #ffffff;
   --color-question-ring: #f2b8b5;
   --color-drop-ring: #7abf7e;

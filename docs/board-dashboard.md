@@ -54,6 +54,8 @@ and prints where it settled, so avoid starting a second instance by accident.
 | `GET /api/ci` | Per-contributor CI status — see [CI status](ci-status.md). |
 | `POST /api/sessions/close` | Closes a session: removes it from the board and appends a history entry. Body: `{ repo, sessionId }`. |
 | `POST /api/sessions/message` | Queues a message for a session (see [Messaging a session](#messaging-a-session)). Body: `{ repo, sessionId, message }`. |
+| `POST /api/retro-doc` | Starts a retro-documentation of a repo (see [Generating a retro-documentation](#generating-a-retro-documentation)). Body: `{ repo, provider, model }`. |
+| `GET /api/retro-doc` | The jobs of this board session, newest first; `?repo=<name>` narrows it. |
 | anything else | The built front-end, with an SPA fallback to `index.html`. |
 
 ## `board.json`
@@ -134,6 +136,46 @@ you to type the next prompt. The `messages` subcommand
 (`maggie-workspace messages <repo> --agent copilot`) is the delivery-only entry
 point the `sessionStart` hook uses; it drains the queue without touching the
 session's status.
+
+## Generating a retro-documentation
+
+The **Retro-doc** tab, next to Board and History, lists every repository of the
+config: technologies, choice of LLM, state of the last run (with how many
+documents it produced), and a button. The
+same controls also sit in a repository's detail panel — clicking a repository's
+**name** on its card opens it, no session needed, which is the point: an idle
+repo is exactly the one you want to document. Either way: pick an LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
+the board reconstructs that repository's reference document from its specs and
+plans, into `docs/ai/retro-documentation.md` inside the checkout. See
+[Retro-documentation](retro-doc.md) for what it reads and what it writes.
+
+The run takes minutes, so `POST /api/retro-doc` answers `202` as soon as the job
+is accepted and the panel polls `GET /api/retro-doc` for what became of it. One
+run at a time per repository — a second `POST` gets a `409`. Jobs live in the
+board process, so restarting it forgets them; the generated file stays.
+
+Each job carries a **console**: timestamped lines, open by default while the run
+is in flight and one toggle away afterwards. A single LLM call over a 200 000-
+character batch takes minutes and says nothing while it runs, so every call is
+both announced and reported:
+
+```
+09:19:14  starting on /home/fabien/wk/lk-mind through GitHub Copilot CLI
+09:19:15  digest 1/5: 6 document(s), 187432 chars — docs/superpowers/plans/…
+09:20:57    ↳ digest 1/5 answered in 1m 42s — 4821 chars
+09:20:58  digest 2/5: 5 document(s), 192135 chars — docs/superpowers/plans/…
+```
+
+That is how you tell a slow run from a stuck one: the row also shows how long it
+has been running, so a last line two minutes old with a call in flight is
+normal, and a last line ten minutes old is the call about to hit its timeout.
+
+The board needs to know **where each repository is checked out**, which it only
+knows when started with a config (`--config`, or `AI_SYNC_CONFIG`). Without one
+both routes answer `503` and the panel says so rather than guessing a directory
+to write into. The checkout is resolved the same way hook reconciliation
+resolves it: `path` from the config when it pins one, otherwise
+`<workspace>/<name>`.
 
 ## Language
 

@@ -51,8 +51,15 @@
       "test": {
         "dependsOn": [
           "test-server",
-          "test-reader"
+          "test-reader",
+          "test-retro-doc"
         ]
+      },
+      "test-retro-doc": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test apps/board/retroDocJobs.test.js"
+        }
       }
     }
   }

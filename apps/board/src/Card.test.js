@@ -81,3 +81,9 @@ test('forwards send-message from a session row up to the parent', async () => {
   await w.findComponent(SessionRow).vm.$emit('send-message', { repo: 'oc-be', sessionId: 's1', text: 'hi' });
   expect(w.emitted('send-message')[0]).toEqual([{ repo: 'oc-be', sessionId: 's1', text: 'hi' }]);
 });
+
+test('clicking the repo name opens the repo detail, with no session selected', async () => {
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo' } });
+  await w.get('[data-test=open-repo]').trigger('click');
+  expect(w.emitted('open')[0]).toEqual([{ name: 'oc-be', sessionId: null }]);
+});

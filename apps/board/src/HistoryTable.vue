@@ -53,16 +53,16 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-4">
+  <div class="bg-surface border border-line rounded-card shadow-panel p-4">
     <input
       data-test="history-repo-filter"
       v-model="repoFilter"
       :placeholder="t('filter.searchRepo')"
-      class="border border-slate-200 rounded-lg shadow-xs px-3 py-1.5 text-sm bg-white mb-3 focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+      class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface mb-3 focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent"
     />
     <table class="w-full text-sm text-left">
       <thead>
-        <tr class="text-slate-500 bg-slate-50 uppercase tracking-wide text-xs border-b border-slate-200">
+        <tr class="text-ink-muted bg-surface-muted uppercase tracking-wide text-xs border-b border-line">
           <th class="py-2 px-3 cursor-pointer" data-test="sort-repo" @click="sortBy('repo')">{{ t('table.repo') }}</th>
           <th class="py-2 px-3 cursor-pointer" data-test="sort-title" @click="sortBy('title')">{{ t('table.title') }}</th>
           <th class="py-2 px-3">{{ t('table.started') }}</th>
@@ -76,7 +76,7 @@ const rows = computed(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="e in rows" :key="`${e.repo}-${e.sessionId}`" data-test="history-row" class="border-b border-slate-100 odd:bg-slate-50/60 hover:bg-slate-50">
+        <tr v-for="e in rows" :key="`${e.repo}-${e.sessionId}`" data-test="history-row" class="border-b border-line-soft odd:bg-surface-muted hover:bg-surface-hover">
           <td class="py-1.5 px-3">{{ e.repo }}</td>
           <td class="py-1.5 px-3">{{ e.title ?? t('session.untitled') }}</td>
           <td class="py-1.5 px-3">{{ e.startedAt }}</td>
@@ -87,11 +87,11 @@ const rows = computed(() => {
           <td class="py-1.5 px-3 text-right">{{ e.usage?.cacheCreationInputTokens ?? 0 }}</td>
           <td class="py-1.5 px-3 text-right">{{ e.usage?.cacheReadInputTokens ?? 0 }}</td>
           <td class="py-1.5 px-3 text-right">
-            <span class="inline-block bg-slate-100 rounded-sm px-1.5 py-0.5 font-semibold">{{ formatTokens(totalOf(e)) }}</span>
+            <span class="inline-block bg-surface-muted rounded-badge px-1.5 py-0.5 font-semibold">{{ formatTokens(totalOf(e)) }}</span>
           </td>
         </tr>
       </tbody>
     </table>
-    <p v-if="rows.length === 0" class="text-xs text-slate-400 mt-2">{{ t('history.empty') }}</p>
+    <p v-if="rows.length === 0" class="text-xs text-ink-faint mt-2">{{ t('history.empty') }}</p>
   </div>
 </template>

@@ -164,3 +164,10 @@ test('a repo with no running session still gets its retro-documentation panel', 
   expect(w.find('[data-test=detail-message-form]').exists()).toBe(false);
   expect(w.find('[data-test=retro-doc-run]').exists()).toBe(true);
 });
+
+test('the detail panel paints from theme tokens, not literal Tailwind colors', () => {
+  const w = mount(RepoDetail, {
+    props: { name: 'oc-be', sessionId: 's1', session: { title: 't', events: [] }, meta: null, ci: null, now: Date.now() },
+  });
+  expect(w.html()).not.toMatch(/bg-white|bg-slate-|text-slate-|bg-blue-|text-blue-/);
+});

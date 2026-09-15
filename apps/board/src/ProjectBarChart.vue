@@ -54,7 +54,7 @@ onUnmounted(() => { chart?.destroy(); chart = null; });
 <template>
   <div class="relative h-64">
     <canvas ref="canvas" data-test="project-bar-canvas"></canvas>
-    <p v-if="totals.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+    <p v-if="totals.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-ink-faint">
       {{ t('history.empty') }}
     </p>
   </div>

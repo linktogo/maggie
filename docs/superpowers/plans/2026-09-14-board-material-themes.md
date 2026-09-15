@@ -2395,13 +2395,25 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   const { wrapper } = await mountApp(routedFetch());
   // Scoped to the shell's own elements on purpose: the cards inside it are
   // still on literal classes until Task 15.
-  expect(wrapper.get('main').classes()).not.toContain('bg-slate-100');
+  const main = wrapper.get('main').classes();
+  expect(main).not.toContain('bg-slate-100');
+
+  const container = wrapper.get('[data-test=view-board]').element.parentElement;
+  expect(container.className).toContain('bg-surface-muted');
+
   const tabs = wrapper.findAll('[data-test^=view-]');
   expect(tabs).toHaveLength(2);
   for (const tab of tabs) {
-    expect(tab.classes().join(' ')).not.toMatch(/slate-|bg-white/);
+    const classes = tab.classes().join(' ');
+    expect(classes).not.toMatch(/slate-|bg-white/);
     expect(tab.classes()).toContain('nav-tab');
   }
+  // The active tab (board, the default route) actually carries the
+  // "selected" token trio — not just the absence of the old literals.
+  const active = wrapper.get('[data-test=view-board]');
+  expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
+  const inactive = wrapper.get('[data-test=view-history]');
+  expect(inactive.classes()).toContain('text-ink-muted');
 });
 ```
 
@@ -2417,7 +2429,7 @@ Apply the mapping table. Specifically:
 - `<main class="min-h-screen bg-slate-100 p-6">` becomes `<main class="min-h-screen p-6">` — the ground now comes from `html`.
 - The title: `text-xl font-bold text-slate-900` becomes `text-xl font-bold text-ink-strong`.
 - The view segmented control: `bg-slate-100 rounded-lg` becomes `bg-surface-muted rounded-control`; the active link's `bg-white shadow-xs text-slate-900` becomes `bg-surface shadow-panel text-ink-strong`; the inactive `text-slate-500 hover:text-slate-700` becomes `text-ink-muted hover:text-ink-soft`. Add the `nav-tab` class to both links — Task 17 fills it.
-- The two notification buttons: `border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white` becomes `border border-line rounded-control shadow-panel hover:shadow-card px-3 py-1.5 text-sm bg-surface`; the sound button's `text-slate-700` / `text-slate-400` become `text-ink-soft` / `text-ink-faint`.
+- The two notification buttons: `border border-slate-200 rounded-lg shadow-xs hover:shadow-sm px-3 py-1.5 text-sm bg-white` becomes `border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface`. The `hover:bg-surface-hover` is load-bearing, not decorative: Expressive sets both `--shadow-card` and `--shadow-panel` to `none`, so `hover:shadow-card` alone is a no-op in that theme — the buttons need a second, independent hover signal that isn't a shadow. The sound button's `text-slate-700` / `text-slate-400` become `text-ink-soft` / `text-ink-faint`.
 - Their emoji move to `Icon`: `🔔 {{ t('notifications.enable') }}` becomes `<Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}`, and the sound button's `{{ soundOn ? '🔊' : '🔇' }}` becomes `<Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" />`.
 - The three banners: `text-amber-700` becomes `text-question-on-soft`, and their `⚠` becomes `<Icon name="warning" emoji="⚠" />`.
 - `text-slate-500` on the blocked-notifications line becomes `text-ink-muted`.

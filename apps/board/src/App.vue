@@ -77,11 +77,11 @@ const routeProps = computed(() => {
         <LocaleSwitcher />
         <button
           v-if="permission !== 'granted'"
-          class="border border-line rounded-control shadow-panel hover:shadow-card px-3 py-1.5 text-sm bg-surface"
+          class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
           @click="requestPermission"
         ><Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}</button>
         <button
-          class="border border-line rounded-control shadow-panel hover:shadow-card px-3 py-1.5 text-sm bg-surface"
+          class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
           :class="soundOn ? 'text-ink-soft' : 'text-ink-faint'"
           @click="toggleSound"
         ><Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" /> {{ t('notifications.sound') }}</button>

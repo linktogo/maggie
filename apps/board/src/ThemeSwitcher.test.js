@@ -27,7 +27,7 @@ test('translates the theme names', () => {
   setLocale('fr', { storage: window.localStorage, doc: null });
   const fr = mount(ThemeSwitcher);
   expect(fr.text()).toContain('Material classique');
-  expect(fr.text()).toContain('Historique (figé)');
+  expect(fr.text()).toContain('Ancien (figé)');
 });
 
 test('picking a theme stamps the document and persists the choice', async () => {

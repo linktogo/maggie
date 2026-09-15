@@ -9,6 +9,11 @@ afterEach(() => {
   mode.value = DEFAULT_MODE;
   locale.value = DEFAULT_LOCALE;
   window.localStorage.clear();
+  // setTheme() stamps the real document — resetting the refs above doesn't
+  // undo that, so a picked theme would otherwise leak into whatever mounts
+  // next, the way LocaleSwitcher.test.js resets document.documentElement.lang.
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-mode');
 });
 
 test('lists the four themes with the active one selected', () => {

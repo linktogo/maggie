@@ -17,7 +17,7 @@ const locked = computed(() => isLightOnly(theme.value));
     data-test="mode"
     :value="mode"
     :disabled="locked"
-    :aria-label="t('nav.mode')"
+    :aria-label="locked ? t('mode.legacyLocked') : t('nav.mode')"
     :title="locked ? t('mode.legacyLocked') : t('nav.mode')"
     class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface text-ink-muted focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
     @change="setMode($event.target.value)"

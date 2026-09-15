@@ -25,6 +25,14 @@ test('lists the three modes with the active one selected', () => {
   expect(select.element.value).toBe('system');
 });
 
+test('is enabled with a plain label on a themeable theme', () => {
+  const w = mount(ModeSwitcher);
+  const select = w.get('[data-test=mode]');
+  expect(select.attributes('disabled')).toBeUndefined();
+  expect(select.attributes('title')).toBe('Appearance');
+  expect(select.attributes('aria-label')).toBe('Appearance');
+});
+
 test('picking a mode stamps the document and persists the choice', async () => {
   const w = mount(ModeSwitcher);
   await w.get('[data-test=mode]').setValue('dark');
@@ -39,6 +47,7 @@ test('is disabled on a light-only theme and explains why', async () => {
   const select = w.get('[data-test=mode]');
   expect(select.attributes('disabled')).toBeDefined();
   expect(select.attributes('title')).toBe('This theme is light only.');
+  expect(select.attributes('aria-label')).toBe('This theme is light only.');
 });
 
 test('leaves the stored preference alone while disabled', async () => {

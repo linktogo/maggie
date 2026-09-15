@@ -2758,7 +2758,7 @@ A canvas cannot read CSS variables, so this is the one place where theming needs
 
 The fallbacks matter: in jsdom `getComputedStyle` returns empty strings for custom properties, so without them every test would draw transparent bars. They are the legacy series colors — the ones the charts use today.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/board/src/chartColors.test.js`:
 
@@ -2799,12 +2799,12 @@ test('chart text follows the muted ink token', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/chartColors.test.js --root apps/board`
 Expected: FAIL — `Failed to resolve import "./chartColors.js"`.
 
-- [ ] **Step 3: Write the helper**
+- [x] **Step 3: Write the helper**
 
 Create `apps/board/src/chartColors.js`:
 
@@ -2846,12 +2846,12 @@ export function chartInk(options = {}) {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/chartColors.test.js --root apps/board`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Use it in `TimeSeriesChart.vue`**
+- [x] **Step 5: Use it in `TimeSeriesChart.vue`**
 
 Replace the three color constants with token reads, and let the render pick them up. The series keep their meaning — input, output, cache write, cache read map to series 1 to 4:
 
@@ -2927,7 +2927,7 @@ watch([() => props.buckets, () => props.mode, locale, theme, mode], render);
 
 Delete the now-unused `MODEL_COLORS`, `UNKNOWN_COLOR` and the `datasets` computed.
 
-- [ ] **Step 6: Use it in `ProjectBarChart.vue`**
+- [x] **Step 6: Use it in `ProjectBarChart.vue`**
 
 Same shape, one dataset:
 
@@ -2973,7 +2973,7 @@ function render() {
 watch([() => props.totals, () => props.mode, locale, theme, mode], render);
 ```
 
-- [ ] **Step 7: Assert the charts follow the theme**
+- [x] **Step 7: Assert the charts follow the theme**
 
 Append to `apps/board/src/TimeSeriesChart.test.js` (it already mocks `chart.js`; reuse that mock's captured config the way the file's existing tests do):
 
@@ -2990,12 +2990,12 @@ test('re-renders when the theme changes', async () => {
 
 `updateCalls()` is whatever counter the file's `chart.js` mock already exposes; if it exposes none, add one to the mock's `update()` in the same style as the existing assertions. Import `setTheme` from `./theme.js` and `nextTick` from `vue`, and reset the theme in `afterEach`.
 
-- [ ] **Step 8: Run the tests to verify they pass**
+- [x] **Step 8: Run the tests to verify they pass**
 
 Run: `npm run test:board`
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/board/src/chartColors.js apps/board/src/chartColors.test.js apps/board/src/TimeSeriesChart.vue apps/board/src/ProjectBarChart.vue apps/board/src/TimeSeriesChart.test.js

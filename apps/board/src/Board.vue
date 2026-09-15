@@ -117,7 +117,7 @@ const selectedRetroDoc = computed(() => (selected.value && retroDocJobs.value ? 
 
     <SummaryHeader :repos="repos" />
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
       <Column
         v-for="c in grouped" :key="c.status"
         :title="c.title" :status="c.status" :entries="c.entries" :now="now" :ci="ci"

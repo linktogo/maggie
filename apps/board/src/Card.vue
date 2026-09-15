@@ -28,14 +28,14 @@ function open(sessionId) {
 
 <template>
   <div
-    :class="['rounded-xl bg-white shadow-md p-3 border-l-4', style.border, isQuestion ? style.ring : '']"
+    :class="['rounded-card bg-surface shadow-card p-card border-l-4', style.border, isQuestion ? style.ring : '']"
   >
     <div class="flex items-start justify-between gap-2">
       <button
         type="button"
         data-test="open-repo"
         :title="t('card.openRepo', { repo: name })"
-        class="font-medium text-slate-800 min-w-0 truncate text-left hover:text-blue-700 hover:underline"
+        class="font-medium text-ink card-title min-w-0 truncate text-left hover:text-accent hover:underline"
         @click="emit('open', { name, sessionId: null })"
       >{{ name }}</button>
       <div class="flex items-center gap-1 shrink-0">
@@ -45,7 +45,7 @@ function open(sessionId) {
           role="img"
           :title="`${b.login} — ${b.state}`"
           :aria-label="`${b.login} — ${b.state}`"
-          :class="['text-[10px] leading-none font-semibold border rounded-sm px-1 py-0.5', pillClass(b.state)]"
+          :class="['text-[10px] leading-none font-semibold border rounded-badge px-1 py-0.5', pillClass(b.state)]"
         >{{ b.initials }}</span>
         <span
           v-if="badges.overflow.length"
@@ -53,11 +53,11 @@ function open(sessionId) {
           role="img"
           :title="overflowTitle"
           :aria-label="overflowTitle"
-          class="text-[10px] leading-none font-semibold border border-slate-300 bg-slate-100 text-slate-500 rounded-sm px-1 py-0.5"
+          class="text-[10px] leading-none font-semibold border border-line bg-surface-muted text-ink-muted rounded-badge px-1 py-0.5"
         >+{{ badges.overflow.length }}</span>
       </div>
     </div>
-    <p v-if="sessions.length === 0" class="mt-1 text-xs text-slate-400">{{ t('card.noActiveSession') }}</p>
+    <p v-if="sessions.length === 0" class="mt-1 text-xs text-ink-faint">{{ t('card.noActiveSession') }}</p>
     <div v-else class="mt-2 flex flex-col gap-1.5">
       <SessionRow v-for="s in sessions" :key="s.sessionId" :session="s" :repo-name="name" :now="now" @open="open" @send-message="$emit('send-message', $event)" />
     </div>

@@ -87,3 +87,11 @@ test('clicking the repo name opens the repo detail, with no session selected', a
   await w.get('[data-test=open-repo]').trigger('click');
   expect(w.emitted('open')[0]).toEqual([{ name: 'oc-be', sessionId: null }]);
 });
+
+test('a card paints from theme tokens, not literal Tailwind colors', () => {
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'inprogress', now } });
+  expect(w.html()).not.toMatch(/bg-white|bg-slate-|text-slate-|bg-blue-|text-blue-|violet-/);
+  expect(w.classes()).toContain('bg-surface');
+  expect(w.classes()).toContain('rounded-card');
+  expect(w.classes()).toContain('shadow-card');
+});

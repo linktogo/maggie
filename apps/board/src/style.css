@@ -1,4 +1,14 @@
 /*
+ * Roboto ships with the board rather than loading from a font CDN: the board
+ * has to work offline, and a stylesheet link would leak every page view to a
+ * third party. Only the weights the themes use are imported.
+ */
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+@import '@fontsource/roboto/900.css';
+
+/*
  * Tailwind v4 is configured from CSS: `source(none)` turns off automatic
  * content detection so the scanned set stays exactly what tailwind.config.js
  * used to declare, and the `@source` lines below replace its `content` array.

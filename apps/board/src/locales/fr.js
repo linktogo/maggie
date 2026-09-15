@@ -9,7 +9,7 @@ export default {
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material classique',
-  'theme.legacy': 'Ancien (figé)',
+  'theme.legacy': 'Historique (figé)',
 
   'mode.light': 'Clair',
   'mode.dark': 'Sombre',

@@ -500,7 +500,7 @@ git commit -m "feat(board): translate the theme and mode labels"
 - Create: `apps/board/src/themes/contract.css`
 - Modify: `apps/board/src/style.css`
 
-The contract is **72 variables**. Sixty-eight sit in an `@theme` block, which is what makes Tailwind emit the semantic utilities (`--color-surface` yields `bg-surface`/`text-surface`/`border-surface`, `--radius-card` yields `rounded-card`, `--spacing-card` yields `p-card`/`m-card`, `--shadow-card` yields `shadow-card`, `--font-ui` yields `font-ui`). The remaining four are plain custom properties consumed by the component layer in Task 17 — `text-transform`, `letter-spacing`, `font-weight` and a gradient have no Tailwind namespace.
+The contract is **73 variables**. Sixty-eight sit in an `@theme` block, which is what makes Tailwind emit the semantic utilities (`--color-surface` yields `bg-surface`/`text-surface`/`border-surface`, `--radius-card` yields `rounded-card`, `--spacing-card` yields `p-card`/`m-card`, `--shadow-card` yields `shadow-card`, `--font-ui` yields `font-ui`). The remaining five are plain custom properties consumed by the component layer in Task 17 — `text-transform`, `letter-spacing`, two `font-weight`s (the column heading's and, separately, the card/row title's — they carry different weights today and one token can't hold both) and a gradient have no Tailwind namespace.
 
 The values in `contract.css` are the Material 3 tonal light palette. A token reaches the build only once something references it (see the third Tailwind trap in the preamble), so `contract.css` cannot promise the whole board renders styled before `data-theme` is stamped — but the four tokens the base layer references by `var()` are always emitted, so an unstamped board keeps its ground, its body text colour and its font: the page stays readable rather than unstyled, while the rest of the contract reaches the build as components come to use it.
 
@@ -615,13 +615,17 @@ Create `apps/board/src/themes/contract.css`:
 }
 
 /*
- * Four properties Tailwind has no namespace for. The component layer in
+ * Five properties Tailwind has no namespace for. The component layer in
  * style.css consumes them; themes set them like any other token.
+ * --title-weight is the column heading's weight; --card-title-weight is the
+ * card/row title's — Column.vue and Card.vue carry different weights today
+ * (font-semibold vs font-medium) and one token can't hold both.
  */
 :root {
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #6750a4;               /* a colour or a gradient — whatever background the progress bar paints */
 }
 ```
@@ -697,7 +701,7 @@ git commit -m "feat(board): declare the theme token contract"
 - Create: `apps/board/src/themes/legacy.css`
 - Modify: `apps/board/src/style.css`
 
-The guard is the test that matters most in this plan: a theme that forgets `--color-ink-faint` would otherwise ship invisible text, and nobody reviews 72 values by eye. Writing it before the first theme file means every theme after it is checked on arrival.
+The guard is the test that matters most in this plan: a theme that forgets `--color-ink-faint` would otherwise ship invisible text, and nobody reviews 73 values by eye. Writing it before the first theme file means every theme after it is checked on arrival.
 
 `legacy.css` is a pure transcription of what the board renders today. Do not improve anything in it — a shade that moves is a migration bug.
 
@@ -738,9 +742,9 @@ const CONTRACT = [...contract['@theme'], ...contract[':root']].sort();
 
 const THEMEABLE = ['m3', 'expressive', 'classic'];
 
-test('the contract declares 72 variables', () => {
-  expect(CONTRACT).toHaveLength(72);
-  expect(new Set(CONTRACT).size).toBe(72);
+test('the contract declares 73 variables', () => {
+  expect(CONTRACT).toHaveLength(73);
+  expect(new Set(CONTRACT).size).toBe(73);
 });
 
 test.each(THEMEABLE)('%s defines the whole contract in light', (name) => {
@@ -779,6 +783,16 @@ Create `apps/board/src/themes/legacy.css`. Every value is what the board renders
  *
  * Acceptance: the screenshots in docs/images/board/ must still be accurate
  * with this theme selected.
+ *
+ * Every Tailwind-derived value below is the sRGB rendering of Tailwind 4's
+ * oklch palette (node_modules/tailwindcss/theme.css), not the old v3 hex
+ * table — v3's hex is measurably off in the mid/dark shades (v4 redefined
+ * its palette in oklch, and the sRGB gamut clips some of those differently
+ * than v3's hand-picked hex did). That sRGB rendering is what the committed
+ * screenshots capture, so this theme matches them; a wide-gamut display may
+ * paint today's live board a hair outside sRGB while this theme stays inside
+ * it, an accepted, imperceptible difference chosen so the theme files stay
+ * flat hex that the guard and the contrast test can parse.
  */
 html[data-theme='legacy'] {
   /* Surfaces */
@@ -787,64 +801,64 @@ html[data-theme='legacy'] {
   --color-panel: rgb(255 255 255 / 0.5);    /* column body */
   --color-surface-muted: #f8fafc;           /* slate-50, session rows */
   --color-surface-hover: #f1f5f9;           /* slate-100, table hover */
-  --color-overlay: rgb(15 23 42 / 0.3);     /* slate-900/30, detail overlay */
+  --color-overlay: rgb(15 23 43 / 0.3);     /* slate-900/30, detail overlay */
 
   /* Hairlines */
   --color-line: #e2e8f0;                    /* slate-200 */
   --color-line-soft: #f1f5f9;               /* slate-100 */
 
   /* Text */
-  --color-ink-strong: #0f172a;              /* slate-900, headings */
-  --color-ink: #1e293b;                     /* slate-800, card and row titles */
-  --color-ink-soft: #475569;                /* slate-600, prompts */
-  --color-ink-muted: #64748b;               /* slate-500, meta lines */
-  --color-ink-faint: #94a3b8;               /* slate-400, placeholders */
+  --color-ink-strong: #0f172b;              /* slate-900, headings */
+  --color-ink: #1d293d;                     /* slate-800, card and row titles */
+  --color-ink-soft: #45556c;                /* slate-600, prompts */
+  --color-ink-muted: #62748e;               /* slate-500, meta lines */
+  --color-ink-faint: #90a1b9;               /* slate-400, placeholders */
 
   /* Accent */
-  --color-accent: #2563eb;                  /* blue-600, send button */
-  --color-accent-strong: #1d4ed8;           /* blue-700, its hover */
+  --color-accent: #155dfc;                  /* blue-600, send button */
+  --color-accent-strong: #1447e6;           /* blue-700, its hover */
   --color-on-accent: #ffffff;
   --color-accent-soft: #eff6ff;             /* blue-50 */
-  --color-on-accent-soft: #1d4ed8;          /* blue-700 */
+  --color-on-accent-soft: #1447e6;          /* blue-700 */
 
   /* Status */
-  --color-todo-solid: #475569;              /* slate-600 */
+  --color-todo-solid: #45556c;              /* slate-600 */
   --color-todo-soft: #f1f5f9;               /* slate-100 */
-  --color-todo-on-soft: #475569;            /* slate-600 */
-  --color-inprogress-solid: #2563eb;        /* blue-600 */
+  --color-todo-on-soft: #45556c;            /* slate-600 */
+  --color-inprogress-solid: #155dfc;        /* blue-600 */
   --color-inprogress-soft: #eff6ff;         /* blue-50 */
-  --color-inprogress-on-soft: #1d4ed8;      /* blue-700 */
-  --color-question-solid: #d97706;          /* amber-600 */
+  --color-inprogress-on-soft: #1447e6;      /* blue-700 */
+  --color-question-solid: #e17100;          /* amber-600 */
   --color-question-soft: #fffbeb;           /* amber-50 */
-  --color-question-on-soft: #b45309;        /* amber-700 */
-  --color-done-solid: #059669;              /* emerald-600 */
+  --color-question-on-soft: #bb4d00;        /* amber-700 */
+  --color-done-solid: #009966;              /* emerald-600 */
   --color-done-soft: #ecfdf5;               /* emerald-50 */
-  --color-done-on-soft: #047857;            /* emerald-700 */
+  --color-done-on-soft: #007a55;            /* emerald-700 */
   --color-on-status: #ffffff;
-  --color-question-ring: #fcd34d;           /* amber-300, the question alarm */
-  --color-drop-ring: #34d399;               /* emerald-400, drag-to-done */
+  --color-question-ring: #ffd230;           /* amber-300, the question alarm */
+  --color-drop-ring: #00d492;               /* emerald-400, drag-to-done */
 
   /* CI badges */
-  --color-ci-failure-soft: #fee2e2;         /* red-100 */
-  --color-ci-failure-on-soft: #b91c1c;      /* red-700 */
-  --color-ci-failure-line: #fca5a5;         /* red-300 */
+  --color-ci-failure-soft: #ffe2e2;         /* red-100 */
+  --color-ci-failure-on-soft: #c10007;      /* red-700 */
+  --color-ci-failure-line: #ffa2a2;         /* red-300 */
   --color-ci-running-soft: #dbeafe;         /* blue-100 */
-  --color-ci-running-on-soft: #1d4ed8;      /* blue-700 */
-  --color-ci-running-line: #93c5fd;         /* blue-300 */
+  --color-ci-running-on-soft: #1447e6;      /* blue-700 */
+  --color-ci-running-line: #8ec5ff;         /* blue-300 */
   --color-ci-neutral-soft: #f1f5f9;         /* slate-100 */
-  --color-ci-neutral-on-soft: #475569;      /* slate-600 */
-  --color-ci-neutral-line: #cbd5e1;         /* slate-300 */
-  --color-ci-success-soft: #d1fae5;         /* emerald-100 */
-  --color-ci-success-on-soft: #047857;      /* emerald-700 */
-  --color-ci-success-line: #6ee7b7;         /* emerald-300 */
+  --color-ci-neutral-on-soft: #45556c;      /* slate-600 */
+  --color-ci-neutral-line: #cad5e2;         /* slate-300 */
+  --color-ci-success-soft: #d0fae5;         /* emerald-100 */
+  --color-ci-success-on-soft: #007a55;      /* emerald-700 */
+  --color-ci-success-line: #5ee9b5;         /* emerald-300 */
 
   /* Agent and worktree badges */
-  --color-agent-claude-soft: #fef3c7;       /* amber-100 */
-  --color-agent-claude-on-soft: #b45309;    /* amber-700 */
-  --color-agent-copilot-soft: #e0f2fe;      /* sky-100 */
-  --color-agent-copilot-on-soft: #0369a1;   /* sky-700 */
+  --color-agent-claude-soft: #fef3c6;       /* amber-100 */
+  --color-agent-claude-on-soft: #bb4d00;    /* amber-700 */
+  --color-agent-copilot-soft: #dff2fe;      /* sky-100 */
+  --color-agent-copilot-on-soft: #0069a8;   /* sky-700 */
   --color-worktree-soft: #ede9fe;           /* violet-100 */
-  --color-worktree-on-soft: #6d28d9;        /* violet-700 */
+  --color-worktree-on-soft: #7008e7;        /* violet-700 */
 
   /* Chart series — today's hardcoded Chart.js colors */
   --color-series-1: #2563eb;
@@ -871,7 +885,8 @@ html[data-theme='legacy'] {
   --nav-transform: none;
   --nav-tracking: 0;
   --title-weight: 600;
-  --progress-fill: linear-gradient(90deg, #34d399, #059669);
+  --card-title-weight: 500;                /* font-medium */
+  --progress-fill: linear-gradient(90deg, #00d492, #009966);
 }
 ```
 
@@ -886,7 +901,7 @@ In `apps/board/src/style.css`, below the contract import:
 - [ ] **Step 5: Run the test — the legacy case passes, the other three still fail**
 
 Run: `npx vitest run src/themes/contract.test.js --root apps/board`
-Expected: the `legacy` test and the `72 variables` test PASS; the six `m3`/`expressive`/`classic` cases FAIL with `ENOENT`. That is the state Task 5 and Task 6 close.
+Expected: the `legacy` test and the `73 variables` test PASS; the six `m3`/`expressive`/`classic` cases FAIL with `ENOENT`. That is the state Task 5 and Task 6 close.
 
 - [ ] **Step 6: Commit**
 
@@ -1001,6 +1016,7 @@ html[data-theme='m3'] {
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #6750a4;
 }
 
@@ -1090,6 +1106,7 @@ html[data-theme='m3'][data-mode='dark'] {
   --nav-transform: none;
   --nav-tracking: 0.00625em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #d0bcff;
 }
 ```
@@ -1123,7 +1140,7 @@ git commit -m "feat(board): add the Material 3 tonal theme"
 - Create: `apps/board/src/themes/classic.css`
 - Modify: `apps/board/src/style.css`
 
-Both files carry the same 72 variables in the same order as `m3.css` — copy that file and replace the values. The guard test is what tells you a variable went missing.
+Both files carry the same 73 variables in the same order as `m3.css` — copy that file and replace the values. The guard test is what tells you a variable went missing.
 
 **Expressive** leans on color rather than elevation: shadows are `none`, radii are large, `--title-weight` is 700. **Classic** is the Material everyone recognizes: indigo 500 with a pink accent, 4px radii, real elevation shadows, uppercase nav with wide tracking.
 
@@ -1217,6 +1234,7 @@ html[data-theme='expressive'] {
   --nav-transform: none;
   --nav-tracking: 0;
   --title-weight: 700;
+  --card-title-weight: 700;
   --progress-fill: #5a47e0;
 }
 
@@ -1301,6 +1319,7 @@ html[data-theme='expressive'][data-mode='dark'] {
   --nav-transform: none;
   --nav-tracking: 0;
   --title-weight: 700;
+  --card-title-weight: 700;
   --progress-fill: #bfb2ff;
 }
 ```
@@ -1395,6 +1414,7 @@ html[data-theme='classic'] {
   --nav-transform: uppercase;
   --nav-tracking: 0.09em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #3f51b5;
 }
 
@@ -1479,6 +1499,7 @@ html[data-theme='classic'][data-mode='dark'] {
   --nav-transform: uppercase;
   --nav-tracking: 0.09em;
   --title-weight: 500;
+  --card-title-weight: 500;
   --progress-fill: #9fa8da;
 }
 ```
@@ -2525,16 +2546,19 @@ In `apps/board/src/style.css`, add to the `@layer components` block created in T
   /*
    * Properties Tailwind has no namespace for. Classic sets --nav-transform to
    * uppercase with wide tracking; Expressive sets --title-weight to 700. Every
-   * theme fills all four, so these classes need no per-theme rules.
+   * theme fills all five, so these classes need no per-theme rules.
    */
   .nav-tab {
     text-transform: var(--nav-transform);
     letter-spacing: var(--nav-tracking);
   }
 
-  .col-title,
-  .card-title {
+  .col-title {
     font-weight: var(--title-weight);
+  }
+
+  .card-title {
+    font-weight: var(--card-title-weight);
   }
 
   .progress-fill {

@@ -30,9 +30,9 @@ const CONTRACT = [...contract['@theme'], ...contract[':root']].sort();
 
 const THEMEABLE = ['m3', 'expressive', 'classic'];
 
-test('the contract declares 72 variables', () => {
-  expect(CONTRACT).toHaveLength(72);
-  expect(new Set(CONTRACT).size).toBe(72);
+test('the contract declares 73 variables', () => {
+  expect(CONTRACT).toHaveLength(73);
+  expect(new Set(CONTRACT).size).toBe(73);
 });
 
 test.each(THEMEABLE)('%s defines the whole contract in light', (name) => {

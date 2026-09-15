@@ -35,7 +35,7 @@ function open(sessionId) {
         type="button"
         data-test="open-repo"
         :title="t('card.openRepo', { repo: name })"
-        class="font-medium text-ink card-title min-w-0 truncate text-left hover:text-accent hover:underline"
+        class="text-ink card-title min-w-0 truncate text-left hover:text-accent hover:underline"
         @click="emit('open', { name, sessionId: null })"
       >{{ name }}</button>
       <div class="flex items-center gap-1 shrink-0">

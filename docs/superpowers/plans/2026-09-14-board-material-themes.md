@@ -2514,7 +2514,7 @@ Expected: FAIL — the card still carries `bg-white rounded-xl shadow-md`.
 
 ```
 rounded-xl bg-white shadow-md p-3 border-l-4  → rounded-card bg-surface shadow-card p-card border-l-4
-font-medium text-slate-800                    → font-medium text-ink  (plus the `card-title` class, Task 17)
+font-medium text-slate-800                    → text-ink card-title  (drop `font-medium` — Task 17's `.card-title` rule owns the weight from here on; Tailwind's `utilities` layer always outranks the `@layer components` rule Task 17 adds, whatever the source order, so leaving `font-medium` in place would make the new rule permanently inert)
 text-xs text-slate-400  (empty state)         → text-xs text-ink-faint
 ```
 
@@ -2527,7 +2527,7 @@ bg-white/50 rounded-xl p-2   → bg-panel rounded-panel p-2
 flex flex-col gap-2          → flex flex-col gap-gutter
 ```
 
-The pill heading already comes from `STATUS_STYLES[...].pill`; add the `col-title` class to the `<h2>` for Task 17.
+The pill heading already comes from `STATUS_STYLES[...].pill`; add the `col-title` class to the `<h2>` and drop its existing `font-semibold` — for the same cascade-layer reason as `Card.vue`'s `card-title` above, `font-semibold` would permanently outrank the `@layer components` rule Task 17 adds.
 
 - [ ] **Step 5: Migrate `SessionRow.vue`**
 
@@ -2724,6 +2724,8 @@ grep -rn "nav-tab\|col-title\|card-title\|progress-fill" apps/board/src --includ
 ```
 
 Expected: `nav-tab` in `App.vue` (two view links) and `HistoryPage.vue` (`tabClass`); `col-title` in `Column.vue`; `card-title` in `Card.vue`; `progress-fill` in `SummaryHeader.vue`. A hook with no consumer means a step in Tasks 14 to 16 was skipped — go back rather than deleting the rule.
+
+The presence of the class is not the same as the rule taking effect. Tailwind 4's cascade layers are ordered `theme, base, components, utilities` regardless of where a class sits in the source list, so a `font-semibold`/`font-medium` utility on the same element as `col-title`/`card-title` always wins over the `@layer components` rule above, silently — Tasks 14 to 16's own instructions have already been corrected to drop those two utilities, but if this step surfaces one anyway (or a future component reintroduces one), remove it rather than fight the layer order. Confirm the fix actually took by reading computed style, not by reading the class list: `getComputedStyle(document.querySelector('.card-title')).fontWeight` must differ between a Material 3 page (`500`) and an Expressive one (`700`).
 
 - [ ] **Step 3: Verify by eye**
 

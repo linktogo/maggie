@@ -7,7 +7,7 @@
     "maggie": "./bin/sync.js"
   },
   "dependencies": {
-    "@linktogo/maggie-config": "^1.1.0",
-    "@linktogo/maggie-skill-sync": "^1.1.0"
+    "@linktogo/maggie-config": "^1.2.0",
+    "@linktogo/maggie-skill-sync": "^1.2.0"
   }
 }

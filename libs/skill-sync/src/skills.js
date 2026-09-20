@@ -23,6 +23,7 @@ export async function resolveSkills(skillsDir, technologies, { warn = console.wa
       if (!entry.isDirectory()) continue;
       const skillFile = path.join(technoDir, entry.name, 'SKILL.md');
       const skill = parseSkill(await readFile(skillFile, 'utf8'), skillFile);
+      skill.source = `skills/${techno}/${entry.name}/SKILL.md`;
       const existing = byName.get(skill.name);
       if (existing && existing.techno !== techno) {
         const message = `Skill "${skill.name}" is defined by both "${existing.techno}" and "${techno}"; using ${skillFile} (last technology wins)`;

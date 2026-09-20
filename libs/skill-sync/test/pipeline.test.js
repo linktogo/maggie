@@ -29,7 +29,7 @@ const config = {
   repos: [{ name: 'a', url: 'u', technologies: ['nestjs'], targets: ['claude'] }],
 };
 
-const skill = { name: 's', description: 'D', body: '# B' };
+const skill = { name: 's', description: 'D', body: '# B', source: 'skills/nestjs/s/SKILL.md' };
 const resolveSkills = async () => [skill];
 
 test('dry-run renders files without cloning', async () => {

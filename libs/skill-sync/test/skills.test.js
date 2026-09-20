@@ -39,3 +39,34 @@ test('resolveSkills throws instead of warning on a missing technology in strict 
     /No skills directory for technology "missing"/,
   );
 });
+
+test('resolveSkills warns on a name collision between two technologies, naming both and which file wins', async () => {
+  const warnings = [];
+  const skills = await resolveSkills(fixtures, ['a', 'b'], {
+    warn: (m) => warnings.push(m),
+  });
+  assert.equal(skills.length, 1);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /Skill "shared-skill" is defined by both "a" and "b"/);
+  assert.match(warnings[0], /using .*b[/\\]shared[/\\]SKILL\.md/);
+  assert.match(warnings[0], /last technology wins/);
+});
+
+test('resolveSkills under strict throws once, listing every collision found, not just the first', async () => {
+  await assert.rejects(
+    () => resolveSkills(fixtures, ['a', 'b', 'c'], { strict: true }),
+    (err) => {
+      assert.match(err.message, /"a" and "b"/);
+      assert.match(err.message, /"b" and "c"/);
+      return true;
+    },
+  );
+});
+
+test('resolveSkills does not warn when the same technology is listed twice', async () => {
+  const warnings = [];
+  await resolveSkills(fixtures, ['nestjs', 'nestjs'], {
+    warn: (m) => warnings.push(m),
+  });
+  assert.deepEqual(warnings, []);
+});

@@ -6,6 +6,7 @@ export default {
     const content = buildDocument(
       { name: skill.name, description: skill.description },
       skill.body,
+      skill.source,
     );
     return { path: `.claude/skills/${skill.name}/SKILL.md`, content };
   },

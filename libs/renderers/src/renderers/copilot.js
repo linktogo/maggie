@@ -11,6 +11,7 @@ export default {
     const content = buildDocument(
       { description: skill.description, applyTo: applyTo(skill.globs) },
       skill.body,
+      skill.source,
     );
     return { path: `.github/instructions/${skill.name}.instructions.md`, content };
   },

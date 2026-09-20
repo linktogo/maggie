@@ -25,10 +25,9 @@ guidance body:
 
 ```markdown
 ---
-name: module-structure
-description: How to lay out a NestJS module and what belongs in it
-globs:
-  - "src/**/*.module.ts"
+name: nestjs-module-structure
+description: Organize NestJS code into cohesive feature modules with clear public surfaces
+globs: ["**/*.module.ts", "**/*.service.ts", "**/*.controller.ts"]
 ---
 
 Keep one module per bounded context…
@@ -36,7 +35,7 @@ Keep one module per bounded context…
 
 | Frontmatter | Required | Meaning |
 |---|---|---|
-| `name` | yes | Skill identifier; becomes the generated file name. |
+| `name` | yes | Skill identifier; becomes the generated file name. Must be unique across the whole library, not just within a technology — by convention `<techno>-<directory>`, since it becomes the output path in every renderer. |
 | `description` | yes | One line describing when the skill applies. |
 | `globs` | no | File patterns the skill is scoped to. Rendered differently per target — see below. |
 

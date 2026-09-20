@@ -70,3 +70,10 @@ test('resolveSkills does not warn when the same technology is listed twice', asy
   });
   assert.deepEqual(warnings, []);
 });
+
+test('resolveSkills attaches the canonical skills/<techno>/<name>/SKILL.md source path', async () => {
+  const skills = await resolveSkills(fixtures, ['nestjs', 'react']);
+  const byName = Object.fromEntries(skills.map((s) => [s.name, s]));
+  assert.equal(byName['nestjs-module-structure'].source, 'skills/nestjs/module-structure/SKILL.md');
+  assert.equal(byName['react-component'].source, 'skills/react/component/SKILL.md');
+});

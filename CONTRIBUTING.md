@@ -82,16 +82,18 @@ by the guidance body:
 
 ```markdown
 ---
-name: query-performance
-description: Diagnose and fix slow Postgres queries.
-globs: ["**/*.sql"]
+name: postgres-query-performance
+description: Diagnose and fix slow PostgreSQL queries with indexes and EXPLAIN
+globs: ["**/*.sql", "**/*.repository.ts"]
 ---
 
 Guidance body in Markdown…
 ```
 
 - `<techno>` is matched against each repo's `technologies` list in the config.
-- `name` and `description` are required; `globs` is optional.
+- `name` and `description` are required; `globs` is optional. `name` must be
+  unique across the whole library, not just within a technology — by
+  convention `<techno>-<directory>`.
 - Keep guidance concrete and reviewable — a skill is read by an agent about to
   edit someone's production code.
 

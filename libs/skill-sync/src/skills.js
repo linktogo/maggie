@@ -4,6 +4,7 @@ import { parseSkill } from './skill.js';
 
 export async function resolveSkills(skillsDir, technologies, { warn = console.warn, strict = false } = {}) {
   const byName = new Map();
+  const collisions = [];
   for (const techno of technologies) {
     const technoDir = path.join(skillsDir, techno);
     let entries;
@@ -22,8 +23,21 @@ export async function resolveSkills(skillsDir, technologies, { warn = console.wa
       if (!entry.isDirectory()) continue;
       const skillFile = path.join(technoDir, entry.name, 'SKILL.md');
       const skill = parseSkill(await readFile(skillFile, 'utf8'), skillFile);
-      byName.set(skill.name, skill);
+      skill.source = `skills/${techno}/${entry.name}/SKILL.md`;
+      const existing = byName.get(skill.name);
+      if (existing && existing.techno !== techno) {
+        const message = `Skill "${skill.name}" is defined by both "${existing.techno}" and "${techno}"; using ${skillFile} (last technology wins)`;
+        if (strict) {
+          collisions.push(message);
+        } else {
+          warn(message);
+        }
+      }
+      byName.set(skill.name, { skill, techno });
     }
   }
-  return [...byName.values()];
+  if (collisions.length > 0) {
+    throw new Error(collisions.join('\n'));
+  }
+  return [...byName.values()].map((entry) => entry.skill);
 }

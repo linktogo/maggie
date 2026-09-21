@@ -1,6 +1,6 @@
 # Skill Manifest Pruning Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** `maggie`'s sync pipeline deletes rendered files a repo's current config no longer produces (a renamed skill, a dropped technology, a dropped target), instead of leaving them behind forever — tracked via a small `.maggie/manifest.json` committed alongside the skill files, with a safety net against wiping a repo's files when a config mistake makes its render come back empty.
 
@@ -20,7 +20,7 @@
 
 This is a brand-new module and test file — no existing content to reconcile against.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `libs/skill-sync/test/manifest.test.js`:
 
@@ -93,13 +93,13 @@ test('stalePaths returns everything when newPaths is empty', () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm it fails**
+- [x] **Step 2: Run and confirm it fails**
 
 Run: `cd libs/skill-sync && node --test test/manifest.test.js`
 
 Expected: fails immediately with a module-not-found error (`Cannot find module '../src/manifest.js'` or similar) — `manifest.js` doesn't exist yet.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `libs/skill-sync/src/manifest.js`:
 
@@ -143,13 +143,13 @@ export function stalePaths(oldPaths, newPaths) {
 }
 ```
 
-- [ ] **Step 4: Run and confirm it passes**
+- [x] **Step 4: Run and confirm it passes**
 
 Run: `cd libs/skill-sync && node --test test/manifest.test.js`
 
 Expected: all 9 tests pass.
 
-- [ ] **Step 5: Run with coverage**
+- [x] **Step 5: Run with coverage**
 
 Run:
 ```bash
@@ -159,7 +159,7 @@ node --test --experimental-test-coverage --test-coverage-include="src/**/*.js" -
 
 Expected: all tests across the whole `skill-sync` package pass (pipeline.test.js, skill.test.js, skills.test.js, manifest.test.js), and `manifest.js` shows 100.00% line/branch/function coverage. `pipeline.js` is untouched by this task, so its coverage is unaffected.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add libs/skill-sync/src/manifest.js libs/skill-sync/test/manifest.test.js
@@ -297,7 +297,7 @@ import { run } from '../src/pipeline.js';
 
 and defines `fakeCloneFactory`, `config`, `skill` (with `source: 'skills/nestjs/s/SKILL.md'`), and `resolveSkills` exactly as left by the prior plan. If either file's current content differs meaningfully from what's shown here, stop and reconcile before proceeding.
 
-- [ ] **Step 1: Write the three new failing tests**
+- [x] **Step 1: Write the three new failing tests**
 
 First, update the import line at the top of `libs/skill-sync/test/pipeline.test.js` — change:
 
@@ -379,7 +379,7 @@ test('skips pruning and leaves the manifest untouched when the new render is emp
 });
 ```
 
-- [ ] **Step 2: Run the suite and confirm the right things fail**
+- [x] **Step 2: Run the suite and confirm the right things fail**
 
 Run: `cd libs/skill-sync && node --test test/pipeline.test.js`
 
@@ -388,7 +388,7 @@ Expected: the 10 pre-existing tests still pass. The 3 new tests FAIL:
 - `'writes a manifest for the first time...'` fails because `readFile(path.join(workDir, 'a', '.maggie/manifest.json'), 'utf8')` rejects with `ENOENT` — no manifest is written yet.
 - `'skips pruning...'` fails for the same reason (no manifest is ever written, so the read at the end rejects) — note this test's *outcome* should end up passing once implemented, but today it fails because nothing writes a manifest at all yet, not because of any different bug.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Replace `libs/skill-sync/src/pipeline.js` with:
 
@@ -519,13 +519,13 @@ function report(results, logger) {
 }
 ```
 
-- [ ] **Step 4: Run and confirm everything passes**
+- [x] **Step 4: Run and confirm everything passes**
 
 Run: `cd libs/skill-sync && node --test test/pipeline.test.js`
 
 Expected: all 13 tests pass (10 pre-existing + 3 new).
 
-- [ ] **Step 5: Run the whole package with coverage**
+- [x] **Step 5: Run the whole package with coverage**
 
 Run:
 ```bash
@@ -535,7 +535,7 @@ node --test --experimental-test-coverage --test-coverage-include="src/**/*.js" -
 
 Expected: all tests pass (manifest.test.js's 9 + pipeline.test.js's 13 + skill.test.js's + skills.test.js's), and 100.00% line/branch/function coverage on every file in `src/`, including `pipeline.js` and `manifest.js`. If `pipeline.js` shows an uncovered branch on the `newPaths.length === 0 && oldManifest.paths.length > 0` condition or the `for (const staleFile of stale)` loop, check that all three new tests ran — each new test exercises a different branch combination and the loop's non-empty case.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add libs/skill-sync/src/pipeline.js libs/skill-sync/test/pipeline.test.js
@@ -572,7 +572,7 @@ place to commit by hand.
 
 If this differs from the file's current content, reconcile before proceeding.
 
-- [ ] **Step 1: Replace the section**
+- [x] **Step 1: Replace the section**
 
 Replace the block above with:
 
@@ -609,13 +609,13 @@ and the manifest untouched and warns loudly instead: an empty render is far
 more likely to be a config mistake than an instruction to wipe a repo.
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `sed -n '1,40p' docs/sync-cli.md`
 
 Expected: the "What a run does" list shows the updated step 4, followed immediately by the new "### Pruning stale files" subsection, followed by whatever section originally came next in the file (the flags table).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/sync-cli.md
@@ -630,7 +630,7 @@ Do not push yet.
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the skill-sync suite fresh, bypassing Nx's cache**
+- [x] **Step 1: Run the skill-sync suite fresh, bypassing Nx's cache**
 
 ```bash
 cd /home/user/maggie
@@ -639,7 +639,7 @@ npx nx run skill-sync:test --skip-nx-cache
 
 Expected: all tests pass, 100.00% line/branch/function coverage on every file in `libs/skill-sync/src/`.
 
-- [ ] **Step 2: Run the full monorepo suite**
+- [x] **Step 2: Run the full monorepo suite**
 
 ```bash
 npm test
@@ -647,7 +647,7 @@ npm test
 
 Expected: all 11 projects pass — nothing outside `skill-sync` should be affected, but this confirms it.
 
-- [ ] **Step 3: Lint**
+- [x] **Step 3: Lint**
 
 ```bash
 npx nx run skill-sync:lint --skip-nx-cache
@@ -655,7 +655,7 @@ npx nx run skill-sync:lint --skip-nx-cache
 
 Expected: clean, no errors.
 
-- [ ] **Step 4: Manual end-to-end sanity check of a pruning run**
+- [x] **Step 4: Manual end-to-end sanity check of a pruning run**
 
 ```bash
 cd /home/user/maggie
@@ -697,7 +697,7 @@ import('node:fs/promises').then(async ({ mkdtemp, mkdir, writeFile, readFile, rm
 
 Expected: log output shows a line like `- demo: pruning .claude/skills/old-thing/SKILL.md`, the printed manifest is `{"version":1,"paths":[".claude/skills/nestjs-module-structure/SKILL.md"]}` (only the current render), and `stale file still present: false`.
 
-- [ ] **Step 5: Push**
+- [x] **Step 5: Push**
 
 ```bash
 git push -u origin claude/project-feature-proposals-nsegpl

@@ -3,6 +3,7 @@ import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { clone as defaultClone } from '@linktogo/maggie-git';
 import { resolveSkills as defaultResolveSkills } from './skills.js';
 import { getRenderer as defaultGetRenderer } from '@linktogo/maggie-renderers';
+import { readManifest as defaultReadManifest, writeManifest as defaultWriteManifest, stalePaths } from './manifest.js';
 
 const BRANCH = 'maggie/update-skills';
 const COMMIT_MESSAGE = 'chore: sync AI agent skills';
@@ -20,6 +21,8 @@ export async function run(config, options = {}) {
     clone = defaultClone,
     resolveSkills = defaultResolveSkills,
     getRenderer = defaultGetRenderer,
+    readManifest = defaultReadManifest,
+    writeManifest = defaultWriteManifest,
     logger = console,
   } = options;
 
@@ -31,7 +34,8 @@ export async function run(config, options = {}) {
   for (const repo of repos) {
     try {
       results.push(await syncRepo(repo, {
-        skillsDir, workDir, pr, dryRun, strict, clone, resolveSkills, getRenderer, logger,
+        skillsDir, workDir, pr, dryRun, strict, clone, resolveSkills, getRenderer,
+        readManifest, writeManifest, logger,
       }));
     } catch (err) {
       logger.error(`✗ ${repo.name}: ${err.message}`);
@@ -44,7 +48,10 @@ export async function run(config, options = {}) {
 }
 
 async function syncRepo(repo, ctx) {
-  const { skillsDir, workDir, pr, dryRun, strict, clone, resolveSkills, getRenderer, logger } = ctx;
+  const {
+    skillsDir, workDir, pr, dryRun, strict, clone, resolveSkills, getRenderer,
+    readManifest, writeManifest, logger,
+  } = ctx;
   const skills = await resolveSkills(skillsDir, repo.technologies, {
     warn: (m) => logger.warn(m),
     strict,
@@ -71,12 +78,28 @@ async function syncRepo(repo, ctx) {
   const dest = path.join(workDir, repo.name);
   await rm(dest, { recursive: true, force: true });
   const gitRepo = await clone(repo.url, dest);
+  const oldManifest = await readManifest(dest, { warn: (m) => logger.warn(m) });
   await gitRepo.checkoutBranch(BRANCH);
 
   for (const file of files) {
     const full = path.join(dest, file.path);
     await mkdir(path.dirname(full), { recursive: true });
     await writeFile(full, file.content);
+  }
+
+  const newPaths = files.map((file) => file.path);
+  if (newPaths.length === 0 && oldManifest.paths.length > 0) {
+    logger.warn(
+      `${repo.name}: new render is empty but ${oldManifest.paths.length} file(s) were previously tracked` +
+      ' — skipping prune and leaving the manifest untouched (check repo.technologies)',
+    );
+  } else {
+    const stale = stalePaths(oldManifest.paths, newPaths);
+    for (const staleFile of stale) {
+      await rm(path.join(dest, staleFile), { force: true });
+      logger.log(`- ${repo.name}: pruning ${staleFile}`);
+    }
+    await writeManifest(dest, newPaths);
   }
 
   if (!(await gitRepo.hasChanges())) {

@@ -43,7 +43,11 @@ jobs:
 
       - name: Bump version
         if: steps.detect.outputs.type != 'none'
-        run: node scripts/bump-version.js ${{ steps.detect.outputs.type }}
+        # Step outputs reach the shell through env, never by expanding `${{ }}`
+        # inside `run:`, so they can only ever be data.
+        env:
+          BUMP_TYPE: ${{ steps.detect.outputs.type }}
+        run: node scripts/bump-version.js "$BUMP_TYPE"
 
       - name: Read new version
         if: steps.detect.outputs.type != 'none'
@@ -72,7 +76,9 @@ jobs:
 
       - name: Create and push release tag
         if: steps.pending.outputs.pending == 'true'
+        env:
+          TAG: ${{ steps.pending.outputs.tag }}
         run: |
-          tag="${{ steps.pending.outputs.tag }}"
+          tag="$TAG"
           git tag "$tag"
           git push origin "$tag"

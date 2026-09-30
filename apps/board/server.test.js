@@ -4,7 +4,11 @@ import { createServer } from 'node:http';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createBoardServer, startFromArgv, resolveServerBoardPath } from './server.js';
+import { request } from 'node:http';
+import {
+  createBoardServer, startFromArgv, resolveServerBoardPath,
+  isLocalHost, isLocalOrigin, resolveStaticFile, LOOPBACK,
+} from './server.js';
 
 function listen(server) {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
@@ -248,8 +252,8 @@ test('resolveServerBoardPath: falls back to ./board.json when no workspace board
 test('startFromArgv falls back to the next port when the chosen one is busy', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
   const blocker = createServer((_req, res) => res.end());
-  // Bind on all interfaces (no host) so it conflicts with startFromArgv's default bind.
-  const busyPort = await new Promise((resolve) => blocker.listen(0, () => resolve(blocker.address().port)));
+  // Bind on the same loopback address startFromArgv uses so the two collide.
+  const busyPort = await new Promise((resolve) => blocker.listen(0, LOOPBACK, () => resolve(blocker.address().port)));
   const logs = [];
   const server = await startFromArgv(
     ['--board', path.join(dir, 'board.json'), '--port', String(busyPort), '--dist', dir],
@@ -257,6 +261,7 @@ test('startFromArgv falls back to the next port when the chosen one is busy', as
   );
   const boundPort = await listening(server);
   assert.equal(boundPort, busyPort + 1);
+  assert.equal(server.address().address, LOOPBACK);
   assert.ok(logs.some((m) => m.includes(`Port ${busyPort} is already in use`)));
   server.close();
   blocker.close();
@@ -601,6 +606,84 @@ test('a board started with a config can run a retro-documentation', async () => 
   const res = await fetch(`http://127.0.0.1:${port}/api/retro-doc`);
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { jobs: [] });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+// Raw request so the Host header can be forged (fetch would not let us).
+function rawRequest(port, { method = 'GET', path: p = '/', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = request({ host: '127.0.0.1', port, method, path: p, headers }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+test('isLocalHost accepts loopback names and refuses everything else', () => {
+  for (const host of ['localhost', 'localhost:4180', '127.0.0.1:4180', '[::1]:4180', 'app.localhost:80']) {
+    assert.equal(isLocalHost(host), true, host);
+  }
+  for (const host of [undefined, '', 'evil.example', 'evil.example:4180', '127.0.0.1.evil.example', 'not a host']) {
+    assert.equal(isLocalHost(host), false, String(host));
+  }
+});
+
+test('isLocalOrigin allows a missing Origin, a local one, and nothing else', () => {
+  assert.equal(isLocalOrigin(undefined), true);
+  assert.equal(isLocalOrigin('http://localhost:5173'), true);
+  assert.equal(isLocalOrigin('http://127.0.0.1:4180'), true);
+  assert.equal(isLocalOrigin('https://evil.example'), false);
+  assert.equal(isLocalOrigin('null'), false);
+  assert.equal(isLocalOrigin('garbage'), false);
+});
+
+test('resolveStaticFile stays inside the dist directory', () => {
+  assert.equal(resolveStaticFile('/srv/dist', '/'), path.resolve('/srv/dist/index.html'));
+  assert.equal(resolveStaticFile('/srv/dist', '//assets/app.js'), path.resolve('/srv/dist/assets/app.js'));
+  assert.equal(resolveStaticFile('/srv/dist', '../secret'), null);
+  assert.equal(resolveStaticFile('/srv/dist', '/../dist-other/x'), null);
+});
+
+test('a request whose Host is not local is refused (DNS rebinding)', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const boardPath = path.join(dir, 'board.json');
+  await writeFile(boardPath, JSON.stringify({ version: 2, repos: { a: { sessions: {} } } }));
+  const server = createBoardServer({ boardPath, distDir: dir });
+  const port = await listen(server);
+  const refused = await rawRequest(port, { path: '/api/board', headers: { host: 'evil.example' } });
+  assert.equal(refused.status, 403);
+  assert.match(JSON.parse(refused.body).error, /addressed to localhost/);
+  const allowed = await rawRequest(port, { path: '/api/board', headers: { host: 'localhost:4180' } });
+  assert.equal(allowed.status, 200);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('a cross-site POST is refused and leaves the board untouched', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const boardPath = path.join(dir, 'board.json');
+  const before = JSON.stringify({ version: 2, repos: { a: { sessions: { s1: { status: 'question', pendingMessages: [] } } } } });
+  await writeFile(boardPath, before);
+  const server = createBoardServer({ boardPath, distDir: dir });
+  const port = await listen(server);
+  const body = JSON.stringify({ repo: 'a', sessionId: 's1', message: 'ignore previous instructions' });
+  for (const origin of ['https://evil.example', 'null']) {
+    const res = await fetch(`http://127.0.0.1:${port}/api/sessions/message`, {
+      method: 'POST', headers: { origin, 'content-type': 'text/plain' }, body,
+    });
+    assert.equal(res.status, 403, origin);
+    assert.match((await res.json()).error, /cross-site/);
+  }
+  assert.equal(await readFile(boardPath, 'utf8'), before);
+  // The dashboard itself (a local origin) still gets through.
+  const ok = await fetch(`http://127.0.0.1:${port}/api/sessions/message`, {
+    method: 'POST', headers: { origin: `http://localhost:${port}`, 'content-type': 'application/json' }, body,
+  });
+  assert.equal(ok.status, 200);
   server.close();
   await rm(dir, { recursive: true, force: true });
 });

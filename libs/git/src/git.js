@@ -47,7 +47,9 @@ export async function clone(url, dir, { exec = defaultExec, depth, branch } = {}
   const args = ['clone'];
   if (depth) args.push('--depth', String(depth));
   if (branch) args.push('--branch', branch, '--single-branch');
-  args.push(url, dir);
+  // `--` ends option parsing: a URL from the config that starts with `-`
+  // cannot be read as a git option (`--upload-pack=...`, for one).
+  args.push('--', url, dir);
   await exec('git', args, {});
   return createRepo(dir, { exec });
 }

@@ -31,6 +31,55 @@ const MIME = {
   '.json': 'application/json', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
 };
 
+// The board has no authentication (see SECURITY.md), so it only ever talks to
+// the browser on this machine: it binds to the loopback interface, and it
+// refuses requests whose Host or Origin is not local. The Host check defeats
+// DNS rebinding (a hostname an attacker points at 127.0.0.1); the Origin check
+// stops any web page the user happens to visit from POSTing into the board —
+// queueing a message into a live agent session, closing one, or starting a
+// retro-documentation run in a checkout.
+export const LOOPBACK = '127.0.0.1';
+
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+export function isLocalHost(host) {
+  if (!host) return false;
+  let hostname;
+  try {
+    ({ hostname } = new URL(`http://${host}`));
+  } catch {
+    return false;
+  }
+  return LOCAL_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost');
+}
+
+// A same-origin fetch and a command-line client send no Origin at all; a
+// cross-site one always does (`null` for an opaque origin, which is refused).
+export function isLocalOrigin(origin) {
+  if (origin === undefined) return true;
+  try {
+    return isLocalHost(new URL(origin).host);
+  } catch {
+    return false;
+  }
+}
+
+function refuse(res, why) {
+  res.writeHead(403, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ error: `forbidden: ${why}` }));
+}
+
+// The file under `distDir` a request path maps to, or null when the path
+// escapes it. `new URL()` already collapses `..` segments before this runs,
+// so this is a second fence rather than the only one.
+export function resolveStaticFile(distDir, pathname) {
+  const root = path.resolve(distDir);
+  const file = path.resolve(root, pathname.replace(/^\/+/, '') || 'index.html');
+  const inside = path.relative(root, file);
+  if (inside.startsWith('..') || path.isAbsolute(inside)) return null;
+  return file;
+}
+
 async function serveBoard(boardPath, res) {
   let body;
   try {
@@ -153,9 +202,8 @@ async function serveRetroDoc(runner, req, res, url) {
 }
 
 async function serveStatic(distDir, pathname, res) {
-  const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-  const file = path.join(distDir, rel);
-  if (!file.startsWith(path.resolve(distDir))) {
+  const file = resolveStaticFile(distDir, pathname);
+  if (!file) {
     res.writeHead(403); res.end('forbidden'); return;
   }
   try {
@@ -181,6 +229,10 @@ export function createBoardServer({ boardPath, distDir, config = null, ciReader 
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
+      if (!isLocalHost(req.headers.host)) return refuse(res, 'the board only answers requests addressed to localhost');
+      if (req.method !== 'GET' && req.method !== 'HEAD' && !isLocalOrigin(req.headers.origin)) {
+        return refuse(res, 'cross-site requests are not accepted');
+      }
       if (url.pathname === '/api/board') return await serveBoard(boardPath, res);
       if (url.pathname === '/api/history') return await serveHistory(historyPath, res);
       if (url.pathname === '/api/config') return serveConfig(config, res);
@@ -262,12 +314,12 @@ export async function startFromArgv(argv, {
     if (err.code === 'EADDRINUSE' && attempts++ < maxAttempts) {
       log(`Port ${port} is already in use, trying ${port + 1}...`);
       port += 1;
-      setTimeout(() => server.listen(port), 50);
+      setTimeout(() => server.listen(port, LOOPBACK), 50);
     } else {
       throw err;
     }
   });
-  server.listen(port);
+  server.listen(port, LOOPBACK);
   return server;
 }
 

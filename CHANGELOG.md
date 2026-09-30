@@ -10,6 +10,24 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Security
+
+- The board server now binds to the loopback interface only and refuses
+  requests whose `Host` is not local (DNS rebinding) as well as state-changing
+  requests carrying a non-local `Origin` (cross-site POSTs that could queue a
+  message into a live agent session or start a retro-documentation run).
+- The CI status reader no longer embeds `AI_SYNC_STATUS_TOKEN` in the clone
+  URL, where git persisted it in plain text in the cache checkout; the token is
+  handed to git as an origin-scoped `http.extraheader` through the environment.
+- `git clone` receives `--` before the URL so a config URL starting with `-`
+  cannot be read as a git option; the retro-doc API only accepts a model that
+  is a plain identifier.
+- Patched transitive dependencies: `fast-uri` (SSRF), `undici` (DoS) and
+  `js-yaml` 3.x (CPU exhaustion, used by `gray-matter`).
+- Workflows pass step outputs and `github.ref_name` to shell steps through
+  environment variables and stop persisting the checkout token where it is
+  not needed.
+
 ## [1.2.0] - 2026-09-08
 
 ### Added

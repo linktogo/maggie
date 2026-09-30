@@ -16,6 +16,7 @@ export function createCiReader({
   now = () => new Date().toISOString(),
   logger = console,
   readdirImpl = readdir,
+  env: baseEnv = process.env,
 } = {}) {
   let running = false;
 
@@ -23,18 +24,37 @@ export function createCiReader({
     return token ? String(message).split(token).join('***') : String(message);
   }
 
-  function cloneUrl() {
-    if (!token) return statusRepo;
-    return statusRepo.replace(/^https:\/\//, `https://x-access-token:${token}@`);
+  // The token reaches git as an `http.<origin>.extraheader` handed over through
+  // GIT_CONFIG_* environment variables, never as part of the clone URL: a URL
+  // credential is persisted in plain text as the checkout's `remote.origin.url`
+  // and shows up in `ps` and in git's own error messages. Scoping the header
+  // to the status repo's origin keeps it from following a redirect elsewhere.
+  function gitOptions(options = {}) {
+    const env = { ...baseEnv, GIT_TERMINAL_PROMPT: '0' };
+    if (token) {
+      let key = 'http.extraheader';
+      try {
+        key = `http.${new URL(statusRepo).origin}/.extraheader`;
+      } catch {
+        // Not an absolute URL (an scp-style remote, say): apply to every host.
+      }
+      const basic = Buffer.from(`x-access-token:${token}`).toString('base64');
+      // Appended after any GIT_CONFIG_* entries the environment already carries.
+      const index = Number(baseEnv.GIT_CONFIG_COUNT) || 0;
+      env.GIT_CONFIG_COUNT = String(index + 1);
+      env[`GIT_CONFIG_KEY_${index}`] = key;
+      env[`GIT_CONFIG_VALUE_${index}`] = `Authorization: Basic ${basic}`;
+    }
+    return { ...options, env };
   }
 
   async function syncCheckout() {
     if (!existsSync(path.join(cacheDir, '.git'))) {
       await mkdir(path.dirname(cacheDir), { recursive: true });
-      await exec('git', ['clone', '--depth', '1', '--branch', branch, '--single-branch', cloneUrl(), cacheDir], {});
+      await exec('git', ['clone', '--depth', '1', '--branch', branch, '--single-branch', '--', statusRepo, cacheDir], gitOptions());
       return;
     }
-    await exec('git', ['fetch', '--depth', '1', 'origin', branch], { cwd: cacheDir });
+    await exec('git', ['fetch', '--depth', '1', 'origin', branch], gitOptions({ cwd: cacheDir }));
     await exec('git', ['reset', '--hard', `origin/${branch}`], { cwd: cacheDir });
   }
 

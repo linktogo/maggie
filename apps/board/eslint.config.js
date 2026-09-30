@@ -39,7 +39,10 @@ export default [
     files: [
       'server.js',
       'server.test.js',
+      'ciReader.js',
       'ciReader.test.js',
+      'retroDocJobs.js',
+      'retroDocJobs.test.js',
       'vite.config.js',
     ],
     languageOptions: {

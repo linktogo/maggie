@@ -121,6 +121,9 @@ test('start rejects a repo it does not know, one that is not checked out, and an
   assert.match(runner.start({ repo: 'web' }).error, /not checked out at/);
   assert.deepEqual(runner.start({ repo: 'api', provider: 'gemini' }), { status: 400, error: 'unknown provider: gemini' });
   assert.deepEqual(runner.start({}), { status: 400, error: 'repo is required' });
+  assert.deepEqual(runner.start({ repo: 'api', provider: 'claude-cli', model: '--dangerously-skip-permissions' }),
+    { status: 400, error: 'invalid model: --dangerously-skip-permissions' });
+  assert.equal(runner.start({ repo: 'api', provider: 'claude-cli', model: { toString: () => 'x' } }).status, 400);
   assert.deepEqual(runner.list(), []);
   await rm(dir, { recursive: true, force: true });
 });

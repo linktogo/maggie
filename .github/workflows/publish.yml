@@ -12,7 +12,11 @@ jobs:
       contents: read
       id-token: write # required for npm provenance
     steps:
+      # Nothing here pushes back to GitHub, so the GITHUB_TOKEN is not kept in
+      # .git/config alongside a job that handles the npm token.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # No `scope:` here on purpose: setup-node writes a registry-wide auth
       # token, which keeps working if a package is ever published under a

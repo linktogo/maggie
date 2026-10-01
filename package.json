@@ -60,8 +60,8 @@
       "smol-toml": "^1.8.0"
     },
     "qs": "^6.16.0",
-    "fast-uri": "^3.1.7",
-    "undici": "^8.10.2",
+    "fast-uri": "^3.1.8",
+    "undici": "^8.11.2",
     "js-yaml@3": "^3.15.2"
   },
   "scripts": {
@@ -80,12 +80,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@nx/eslint": "^23.1.1",
-    "@nx/eslint-plugin": "^23.1.1",
-    "@nx/js": "^23.1.1",
-    "@nx/vite": "^23.1.1",
-    "@nx/vitest": "^23.1.1",
-    "@nx/vue": "^23.1.1",
+    "@nx/eslint": "^23.2.1",
+    "@nx/eslint-plugin": "^23.2.1",
+    "@nx/js": "^23.2.1",
+    "@nx/vite": "^23.2.1",
+    "@nx/vitest": "^23.2.1",
+    "@nx/vue": "^23.2.1",
     "@types/node": "^26.2.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.4.6",
@@ -93,7 +93,7 @@
     "eslint-plugin-vue": "^10.10.0",
     "globals": "^17.7.0",
     "jsdom": "^30.0.1",
-    "nx": "^23.1.1",
+    "nx": "^23.2.1",
     "typescript": "~6.0.3",
     "vite": "^8.0.0",
     "vitest": "~4.1.11"

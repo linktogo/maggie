@@ -3,7 +3,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
 import { UNKNOWN_MODEL } from './pricing.js';
 import { useI18n } from './i18n.js';
-import { seriesColors, chartInk } from './chartColors.js';
+import { seriesColors, chartInk, chartGrid } from './chartColors.js';
+import { formatChartValue } from './chartFormat.js';
 import { useTheme } from './theme.js';
 
 const { t, locale } = useI18n();
@@ -57,16 +58,25 @@ function render() {
   const options = { el: canvas.value ?? undefined };
   const palette = seriesColors(options);
   const ink = chartInk(options);
+  const grid = chartGrid(options);
+  const format = (value) => formatChartValue(value, props.mode);
   const config = {
     type: 'bar',
     data: { labels: props.buckets.map((b) => b.key), datasets: buildDatasets(palette) },
     options: {
       responsive: true,
+      // Without this Chart.js keeps a 2:1 ratio and, on a wide screen, grows
+      // the canvas past its fixed-height container onto the table below.
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       scales: {
-        x: { stacked: true, ticks: { color: ink } },
-        y: { stacked: true, ticks: { color: ink } },
+        x: { stacked: true, grid: { display: false }, ticks: { color: ink, maxRotation: 0, autoSkip: true } },
+        y: { stacked: true, beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { color: ink, callback: format } },
       },
-      plugins: { legend: { position: 'bottom', labels: { color: ink } } },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: ink, boxWidth: 12, boxHeight: 12 } },
+        tooltip: { callbacks: { label: (item) => `${item.dataset.label}: ${format(item.raw)}` } },
+      },
     },
   };
   if (chart) {
@@ -84,7 +94,7 @@ onUnmounted(() => { chart?.destroy(); chart = null; });
 </script>
 
 <template>
-  <div class="relative h-64">
+  <div class="relative h-72">
     <canvas ref="canvas" data-test="time-series-canvas"></canvas>
     <p v-if="buckets.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-ink-faint">
       {{ t('history.empty') }}

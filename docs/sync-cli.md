@@ -13,11 +13,29 @@ For each repo in the [config](configuration.md):
 1. Clone it into a temporary work dir (`--work-dir` to choose the parent).
 2. Resolve the skills matching the repo's `technologies`.
 3. Render each skill for each of the repo's `targets`.
-4. Check out `maggie/update-skills`, write the files, commit, force-push.
+4. Check out `maggie/update-skills`, write the files, prune what the current
+   render no longer produces, commit, force-push.
 5. Optionally open a PR with `gh` (`--pr`).
 
 The branch is rewritten on every sync — it is a throwaway output branch, not a
 place to commit by hand.
+
+### Pruning stale files
+
+Renamed a skill, dropped a technology, or dropped a target from a repo's
+`targets`, and the file that used to render is now stale — a run deletes it,
+rather than leaving it behind forever. This is tracked in a small manifest,
+`.maggie/manifest.json`, committed alongside the skill files: every path the
+last run wrote, so the next run can tell "no longer rendered" apart from
+"never touched." A repo with no manifest yet (from before this existed, or a
+first sync) gets one written and nothing pruned — the run after that is
+where pruning starts.
+
+If every technology in a repo's config fails to resolve any skill — a typo, a
+moved skills library — the render for that repo is empty. Rather than reading
+that as "delete everything this repo ever had," a run leaves both the files
+and the manifest untouched and warns loudly instead: an empty render is far
+more likely to be a config mistake than an instruction to wipe a repo.
 
 ## Flags
 

@@ -11,6 +11,7 @@ export default {
         alwaysApply: !hasGlobs,
       },
       skill.body,
+      skill.source,
     );
     return { path: `.cursor/rules/${skill.name}.mdc`, content };
   },

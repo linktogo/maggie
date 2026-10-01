@@ -92,3 +92,18 @@ test('re-renders when the theme changes', async () => {
   expect(updateCalls()).toBeGreaterThan(before);
   w.unmount();
 });
+
+test('fills its container instead of keeping a fixed aspect ratio', () => {
+  mount(TimeSeriesChart, { props: { buckets: [bucket()], mode: 'tokens' } });
+  expect(chartInstances[0].options.maintainAspectRatio).toBe(false);
+});
+
+test('formats ticks and tooltips compactly in tokens mode and in euros in cost mode', async () => {
+  const wrapper = mount(TimeSeriesChart, { props: { buckets: [bucket()], mode: 'tokens' } });
+  let options = chartInstances[0].options;
+  expect(options.scales.y.ticks.callback(18_000_000)).toBe('18.0M');
+  expect(options.plugins.tooltip.callbacks.label({ dataset: { label: 'Input' }, raw: 1500 })).toBe('Input: 1.5K');
+  await wrapper.setProps({ mode: 'cost' });
+  options = chartInstances[0].options;
+  expect(options.scales.y.ticks.callback(1.5)).toBe('1.50 €');
+});

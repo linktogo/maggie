@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { tokenColor, seriesColors, chartInk, FALLBACK } from './chartColors.js';
+import { tokenColor, seriesColors, chartInk, chartGrid, FALLBACK } from './chartColors.js';
 
 // Stands in for getComputedStyle: returns whatever the theme is supposed to
 // have resolved for each custom property.
@@ -31,4 +31,9 @@ test('returns the six series colors in order', () => {
 test('chart text follows the muted ink token', () => {
   const computed = computedFrom({ '--color-ink-muted': '#605d66' });
   expect(chartInk({ computed })).toBe('#605d66');
+});
+
+test('grid lines follow the soft line token', () => {
+  const computed = computedFrom({ '--color-line-soft': '#e7e0ec' });
+  expect(chartGrid({ computed })).toBe('#e7e0ec');
 });

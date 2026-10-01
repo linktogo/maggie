@@ -13,6 +13,7 @@ export const FALLBACK = {
   '--color-series-5': '#8b5cf6',
   '--color-series-6': '#ec4899',
   '--color-ink-muted': '#64748b',
+  '--color-line-soft': 'rgb(148 163 184 / 0.2)',
 };
 
 export function tokenColor(name, {
@@ -32,4 +33,8 @@ export function seriesColors(options = {}) {
 
 export function chartInk(options = {}) {
   return tokenColor('--color-ink-muted', options);
+}
+
+export function chartGrid(options = {}) {
+  return tokenColor('--color-line-soft', options);
 }

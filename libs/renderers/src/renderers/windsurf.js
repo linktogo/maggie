@@ -7,7 +7,7 @@ export default {
     const frontmatter = hasGlobs
       ? { description: skill.description, globs: skill.globs.join(',') }
       : { description: skill.description };
-    const content = buildDocument(frontmatter, skill.body);
+    const content = buildDocument(frontmatter, skill.body, skill.source);
     return { path: `.windsurf/rules/${skill.name}.md`, content };
   },
 };

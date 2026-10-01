@@ -69,3 +69,22 @@ test('shows an empty-state message when there are no totals', () => {
   const wrapper = mount(ProjectBarChart, { props: { totals: [], mode: 'tokens' } });
   expect(wrapper.text()).toContain('No completed session yet');
 });
+
+test('grows with the project count and fills that height', () => {
+  const totals = Array.from({ length: 10 }, (_, i) => total({ repo: `r${i}` }));
+  const wrapper = mount(ProjectBarChart, { props: { totals, mode: 'tokens' } });
+  expect(chartInstances[0].options.maintainAspectRatio).toBe(false);
+  expect(wrapper.find('div').attributes('style')).toContain('height: 368px');
+});
+
+test('keeps a minimum height for a single project', () => {
+  const wrapper = mount(ProjectBarChart, { props: { totals: [total()], mode: 'tokens' } });
+  expect(wrapper.find('div').attributes('style')).toContain('height: 160px');
+});
+
+test('formats ticks and tooltips by mode', () => {
+  mount(ProjectBarChart, { props: { totals: [total()], mode: 'cost' } });
+  const { options } = chartInstances[0];
+  expect(options.scales.x.ticks.callback(0.5)).toBe('0.50 €');
+  expect(options.plugins.tooltip.callbacks.label({ raw: 2 })).toBe('2.00 €');
+});

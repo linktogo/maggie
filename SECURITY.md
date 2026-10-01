@@ -7,7 +7,7 @@ releases published under the former `ai-sync` name are no longer maintained.
 
 | Version | Supported |
 |---|---|
-| 1.0.x | ✅ |
+| 1.2.x | ✅ |
 | 0.x (`ai-sync`) | ❌ |
 
 ## Reporting a vulnerability
@@ -43,8 +43,12 @@ A few properties of this project are worth knowing before reporting:
   `.claude/settings.local.json`. Those hooks run this CLI's `status` subcommand
   on session events.
 - **The board server (`apps/board/server.js`) is a local development tool.** It
-  binds a local port, serves the built dashboard, and reads `board.json`. It has
-  no authentication and is not intended to be exposed to a network.
+  serves the built dashboard and reads `board.json`. It has no authentication
+  and is not intended to be exposed to a network: it binds to the loopback
+  interface only (`127.0.0.1`), answers only requests addressed to
+  `localhost`/`127.0.0.1`/`[::1]`, and refuses state-changing requests that
+  carry a non-local `Origin` header. Reports that it can be reached or driven
+  from another host or from a web page are in scope.
 
 Findings that require an attacker to already control the config file, the target
 repositories, or the local machine are documentation issues rather than

@@ -14,6 +14,8 @@ export function resolveCheckout({ boardPath, config, repo }) {
   return path.join(path.dirname(path.dirname(boardPath)), entry.name);
 }
 
+const MODEL_PATTERN = /^[A-Za-z0-9][\w.:/-]*$/;
+
 /** What the API hands out: the job without the promise driving it. */
 export function publicJob(job) {
   const { repo, id, provider, generator, status, startedAt, finishedAt, out, files, error, log } = job;
@@ -44,6 +46,11 @@ export function createRetroDocRunner({
   function start({ repo, provider = 'claude', model = null }) {
     if (!repo) return { status: 400, error: 'repo is required' };
     if (!PROVIDERS.includes(provider)) return { status: 400, error: `unknown provider: ${provider}` };
+    // The model ends up as a CLI argument (`--model <model>`): only accept an
+    // identifier, never something that could read as another option.
+    if (model !== null && (typeof model !== 'string' || !MODEL_PATTERN.test(model))) {
+      return { status: 400, error: `invalid model: ${String(model)}` };
+    }
     const repoRoot = resolveCheckout({ boardPath, config, repo });
     if (!repoRoot) return { status: 404, error: `unknown repository: ${repo}` };
     if (!existsSync(repoRoot)) return { status: 404, error: `${repo} is not checked out at ${repoRoot}` };

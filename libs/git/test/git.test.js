@@ -55,8 +55,8 @@ test('clone passes --depth when a depth is given, and omits it otherwise', async
   const exec = async (file, args) => { calls.push(args); return ''; };
   await clone('url', '/dest', { exec, depth: 1 });
   await clone('url', '/dest', { exec });
-  assert.deepEqual(calls[0], ['clone', '--depth', '1', 'url', '/dest']);
-  assert.deepEqual(calls[1], ['clone', 'url', '/dest']);
+  assert.deepEqual(calls[0], ['clone', '--depth', '1', '--', 'url', '/dest']);
+  assert.deepEqual(calls[1], ['clone', '--', 'url', '/dest']);
 });
 
 test('createPR invokes gh with title and body', async () => {
@@ -89,7 +89,7 @@ test('clone passes --branch --single-branch when a branch is given', async () =>
   const calls = [];
   const exec = async (file, args) => { calls.push(args); return ''; };
   await clone('url', '/dest', { exec, depth: 1, branch: 'ci-status' });
-  assert.deepEqual(calls[0], ['clone', '--depth', '1', '--branch', 'ci-status', '--single-branch', 'url', '/dest']);
+  assert.deepEqual(calls[0], ['clone', '--depth', '1', '--branch', 'ci-status', '--single-branch', '--', 'url', '/dest']);
 });
 
 test('fetchReset re-points the checkout at the remote branch', async () => {

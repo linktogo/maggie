@@ -35,6 +35,7 @@ function reader(over, calls = []) {
     exec: async (file, args, opts) => { calls.push({ args, opts }); return ''; },
     now: () => NOW,
     logger: { log() {}, warn() {} },
+    env: {},
     ...over,
   });
 }
@@ -245,5 +246,54 @@ test('read tolerates a missing cache file', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'ci-reader-'));
   const r = reader({ cacheDir: path.join(root, 'c'), stateFile: path.join(root, 'ci.json') });
   assert.deepEqual((await r.read(['lk-mind'])).repos, { 'lk-mind': { users: {} } });
+  await rm(root, { recursive: true, force: true });
+});
+
+test('the token travels as a scoped extraheader through the environment, never in the clone URL', async () => {
+  const { root, stateFile } = await fixture();
+  const calls = [];
+  await reader({ cacheDir: path.join(root, 'absent'), stateFile, token: 'ghp_supersecret' }, calls).tick();
+  const [clone] = calls;
+  assert.ok(!clone.args.join(' ').includes('ghp_supersecret'));
+  assert.deepEqual(clone.args.slice(-3), ['--', 'https://github.com/linktogo/maggie.git', path.join(root, 'absent')]);
+  assert.equal(clone.opts.env.GIT_CONFIG_COUNT, '1');
+  assert.equal(clone.opts.env.GIT_CONFIG_KEY_0, 'http.https://github.com/.extraheader');
+  const expected = Buffer.from('x-access-token:ghp_supersecret').toString('base64');
+  assert.equal(clone.opts.env.GIT_CONFIG_VALUE_0, `Authorization: Basic ${expected}`);
+  assert.equal(clone.opts.env.GIT_TERMINAL_PROMPT, '0');
+  await rm(root, { recursive: true, force: true });
+});
+
+test('fetch reuses the same credentials and keeps its cwd; a non-URL remote gets an unscoped header', async () => {
+  const { root, cacheDir, stateFile } = await fixture();
+  const calls = [];
+  await reader({ cacheDir, stateFile, token: 't', statusRepo: 'git@github.com:linktogo/maggie.git' }, calls).tick();
+  const [fetchCall, resetCall] = calls;
+  assert.equal(fetchCall.opts.cwd, cacheDir);
+  assert.equal(fetchCall.opts.env.GIT_CONFIG_KEY_0, 'http.extraheader');
+  assert.equal(resetCall.opts.env, undefined);
+  await rm(root, { recursive: true, force: true });
+});
+
+test('without a token git gets no credential header but still never prompts', async () => {
+  const { root, cacheDir, stateFile } = await fixture();
+  const calls = [];
+  await reader({ cacheDir, stateFile }, calls).tick();
+  assert.equal(calls[0].opts.env.GIT_CONFIG_COUNT, undefined);
+  assert.equal(calls[0].opts.env.GIT_TERMINAL_PROMPT, '0');
+  await rm(root, { recursive: true, force: true });
+});
+
+test('the credential header is appended after GIT_CONFIG_* entries already in the environment', async () => {
+  const { root, cacheDir, stateFile } = await fixture();
+  const calls = [];
+  const env = { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'user.name', GIT_CONFIG_VALUE_0: 'bot', PATH: '/bin' };
+  await reader({ cacheDir, stateFile, token: 't', env }, calls).tick();
+  const got = calls[0].opts.env;
+  assert.equal(got.GIT_CONFIG_COUNT, '2');
+  assert.equal(got.GIT_CONFIG_KEY_0, 'user.name');
+  assert.equal(got.GIT_CONFIG_KEY_1, 'http.https://github.com/.extraheader');
+  assert.equal(got.PATH, '/bin');
+  assert.deepEqual(env, { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'user.name', GIT_CONFIG_VALUE_0: 'bot', PATH: '/bin' }, 'the caller\'s env is not mutated');
   await rm(root, { recursive: true, force: true });
 });

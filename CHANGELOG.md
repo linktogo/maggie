@@ -10,6 +10,8 @@ changes in minor releases.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-01
+
 ### Security
 
 - The board server now binds to the loopback interface only and refuses
@@ -260,7 +262,8 @@ Initial release.
 - Starter skills library for NestJS, Postgres, Next.js, React, Angular, Vue, Nx,
   Firebase, and Cloudflare Workers.
 
-[Unreleased]: https://github.com/linktogo/maggie/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/linktogo/maggie/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/linktogo/maggie/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/linktogo/maggie/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/linktogo/maggie/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/linktogo/maggie/compare/v0.6.0...v1.0.0

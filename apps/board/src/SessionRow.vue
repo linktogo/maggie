@@ -65,27 +65,27 @@ function onDragStart(e) {
     tabindex="0"
     data-test="session-row"
     draggable="true"
-    class="bg-surface-muted hover:bg-surface-hover rounded-control p-2 cursor-grab active:cursor-grabbing transition-colors"
+    class="bg-surface-muted hover:bg-surface-hover rounded-[min(var(--radius-control),0.75rem)] p-2 cursor-grab focus-visible:outline-2 focus-visible:outline-accent active:cursor-grabbing transition-colors"
     @click="open"
     @keydown.enter="open"
     @keydown.space.prevent="open"
     @dragstart="onDragStart"
   >
     <div class="font-medium text-ink text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
-    <div class="text-xs text-ink-muted">
-      {{ session.lastEvent }} · {{ when }}
+    <div class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+      <span>{{ session.lastEvent }} · {{ when }}</span>
       <span
         data-test="agent-badge"
         :title="t('session.agentTooltip', { agent: agentLabel(agent) })"
-        :class="['inline-flex items-center ml-1 font-medium px-1.5 py-0.5 rounded-badge', agentPillClass(agent)]"
+        :class="['inline-flex items-center font-medium px-1.5 py-0.5 rounded-badge', agentPillClass(agent)]"
       >{{ agent }}</span>
       <span
         v-if="session.worktree"
         data-test="worktree-badge"
         :title="t('session.worktreeTooltip', { branch: session.worktree })"
-        class="inline-flex items-center ml-1 bg-worktree-soft text-worktree-on-soft font-medium px-1.5 py-0.5 rounded-badge"
-      ><Icon name="account_tree" emoji="⎇" /> {{ session.worktree }}</span>
-      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-block ml-1 bg-surface-muted text-ink-soft font-medium px-1.5 py-0.5 rounded-badge">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
+        class="inline-flex items-center gap-0.5 max-w-full bg-worktree-soft text-worktree-on-soft font-medium px-1.5 py-0.5 rounded-badge"
+      ><Icon name="account_tree" emoji="⎇" :size="14" /><span class="truncate">{{ session.worktree }}</span></span>
+      <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-flex items-center bg-surface text-ink-soft border border-line-soft font-medium px-1.5 py-0.5 rounded-badge">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
     </div>
     <p v-if="prompt" class="mt-1 text-xs text-ink-soft whitespace-pre-wrap">
       {{ displayedPrompt }}

@@ -57,3 +57,29 @@ test('headers and the duration unit follow the selected language', async () => {
   expect(w.text()).toContain('Gestartet');
   expect(w.text()).toContain('10 Min.');
 });
+
+test('timestamps and token counts are formatted for the selected language', () => {
+  const w = mount(HistoryTable, {
+    props: { entries: [entry({ usage: { inputTokens: 12345, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 } })] },
+  });
+  const row = w.get('[data-test=history-row]').text();
+  expect(row).not.toContain('2026-06-21T09:00:00.000Z');
+  expect(row).toContain(new Date('2026-06-21T09:00:00.000Z').toLocaleString('en', { dateStyle: 'short', timeStyle: 'short' }));
+  expect(row).toContain('12,345');
+});
+
+test('an unparseable timestamp is shown as is', () => {
+  const w = mount(HistoryTable, { props: { entries: [entry({ startedAt: 'yesterday', endedAt: undefined })] } });
+  expect(w.get('[data-test=history-row]').text()).toContain('yesterday');
+});
+
+test('the sorted column header carries aria-sort and an arrow', async () => {
+  const w = mount(HistoryTable, { props: { entries: [entry()] } });
+  const ended = w.get('[data-test=sort-ended]');
+  expect(ended.element.closest('th').getAttribute('aria-sort')).toBe('descending');
+  expect(ended.text()).toContain('▼');
+  await w.get('[data-test=sort-total]').trigger('click');
+  expect(w.get('[data-test=sort-total]').element.closest('th').getAttribute('aria-sort')).toBe('ascending');
+  expect(w.get('[data-test=sort-total]').text()).toContain('▲');
+  expect(ended.element.closest('th').getAttribute('aria-sort')).toBe('none');
+});

@@ -52,22 +52,22 @@ const routeProps = computed(() => {
 </script>
 
 <template>
-  <main class="min-h-screen p-6">
+  <main class="min-h-screen p-4 sm:p-6">
     <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-ink-strong">maggie · workspace board</h1>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap">maggie · workspace board</h1>
         <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.board') }}</router-link>
           <router-link
             data-test="view-history" to="/history"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.history') }}</router-link>
           <router-link
             data-test="view-retro-doc" to="/retro-doc"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium transition-colors', route.name === 'retro-doc' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'retro-doc' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.retroDoc') }}</router-link>
         </div>
       </div>

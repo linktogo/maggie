@@ -27,7 +27,7 @@ const buckets = computed(() => bucketByPeriod(granularity.value));
 const projectTotals = computed(() => totalsByProject());
 
 function tabClass(active) {
-  return ['nav-tab rounded-control px-3 py-1 font-medium transition-colors',
+  return ['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors',
     active ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft'];
 }
 </script>

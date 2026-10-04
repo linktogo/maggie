@@ -54,6 +54,8 @@ export default {
   'filter.ciOk': 'OK',
   'filter.ciUnknown': 'unbekannt',
 
+  'column.empty': 'Nichts hier',
+  'column.dropHint': 'Session hierher ziehen, um sie zu schließen',
   'card.noActiveSession': 'Keine aktive Session',
   'card.openRepo': '{repo} öffnen — Details, CI, Retro-Dokumentation',
   'card.confirmClose': 'Session „{title}“ von {repo} als erledigt markieren?',

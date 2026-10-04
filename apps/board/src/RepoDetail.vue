@@ -48,10 +48,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
 <template>
   <div v-if="name" class="fixed inset-0 z-20">
     <div data-test="overlay" class="absolute inset-0 bg-overlay" @click="emit('close')"></div>
-    <aside class="absolute right-0 top-0 h-full w-full sm:w-80 max-w-full bg-surface shadow-overlay p-4 overflow-y-auto">
-      <button class="float-right text-ink-faint hover:text-ink-soft" :aria-label="t('detail.close')" @click="emit('close')"><Icon name="close" emoji="✕" /></button>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-96 max-w-full bg-surface shadow-overlay p-4 overflow-y-auto">
+      <button type="button" class="float-right ml-2 rounded-control p-1 text-ink-faint hover:text-ink-soft hover:bg-surface-hover" :aria-label="t('detail.close')" @click="emit('close')"><Icon name="close" emoji="✕" /></button>
       <div class="pb-3 border-b border-line-soft mb-3">
-        <h2 class="font-bold text-ink-strong">{{ name }}</h2>
+        <h2 class="font-bold text-ink-strong break-all">{{ name }}</h2>
         <p v-if="session?.title" class="text-sm text-ink-soft mt-1">{{ session.title }}</p>
         <a v-if="meta?.url" :href="meta.url" target="_blank" rel="noopener"
            class="text-sm text-accent underline break-all">{{ meta.url }}</a>
@@ -77,7 +77,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             data-test="detail-message-input"
             rows="2"
             :placeholder="t('session.messagePlaceholder')"
-            class="min-w-0 flex-1 resize-y rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
+            class="min-w-0 flex-1 resize-y rounded-[min(var(--radius-control),0.75rem)] border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
             @keydown.enter.exact.prevent="send"
           ></textarea>
           <button
@@ -120,7 +120,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
           ✓ {{ t('detail.retroDocDone', { out: retroDoc.out }) }} · {{ retroDoc.generator }}
         </p>
         <p v-else-if="retroDoc?.status === 'error'" data-test="retro-doc-error" class="mt-1 text-xs text-question-on-soft">
-          ⚠ {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
+          <Icon name="warning" emoji="⚠" /> {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
         </p>
         <RetroDocLog v-if="retroLog.length" :log="retroLog" />
       </template>

@@ -82,7 +82,7 @@ test('badges expose state through aria-label, not colour alone', () => {
   const w = mount(Card, { props: { name: 'oc-be', sessions: [session()], status: 'todo', now, ci: { users } } });
   const badge = w.get('[data-test=ci-badge]');
   expect(badge.attributes('aria-label')).toContain('alice');
-  expect(badge.attributes('aria-label')).toContain('failure');
+  expect(badge.attributes('aria-label')).toContain('failing');
   const overflow = w.get('[data-test=ci-overflow]');
   expect(overflow.attributes('aria-label')).toBeTruthy();
 });

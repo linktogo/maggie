@@ -45,7 +45,9 @@ function elapsed(repo) {
   const job = jobFor(repo);
   if (!job?.startedAt) return null;
   const seconds = Math.max(0, Math.round((props.now - Date.parse(job.startedAt)) / 1000));
-  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+  return seconds < 60
+    ? t('retro.elapsedSeconds', { s: seconds })
+    : t('retro.elapsedMinutes', { m: Math.floor(seconds / 60), s: String(seconds % 60).padStart(2, '0') });
 }
 
 function generate(repo) {

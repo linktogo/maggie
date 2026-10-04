@@ -85,6 +85,6 @@ test('keeps a minimum height for a single project', () => {
 test('formats ticks and tooltips by mode', () => {
   mount(ProjectBarChart, { props: { totals: [total()], mode: 'cost' } });
   const { options } = chartInstances[0];
-  expect(options.scales.x.ticks.callback(0.5)).toBe('0.50 €');
-  expect(options.plugins.tooltip.callbacks.label({ raw: 2 })).toBe('2.00 €');
+  expect(options.scales.x.ticks.callback(0.5)).toBe('€0.50');
+  expect(options.plugins.tooltip.callbacks.label({ raw: 2 })).toBe('€2.00');
 });

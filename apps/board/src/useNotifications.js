@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue';
-import { translate } from './i18n.js';
+import { translate, locale } from './i18n.js';
 
 const SOUND_KEY = 'maggie:sound';
 
@@ -43,14 +43,15 @@ export function useNotifications(transitions, questionCount, {
     if (notifier && permission.value === 'granted') {
       for (const t of list) {
         const label = t.title ? `${t.name} · ${t.title}` : t.name;
-        new notifier(`${label} → ${t.status}`, { body: bodyFor(t.status) });
+        new notifier(`${label} → ${translate(`status.${t.status}`)}`, { body: bodyFor(t.status) });
       }
     }
     if (soundOn.value) playSound();
   });
 
-  watch(questionCount, (n) => {
-    if (doc) doc.title = n > 0 ? `(${n}) maggie board` : 'maggie board';
+  watch([questionCount, locale], ([n]) => {
+    const title = translate('app.docTitle');
+    if (doc) doc.title = n > 0 ? `(${n}) ${title}` : title;
   }, { immediate: true });
 
   return { permission, soundOn, requestPermission, toggleSound };

@@ -5,6 +5,7 @@ import RetroDocLog from './RetroDocLog.vue';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
+import { eventLabel, ciConclusionLabel, ciReasonLabel } from './labels.js';
 
 const { t } = useI18n();
 
@@ -127,7 +128,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
 
       <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.ci') }}</h3>
       <p v-if="ci?.unavailable" data-test="ci-unavailable" class="mt-1 text-xs text-ink-muted">
-        {{ t('detail.ciUnavailable', { reason: ci.unavailable }) }}
+        {{ t('detail.ciUnavailable', { reason: ciReasonLabel(ci.unavailable) }) }}
       </p>
       <p v-else-if="ciUsers.length === 0" data-test="ci-empty" class="mt-1 text-xs text-ink-muted">
         {{ t('detail.ciEmpty') }}
@@ -140,7 +141,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             {{ ci.users[u.login].run.workflow }}
           </a>
           · {{ ci.users[u.login].run.branch }}
-          · {{ ci.users[u.login].run.conclusion }}
+          · {{ ciConclusionLabel(ci.users[u.login].run.conclusion) }}
           · {{ relativeTime(ci.users[u.login].run.startedAt, now) }}
         </li>
       </ul>
@@ -148,7 +149,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
       <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.history') }}</h3>
       <ul class="mt-1 space-y-1">
         <li v-for="(e, i) in (session?.events || [])" :key="i" class="text-xs text-ink-soft">
-          • {{ e.event }} — {{ relativeTime(e.at, now) }}
+          • <span :title="e.event">{{ eventLabel(e.event) }}</span> — {{ relativeTime(e.at, now) }}
         </li>
       </ul>
     </aside>

@@ -48,7 +48,7 @@ function bucket(overrides = {}) {
 test('renders one stacked dataset per token type in tokens mode', () => {
   mount(TimeSeriesChart, { props: { buckets: [bucket()], mode: 'tokens' } });
   const chart = chartInstances[0];
-  expect(chart.data.labels).toEqual(['2026-08-01']);
+  expect(chart.data.labels).toEqual(['Aug 1']);
   expect(chart.data.datasets.map((d) => d.label)).toEqual(['Input', 'Output', 'Cache write', 'Cache read']);
   expect(chart.data.datasets[0].data).toEqual([10]);
   expect(chart.options.scales.x.stacked).toBe(true);
@@ -69,7 +69,7 @@ test('re-renders (not re-creates) the chart when buckets or mode change', async 
   const wrapper = mount(TimeSeriesChart, { props: { buckets: [bucket()], mode: 'tokens' } });
   await wrapper.setProps({ buckets: [bucket({ key: '2026-08-02' })], mode: 'tokens' });
   expect(chartInstances).toHaveLength(1); // same instance, updated in place
-  expect(chartInstances[0].data.labels).toEqual(['2026-08-02']);
+  expect(chartInstances[0].data.labels).toEqual(['Aug 2']);
 });
 
 test('destroys the chart instance on unmount', () => {
@@ -105,5 +105,12 @@ test('formats ticks and tooltips compactly in tokens mode and in euros in cost m
   expect(options.plugins.tooltip.callbacks.label({ dataset: { label: 'Input' }, raw: 1500 })).toBe('Input: 1.5K');
   await wrapper.setProps({ mode: 'cost' });
   options = chartInstances[0].options;
-  expect(options.scales.y.ticks.callback(1.5)).toBe('1.50 €');
+  expect(options.scales.y.ticks.callback(1.5)).toBe('€1.50');
+});
+
+test('axis labels follow the granularity', async () => {
+  const wrapper = mount(TimeSeriesChart, { props: { buckets: [bucket({ key: '2026-08-03' })], mode: 'tokens', granularity: 'week' } });
+  expect(chartInstances[0].data.labels).toEqual(['week of Aug 3']);
+  await wrapper.setProps({ buckets: [bucket({ key: '2026-08' })], granularity: 'month' });
+  expect(chartInstances[0].data.labels).toEqual(['Aug 2026']);
 });

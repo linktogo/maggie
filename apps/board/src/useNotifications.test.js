@@ -68,7 +68,7 @@ test('includes the session title in the notification when present', async () => 
   useNotifications(transitions, ref(0), { notifier, storage: fakeStorage(), doc: { title: '' } });
   transitions.value = [{ name: 'oc-auth', sessionId: 's1', title: 'fix login redirect', status: 'question' }];
   await nextTick();
-  expect(notifier.instances[0].title).toBe('oc-auth · fix login redirect → question');
+  expect(notifier.instances[0].title).toBe('oc-auth · fix login redirect → Question');
 });
 
 test('notification bodies are written in the selected language', async () => {

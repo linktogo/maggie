@@ -5,6 +5,7 @@ import { formatTokens } from './formatTokens.js';
 import { agentOf, agentLabel, agentPillClass } from './agentBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
+import { eventLabel } from './labels.js';
 
 const { t } = useI18n();
 
@@ -73,7 +74,7 @@ function onDragStart(e) {
   >
     <div class="font-medium text-ink text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
     <div class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
-      <span>{{ session.lastEvent }} · {{ when }}</span>
+      <span :title="session.lastEvent">{{ eventLabel(session.lastEvent) }} · {{ when }}</span>
       <span
         data-test="agent-badge"
         :title="t('session.agentTooltip', { agent: agentLabel(agent) })"

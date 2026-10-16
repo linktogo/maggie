@@ -27,7 +27,7 @@ const buckets = computed(() => bucketByPeriod(granularity.value));
 const projectTotals = computed(() => totalsByProject());
 
 function tabClass(active) {
-  return ['nav-tab rounded-control px-3 py-1 font-medium transition-colors',
+  return ['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors',
     active ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft'];
 }
 </script>
@@ -41,7 +41,7 @@ function tabClass(active) {
       </div>
       <div class="inline-flex bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
         <button data-test="mode-tokens" :class="tabClass(mode === 'tokens')" @click="mode = 'tokens'">{{ t('history.modeTokens') }}</button>
-        <button data-test="mode-cost" :class="tabClass(mode === 'cost')" @click="mode = 'cost'">€</button>
+        <button data-test="mode-cost" :aria-label="t('chart.cost')" :title="t('chart.cost')" :class="tabClass(mode === 'cost')" @click="mode = 'cost'">€</button>
       </div>
     </div>
 
@@ -54,7 +54,7 @@ function tabClass(active) {
           @click="granularity = g.key"
         >{{ g.label }}</button>
       </div>
-      <TimeSeriesChart :buckets="buckets" :mode="mode" />
+      <TimeSeriesChart :buckets="buckets" :mode="mode" :granularity="granularity" />
     </div>
 
     <div v-else class="bg-surface border border-line rounded-card shadow-panel p-4">

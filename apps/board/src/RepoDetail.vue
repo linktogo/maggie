@@ -5,6 +5,7 @@ import RetroDocLog from './RetroDocLog.vue';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
+import { eventLabel, ciConclusionLabel, ciReasonLabel } from './labels.js';
 
 const { t } = useI18n();
 
@@ -48,10 +49,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
 <template>
   <div v-if="name" class="fixed inset-0 z-20">
     <div data-test="overlay" class="absolute inset-0 bg-overlay" @click="emit('close')"></div>
-    <aside class="absolute right-0 top-0 h-full w-full sm:w-80 max-w-full bg-surface shadow-overlay p-4 overflow-y-auto">
-      <button class="float-right text-ink-faint hover:text-ink-soft" :aria-label="t('detail.close')" @click="emit('close')"><Icon name="close" emoji="✕" /></button>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-96 max-w-full bg-surface shadow-overlay p-4 overflow-y-auto">
+      <button type="button" class="float-right ml-2 rounded-control p-1 text-ink-faint hover:text-ink-soft hover:bg-surface-hover" :aria-label="t('detail.close')" @click="emit('close')"><Icon name="close" emoji="✕" /></button>
       <div class="pb-3 border-b border-line-soft mb-3">
-        <h2 class="font-bold text-ink-strong">{{ name }}</h2>
+        <h2 class="font-bold text-ink-strong break-all">{{ name }}</h2>
         <p v-if="session?.title" class="text-sm text-ink-soft mt-1">{{ session.title }}</p>
         <a v-if="meta?.url" :href="meta.url" target="_blank" rel="noopener"
            class="text-sm text-accent underline break-all">{{ meta.url }}</a>
@@ -77,7 +78,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             data-test="detail-message-input"
             rows="2"
             :placeholder="t('session.messagePlaceholder')"
-            class="min-w-0 flex-1 resize-y rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
+            class="min-w-0 flex-1 resize-y rounded-[min(var(--radius-control),0.75rem)] border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
             @keydown.enter.exact.prevent="send"
           ></textarea>
           <button
@@ -120,14 +121,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
           ✓ {{ t('detail.retroDocDone', { out: retroDoc.out }) }} · {{ retroDoc.generator }}
         </p>
         <p v-else-if="retroDoc?.status === 'error'" data-test="retro-doc-error" class="mt-1 text-xs text-question-on-soft">
-          ⚠ {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
+          <Icon name="warning" emoji="⚠" /> {{ t('detail.retroDocFailed', { reason: retroDoc.error }) }}
         </p>
         <RetroDocLog v-if="retroLog.length" :log="retroLog" />
       </template>
 
       <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.ci') }}</h3>
       <p v-if="ci?.unavailable" data-test="ci-unavailable" class="mt-1 text-xs text-ink-muted">
-        {{ t('detail.ciUnavailable', { reason: ci.unavailable }) }}
+        {{ t('detail.ciUnavailable', { reason: ciReasonLabel(ci.unavailable) }) }}
       </p>
       <p v-else-if="ciUsers.length === 0" data-test="ci-empty" class="mt-1 text-xs text-ink-muted">
         {{ t('detail.ciEmpty') }}
@@ -140,7 +141,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             {{ ci.users[u.login].run.workflow }}
           </a>
           · {{ ci.users[u.login].run.branch }}
-          · {{ ci.users[u.login].run.conclusion }}
+          · {{ ciConclusionLabel(ci.users[u.login].run.conclusion) }}
           · {{ relativeTime(ci.users[u.login].run.startedAt, now) }}
         </li>
       </ul>
@@ -148,7 +149,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
       <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.history') }}</h3>
       <ul class="mt-1 space-y-1">
         <li v-for="(e, i) in (session?.events || [])" :key="i" class="text-xs text-ink-soft">
-          • {{ e.event }} — {{ relativeTime(e.at, now) }}
+          • <span :title="e.event">{{ eventLabel(e.event) }}</span> — {{ relativeTime(e.at, now) }}
         </li>
       </ul>
     </aside>

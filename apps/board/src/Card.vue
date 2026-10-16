@@ -4,6 +4,7 @@ import SessionRow from './SessionRow.vue';
 import { STATUS_STYLES } from './statusStyles.js';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
+import { ciStateLabel } from './labels.js';
 
 const { t } = useI18n();
 
@@ -19,7 +20,7 @@ const emit = defineEmits(['open', 'send-message']);
 const isQuestion = computed(() => props.status === 'question');
 const style = computed(() => STATUS_STYLES[props.status]);
 const badges = computed(() => visibleBadges(props.ci?.users));
-const overflowTitle = computed(() => badges.value.overflow.map((b) => `${b.login} — ${b.state}`).join('\n'));
+const overflowTitle = computed(() => badges.value.overflow.map((b) => `${b.login} — ${ciStateLabel(b.state)}`).join('\n'));
 
 function open(sessionId) {
   emit('open', { name: props.name, sessionId });
@@ -43,8 +44,8 @@ function open(sessionId) {
           v-for="b in badges.shown" :key="b.login"
           data-test="ci-badge"
           role="img"
-          :title="`${b.login} — ${b.state}`"
-          :aria-label="`${b.login} — ${b.state}`"
+          :title="`${b.login} — ${ciStateLabel(b.state)}`"
+          :aria-label="`${b.login} — ${ciStateLabel(b.state)}`"
           :class="['text-[10px] leading-none font-semibold border rounded-badge px-1 py-0.5', pillClass(b.state)]"
         >{{ b.initials }}</span>
         <span

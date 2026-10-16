@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue';
+import { CI_UNREACHABLE } from './labels.js';
 
 export function useCi({ intervalMs = 30000, fetchImpl = fetch } = {}) {
   const repos = ref({});
@@ -11,7 +12,7 @@ export function useCi({ intervalMs = 30000, fetchImpl = fetch } = {}) {
       repos.value = data.repos ?? {};
       syncError.value = data.lastSyncError ?? null;
     } catch {
-      syncError.value = 'injoignable';
+      syncError.value = CI_UNREACHABLE;
     }
   }
 

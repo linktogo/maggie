@@ -40,6 +40,13 @@ export function translate(key, params) {
   return interpolate(template, params);
 }
 
+// For values that arrive as codes from outside the board (hook event names,
+// CI states, server reasons): a known code is translated, anything else is
+// shown as it came rather than as a missing-key slug.
+export function translateOr(key, fallback, params) {
+  return Object.hasOwn(MESSAGES[DEFAULT_LOCALE], key) ? translate(key, params) : fallback;
+}
+
 export function setLocale(code, { storage = globalThis.localStorage, doc = globalThis.document } = {}) {
   if (!isSupported(code)) return locale.value;
   locale.value = code;

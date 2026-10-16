@@ -4,7 +4,7 @@ import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, 
 import { UNKNOWN_MODEL } from './pricing.js';
 import { useI18n } from './i18n.js';
 import { seriesColors, chartInk, chartGrid } from './chartColors.js';
-import { formatChartValue } from './chartFormat.js';
+import { formatChartValue, formatBucketLabel } from './chartFormat.js';
 import { useTheme } from './theme.js';
 
 const { t, locale } = useI18n();
@@ -15,6 +15,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 const props = defineProps({
   buckets: { type: Array, required: true }, // [{ key, tokens, costByModel }]
   mode: { type: String, required: true }, // 'tokens' | 'cost'
+  granularity: { type: String, default: 'day' }, // 'day' | 'week' | 'month' | 'year'
 });
 
 const TOKEN_SERIES = [
@@ -62,7 +63,7 @@ function render() {
   const format = (value) => formatChartValue(value, props.mode);
   const config = {
     type: 'bar',
-    data: { labels: props.buckets.map((b) => b.key), datasets: buildDatasets(palette) },
+    data: { labels: props.buckets.map((b) => formatBucketLabel(b.key, props.granularity)), datasets: buildDatasets(palette) },
     options: {
       responsive: true,
       // Without this Chart.js keeps a 2:1 ratio and, on a wide screen, grows
@@ -89,7 +90,7 @@ function render() {
 }
 
 onMounted(render);
-watch([() => props.buckets, () => props.mode, locale, theme, themeMode], render);
+watch([() => props.buckets, () => props.mode, () => props.granularity, locale, theme, themeMode], render);
 onUnmounted(() => { chart?.destroy(); chart = null; });
 </script>
 

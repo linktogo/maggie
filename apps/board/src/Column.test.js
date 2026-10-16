@@ -69,3 +69,15 @@ test('forwards send-message emitted by a card up to the parent', async () => {
   await w.findComponent(Card).vm.$emit('send-message', { repo: 'oc-be', sessionId: 's1', text: 'go' });
   expect(w.emitted('send-message')[0]).toEqual([{ repo: 'oc-be', sessionId: 's1', text: 'go' }]);
 });
+
+test('an empty column says so, and the done column says what dropping there does', () => {
+  const todo = mount(Column, { props: { title: 'To do', status: 'todo', entries: [] } });
+  expect(todo.get('[data-test=column-empty]').text()).toBe('Nothing here');
+  const done = mount(Column, { props: { title: 'Done', status: 'done', entries: [] } });
+  expect(done.get('[data-test=column-empty]').text()).toBe('Drag a session here to close it');
+});
+
+test('a column with cards shows no empty hint', () => {
+  const w = mount(Column, { props: { title: 'To do', status: 'todo', entries: [{ name: 'oc-be', sessions: [] }] } });
+  expect(w.find('[data-test=column-empty]').exists()).toBe(false);
+});

@@ -42,6 +42,6 @@ test('useCi keeps the last known repos when a fetch fails', async () => {
   await nextTick(); await Promise.resolve(); await nextTick();
   await refresh();
   expect(repos.value).toEqual({ a: { users: {} } });
-  expect(syncError.value).toBe('injoignable');
+  expect(syncError.value).toBe('unreachable');
   stop();
 });

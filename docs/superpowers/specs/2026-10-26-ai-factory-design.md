@@ -1,7 +1,7 @@
 # Design — AI Factory (serveur d'agents + onglet du board)
 
 **Date** : 2026-10-26
-**Statut** : En attente de relecture
+**Statut** : Validé
 
 ## Objectif
 
@@ -56,15 +56,15 @@ Au démarrage il génère un token et l'écrit dans `~/.maggie/agents.token` (mo
 
 | Route | Rôle |
 |---|---|
-| `GET /health` | providers disponibles, provider par défaut |
+| `GET /health` | providers disponibles, provider par défaut **et repos autorisés** |
 | `GET /skills` | skills disponibles |
-| `POST /runs` | `{repo, provider?, model?, prompt}` ou `{repo, skill, provider?, model?}` → `202 {id}` |
+| `POST /runs` | `{repo, provider?, model?, prompt}` ou `{repo, skill, provider?, model?}` → `202 {id, run}` |
 | `GET /runs`, `GET /runs/:id` | liste et état |
 | `GET /runs/:id/events` | flux SSE |
 | `DELETE /runs/:id` | annulation (SIGTERM) |
 
 Contrôles sur chaque requête : token valide (`401`), `Host` loopback (`403`),
-`Origin` absent ou égal à l'origine du board (`403`). Erreurs : `400` entrée
+`Origin` absent ou présent dans `--allow-origin` (vide par défaut : le proxy du board n'envoie pas d'Origin) (`403`). Erreurs : `400` entrée
 invalide, `404` repo/skill/run inconnu, `409` run déjà actif sur le repo.
 
 Configuration : `--port`, `--provider`, `--repos <repos.json>` (même format que

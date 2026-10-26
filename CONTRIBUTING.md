@@ -34,6 +34,10 @@ npm run build       # nx run-many -t build
 npm start           # build + serve the kanban dashboard
 ```
 
+`npm run agents -- --repos repos.example.json` starts the AI Factory agents
+server (see [AI Factory](docs/ai-factory.md)); it needs the `claude` or
+`copilot` CLI to actually run an agent, tests never do.
+
 `npm run retro-doc` reconstructs a repository's design record into one
 agent-facing document, asking which repository of the workspace to document and
 which LLM to use (Anthropic API, the `claude` CLI or the `copilot` CLI). Add
@@ -71,7 +75,7 @@ than lowering the threshold.
 
 Tests live next to the code they cover:
 
-- `libs/*/test/*.test.js` and `apps/{sync,workspace}/test/*.test.js` — `node:test`
+- `libs/*/test/*.test.js` and `apps/{sync,workspace,agents}/test/*.test.js` — `node:test`
 - `apps/board/src/*.test.js` — `vitest` + `@vue/test-utils`
 
 ## Adding a skill

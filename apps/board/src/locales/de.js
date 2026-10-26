@@ -34,6 +34,8 @@ export default {
   'notifications.blocked': 'Benachrichtigungen vom Browser blockiert.',
   'notification.question': 'Ein Agent wartet auf deine Eingabe',
   'notification.done': 'Arbeit abgeschlossen',
+  'budget.sessionAlert': '{name} · {title} — {cost} (Schwelle {threshold})',
+  'budget.dayAlert': 'Heute: {cost} (Schwelle {threshold})',
 
   'banner.disconnected': 'getrennt — neuer Versuch beim nächsten Poll…',
   'banner.ciDesync': 'CI nicht synchron — {reason}',

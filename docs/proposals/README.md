@@ -534,10 +534,15 @@ Three further gaps, all in what the numbers can say once shown:
    the token total, with per-model detail in the tooltip. No server change.
 2. **Cache hit rate.** `cacheRead / (cacheRead + cacheCreation + input)` on the
    card and per repo in History, with a low-rate hint.
-3. **Honest pricing.** Match model ids by family prefix before falling back, mark
-   any figure priced at `default` with a visible "estimate" marker, and settle
-   and display the currency. Keep the table hand-maintained, as its comment
-   already argues: no network lookup.
+3. **Honest pricing, in euros.** Match model ids by family prefix before falling
+   back and mark any figure priced at `default` with a visible "estimate" marker.
+   The currency is decided: **euro**. The table's comment already says
+   €/million, but its values (e.g. 3.0 input / 15.0 output for Sonnet) are the
+   published USD list prices, so today dollar amounts are displayed as euros.
+   Keep the table in USD as published and add one hand-set `usdToEur` factor
+   applied at render time, shown in the UI as an indicative conversion. That
+   keeps the table checkable against Anthropic's page and still hand-maintained,
+   as its comment already argues: no network lookup, for prices or for the rate.
 4. **Budget alerts.** Optional thresholds in the board config — per session, and
    per day across repos — that reuse the existing notification path and highlight
    the card. Alert at the threshold and again at each doubling, so a runaway
@@ -552,9 +557,10 @@ Three further gaps, all in what the numbers can say once shown:
 4, because it adds board config the board does not have today and the
 "per day" total needs a defined day boundary and a definition of whose clock.
 
-**Open questions.** Which currency? If the table is dollars the label is the bug;
-if the intent is euros, the rates are wrong. Are thresholds per user or per
-board? Today the board is a single-user local tool (see "Deliberately not
+**Open questions.** Where does `usdToEur` live — a constant next to `PRICING`, or
+board config so each user sets their own? A constant is simpler; config is right
+if the rate is expected to move between releases. Budget thresholds (piece 4) are
+in euros, converted the same way. Are thresholds per user or per board? Today the board is a single-user local tool (see "Deliberately not
 proposed"), so per board is enough, and a team-wide budget is a change to the
 security model first. Is a model-switch what-if (what this session would have
 cost on a cheaper model) worth a place on the History page? It is the part of

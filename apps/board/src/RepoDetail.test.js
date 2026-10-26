@@ -1,6 +1,8 @@
 import { test, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import RepoDetail from './RepoDetail.vue';
+import { formatChartValue } from './chartFormat.js';
+import { USD_TO_EUR } from './pricing.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
 const session = {
@@ -176,4 +178,18 @@ test('the detail panel paints from theme tokens, not literal Tailwind colors', (
   // its only accessible name — a dropped aria-label would be invisible to
   // a screen reader with no other test to catch it.
   expect(w.get('button').attributes('aria-label')).toBe('Close');
+});
+
+test('shows the estimated cost of the session when it has usage, "~"-prefixed when priced at a guess', () => {
+  const full = { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 };
+  const known = mount(RepoDetail, { props: { name: 'oc-auth', session: { ...session, usage: { ...full, byModel: { 'claude-sonnet-5': full } } }, meta, now } });
+  expect(known.get('[data-test=detail-cost]').text()).toContain(formatChartValue(3 * USD_TO_EUR, 'cost'));
+  expect(known.get('[data-test=detail-cost]').text()).not.toContain('~');
+  const guessed = mount(RepoDetail, { props: { name: 'oc-auth', session: { ...session, usage: full }, meta, now } });
+  expect(guessed.get('[data-test=detail-cost]').text()).toContain('~');
+});
+
+test('shows no cost line for a session without usage', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session, meta, now } });
+  expect(w.find('[data-test=detail-cost]').exists()).toBe(false);
 });

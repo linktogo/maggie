@@ -1,6 +1,9 @@
 import { test, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SessionRow from './SessionRow.vue';
+import { formatChartValue } from './chartFormat.js';
+import { translate } from './i18n.js';
+import { USD_TO_EUR } from './pricing.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
 
@@ -139,4 +142,40 @@ test('shows a copilot badge for a session recorded by the GitHub Copilot hooks',
   expect(badge.text()).toBe('copilot');
   expect(badge.attributes('title')).toBe('Running on GitHub Copilot CLI');
   expect(badge.classes().join(' ')).toContain('agent-copilot');
+});
+
+const FULL = { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheCreationInputTokens: 1_000_000, cacheReadInputTokens: 1_000_000 };
+
+function withUsage(usage) {
+  return mount(SessionRow, { props: { session: session({ usage }), now } });
+}
+
+test('cost badge shows the estimated euro cost of a session priced from known models', () => {
+  const w = withUsage({ ...FULL, byModel: { 'claude-sonnet-5': FULL } });
+  expect(w.get('[data-test=cost-badge]').text()).toBe(formatChartValue(22.05 * USD_TO_EUR, 'cost'));
+});
+
+test('cost badge is "~"-prefixed with an explanatory title when a model is priced at the default rate', () => {
+  const w = withUsage({ ...FULL, byModel: { 'gpt-5': FULL } });
+  const badge = w.get('[data-test=cost-badge]');
+  expect(badge.text().startsWith('~')).toBe(true);
+  expect(badge.attributes('title')).toContain(translate('session.estimateHint'));
+});
+
+test('cost badge is "~"-prefixed for usage with no per-model breakdown', () => {
+  expect(withUsage(FULL).get('[data-test=cost-badge]').text().startsWith('~')).toBe(true);
+});
+
+test('there is no cost badge before the session has any usage', () => {
+  const w = mount(SessionRow, { props: { session: session(), now } });
+  expect(w.find('[data-test=cost-badge]').exists()).toBe(false);
+});
+
+test('cost badge title carries the cache hit rate and, when it is low over a large session, the hint', () => {
+  const low = { inputTokens: 80_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 20_000, byModel: { 'claude-sonnet-5': { inputTokens: 80_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 20_000 } } };
+  const title = withUsage(low).get('[data-test=cost-badge]').attributes('title');
+  expect(title).toContain(translate('session.cacheRate', { rate: 20 }));
+  expect(title).toContain(translate('session.cacheLow'));
+  const healthy = { ...low, inputTokens: 10_000, cacheReadInputTokens: 90_000, byModel: { 'claude-sonnet-5': { ...low.byModel['claude-sonnet-5'], inputTokens: 10_000, cacheReadInputTokens: 90_000 } } };
+  expect(withUsage(healthy).get('[data-test=cost-badge]').attributes('title')).not.toContain(translate('session.cacheLow'));
 });

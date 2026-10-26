@@ -69,6 +69,10 @@ export default {
   'session.agentTooltip': 'Running on {agent}',
   'session.worktreeTooltip': 'Isolated in git worktree · branch {branch}',
   'session.usageTooltip': 'input {input} · output {output} · cache write {cacheWrite} · cache read {cacheRead}',
+  'session.costTooltip': 'Estimated cost by model: {breakdown}',
+  'session.estimateHint': 'Estimate — at least one model is priced at the default rate',
+  'session.cacheRate': 'cache hit rate {rate} %',
+  'session.cacheLow': 'low cache hit rate — the prompt prefix may be changing every turn',
   'session.messagePlaceholder': 'Message to the session…',
   'session.send': 'Send',
 

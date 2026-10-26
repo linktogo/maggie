@@ -67,6 +67,10 @@ export default {
   'session.agentTooltip': 'Ejecutada con {agent}',
   'session.worktreeTooltip': 'Aislado en un worktree de git · rama {branch}',
   'session.usageTooltip': 'entrada {input} · salida {output} · caché escrita {cacheWrite} · caché leída {cacheRead}',
+  'session.costTooltip': 'Coste estimado por modelo: {breakdown}',
+  'session.estimateHint': 'Estimación — al menos un modelo se calcula con la tarifa por defecto',
+  'session.cacheRate': 'tasa de aciertos de caché {rate} %',
+  'session.cacheLow': 'tasa de aciertos de caché baja — el prefijo del prompt puede cambiar en cada turno',
   'session.messagePlaceholder': 'Mensaje a la sesión…',
   'session.send': 'Enviar',
 

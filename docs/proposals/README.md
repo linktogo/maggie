@@ -500,6 +500,8 @@ patterns that are specific, and let the allowlist be explicit.
 
 ## P12 — Live cost and budget alerts on the board
 
+> **Status:** specified in [the design](../superpowers/specs/2026-10-26-board-live-cost-and-budget-design.md) and implemented per [its plan](../superpowers/plans/2026-10-26-board-live-cost-and-budget.md). The text below is the original proposal, kept as history.
+
 **Problem.** The board prices tokens in exactly one place:
 [`useHistoryStats.js`](../../apps/board/src/useHistoryStats.js) feeds
 [`pricing.js`](../../apps/board/src/pricing.js), and it does so for *closed*

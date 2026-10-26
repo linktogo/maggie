@@ -104,6 +104,14 @@ or not the server is running.
   `claude` (Claude Code) or `copilot` (GitHub Copilot CLI) — so a workspace
   mixing both stays readable. Sessions recorded before the board tracked the
   agent show as `claude`.
+- **Live cost** on each session card and in the detail panel: the estimated
+  cost in euros, with the per-model split and the prompt-cache hit rate in the
+  tooltip. A `~` in front of the amount means some of it is priced at a guess —
+  a model the pricing table does not list, or a session with no per-model
+  breakdown. A low cache hit rate over a large session adds a hint. See
+  [Cost and budget](#cost-and-budget).
+- **Budget** control in the header: optional per-session and per-day thresholds
+  in euros, with a browser notification when one is crossed.
 - **Language picker** in the header: English (the default), French, German and
   Spanish. See below.
 - **Theme picker** in the header: Material 3 (the default), Material 3
@@ -180,6 +188,35 @@ both routes answer `503` and the panel says so rather than guessing a directory
 to write into. The checkout is resolved the same way hook reconciliation
 resolves it: `path` from the config when it pins one, otherwise
 `<workspace>/<name>`.
+
+## Cost and budget
+
+Cost is computed in the browser, at render time, from the token counts the board
+already stores — nothing on the server changes, and a correction to the pricing
+table re-prices live sessions and the whole History page at once.
+
+`apps/board/src/pricing.js` holds the table in **USD per million tokens, as
+Anthropic publishes them**, and one hand-set `USD_TO_EUR` factor; every amount
+the board shows is in euros through that factor, so it is indicative. A model id
+is matched exactly, then by family prefix (`claude-sonnet-5-5` is priced as
+`claude-sonnet-5`), and anything else is priced at the table's default rate and
+shown with a `~`. There is no network lookup, for prices or for the rate:
+refresh both by hand when the table is reviewed.
+
+**Budget.** The *Budget* control in the header takes a per-session and a per-day
+threshold in euros; empty means off, which is the default. They are stored in
+this browser only (`localStorage`). A notification is sent when a session — or
+the day's total — reaches its threshold, and again at each doubling (T, 2T, 4T…),
+following the same permission and sound toggles as the other notifications. A
+session already over its threshold when the page loads is recorded, not alerted,
+so a reload never replays alerts; changing a threshold re-baselines the same way.
+A session over its threshold also turns its cost badge to the warning colour.
+
+The day total counts the sessions that closed on the browser's local calendar
+day plus every running session, so it needs `/api/history`; the board only
+fetches it while a day threshold is set. A session spanning midnight counts
+wholly toward the day it is running in or closes in — it is an alarm, not an
+invoice.
 
 ## Themes
 

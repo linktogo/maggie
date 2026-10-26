@@ -4,6 +4,8 @@ import SessionRow from './SessionRow.vue';
 import { formatChartValue } from './chartFormat.js';
 import { translate } from './i18n.js';
 import { USD_TO_EUR } from './pricing.js';
+import { setBudget } from './budget.js';
+import { STATUS_STYLES } from './statusStyles.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
 
@@ -178,4 +180,16 @@ test('cost badge title carries the cache hit rate and, when it is low over a lar
   expect(title).toContain(translate('session.cacheLow'));
   const healthy = { ...low, inputTokens: 10_000, cacheReadInputTokens: 90_000, byModel: { 'claude-sonnet-5': { ...low.byModel['claude-sonnet-5'], inputTokens: 10_000, cacheReadInputTokens: 90_000 } } };
   expect(withUsage(healthy).get('[data-test=cost-badge]').attributes('title')).not.toContain(translate('session.cacheLow'));
+});
+
+test('cost badge takes the warning style once the session reaches its budget', () => {
+  const usage = { ...FULL, byModel: { 'claude-sonnet-5': FULL } }; // 22.05 USD
+  setBudget({ session: 22.05 * USD_TO_EUR });
+  const over = withUsage(usage).get('[data-test=cost-badge]').classes();
+  expect(over).toEqual(expect.arrayContaining(STATUS_STYLES.question.chip.split(' ')));
+  setBudget({ session: 22.05 * USD_TO_EUR * 2 });
+  const under = withUsage(usage).get('[data-test=cost-badge]').classes();
+  expect(under).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
+  setBudget({ session: null });
+  expect(withUsage(usage).get('[data-test=cost-badge]').classes()).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
 });

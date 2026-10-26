@@ -2,10 +2,15 @@
 import { computed } from 'vue';
 import { STATUS_STYLES } from './statusStyles.js';
 import { useI18n } from './i18n.js';
+import { budget } from './budget.js';
+import { formatChartValue } from './chartFormat.js';
 
 const { t } = useI18n();
 
-const props = defineProps({ repos: { type: Object, required: true } });
+const props = defineProps({
+  repos: { type: Object, required: true },
+  dayCost: { type: Number, default: null },
+});
 
 // A repo with zero active sessions counts as one "todo" card (same
 // placeholder behavior the board itself shows); otherwise every session
@@ -36,5 +41,6 @@ const percentDone = computed(() => (total.value ? Math.round((counts.value.done 
       <div data-test="progress" class="h-full progress-fill rounded-chip" :style="{ width: percentDone + '%' }"></div>
     </div>
     <div class="text-xs text-ink-faint mt-1">{{ t('summary.percentDone', { percent: percentDone }) }}</div>
+    <div v-if="budget.day !== null && dayCost !== null" data-test="day-cost" class="text-xs text-ink-muted mt-1">{{ t('summary.today', { cost: formatChartValue(dayCost, 'cost'), threshold: formatChartValue(budget.day, 'cost') }) }}</div>
   </div>
 </template>

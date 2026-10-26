@@ -18,6 +18,7 @@ const props = defineProps({
   now: { type: Number, required: true },
   fetchImpl: { type: Function, required: true },
   refresh: { type: Function, required: true },
+  dayCost: { type: Number, default: null },
 });
 
 const {
@@ -115,7 +116,7 @@ const selectedRetroDoc = computed(() => (selected.value && retroDocJobs.value ? 
       />
     </div>
 
-    <SummaryHeader :repos="repos" />
+    <SummaryHeader :repos="repos" :day-cost="dayCost" />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
       <Column

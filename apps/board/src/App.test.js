@@ -6,6 +6,7 @@ import App from './App.vue';
 import Column from './Column.vue';
 import { createBoardRouter } from './router.js';
 import { DEFAULT_LOCALE, locale, STORAGE_KEY } from './i18n.js';
+import { setBudget } from './budget.js';
 
 // The /history route mounts real chart components; jsdom has no <canvas>
 // support, so Chart.js is mocked the same way the dedicated chart test
@@ -343,4 +344,22 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
   const inactive = wrapper.get('[data-test=view-history]');
   expect(inactive.classes()).toContain('text-ink-muted');
+});
+
+test('App polls /api/history only once a day threshold is set', async () => {
+  setBudget({ day: null });
+  const off = routedFetch();
+  await mountApp(off);
+  expect(off.mock.calls.filter(([u]) => u === '/api/history')).toHaveLength(0);
+
+  setBudget({ day: 50 });
+  const on = routedFetch();
+  await mountApp(on);
+  expect(on.mock.calls.filter(([u]) => u === '/api/history').length).toBeGreaterThan(0);
+  setBudget({ day: null });
+});
+
+test('App shows the budget settings in the header', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  expect(wrapper.find('[data-test=budget-settings]').exists()).toBe(true);
 });

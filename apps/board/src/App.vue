@@ -5,6 +5,11 @@ import { useBoard } from './useBoard.js';
 import { useConfig } from './useConfig.js';
 import { useCi } from './useCi.js';
 import { useNotifications } from './useNotifications.js';
+import { useDayHistory } from './useDayHistory.js';
+import { useBudgetAlerts } from './useBudgetAlerts.js';
+import { dayTotal } from './dayCost.js';
+import { budget } from './budget.js';
+import BudgetSettings from './BudgetSettings.vue';
 import { useNow } from './useRelativeTime.js';
 import { useI18n } from './i18n.js';
 import LocaleSwitcher from './LocaleSwitcher.vue';
@@ -38,6 +43,13 @@ const questionCount = computed(() => {
 });
 const { permission, soundOn, requestPermission, toggleSound } = useNotifications(transitions, questionCount, {});
 
+// The day total needs closed sessions from /api/history; that is only fetched
+// while a day threshold is set.
+const dayEnabled = computed(() => budget.value.day !== null);
+const { entries: dayEntries, loaded: dayReady } = useDayHistory({ fetchImpl, intervalMs: props.intervalMs, enabled: dayEnabled });
+const dayCost = computed(() => (dayEnabled.value ? dayTotal(repos.value, dayEntries.value, now.value) : null));
+useBudgetAlerts({ repos, dayCost, dayReady, now, permission, soundOn });
+
 const ciUnavailable = computed(() => {
   for (const repo of Object.values(ci.value)) {
     if (repo?.unavailable) return repo.unavailable;
@@ -48,7 +60,7 @@ const ciUnavailable = computed(() => {
 const routeProps = computed(() => {
   if (route.name === 'history') return { fetchImpl };
   if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
-  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh };
+  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value };
 });
 </script>
 
@@ -81,6 +93,7 @@ const routeProps = computed(() => {
           class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
           @click="requestPermission"
         ><Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}</button>
+        <BudgetSettings />
         <button
           class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
           :class="soundOn ? 'text-ink-soft' : 'text-ink-faint'"

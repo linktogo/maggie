@@ -36,6 +36,9 @@ export default {
   'notification.done': 'Trabajo terminado',
   'budget.sessionAlert': '{name} · {title} — {cost} (umbral {threshold})',
   'budget.dayAlert': 'Hoy: {cost} (umbral {threshold})',
+  'budget.title': 'Presupuesto',
+  'budget.session': 'Por sesión (€)',
+  'budget.day': 'Por día (€)',
 
   'banner.disconnected': 'desconectado — nuevo intento en el próximo sondeo…',
   'banner.ciDesync': 'CI desincronizado — {reason}',
@@ -48,6 +51,7 @@ export default {
 
   'summary.repos': 'repos',
   'summary.percentDone': '{percent} % completado',
+  'summary.today': 'hoy {cost} de {threshold}',
 
   'filter.searchRepo': '🔍 filtrar un repo…',
   'filter.techAll': 'tecnología: todas',

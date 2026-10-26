@@ -166,3 +166,16 @@ test('day: a new local day resets the level silently', async () => {
   await nextTick();
   expect(s.notifier.instances).toHaveLength(1);
 });
+
+test('day: a momentary dip in the total never lowers the level, so the same level does not fire twice', async () => {
+  setBudget({ day: euro(1) }, memoryStorage());
+  const s = setup({ dayCost: euro(2), dayReady: true }); // baseline at level 2
+  s.dayCost.value = euro(1); // e.g. a closing session briefly missing from both lists
+  await nextTick();
+  s.dayCost.value = euro(2);
+  await nextTick();
+  expect(s.notifier.instances).toHaveLength(0);
+  s.dayCost.value = euro(4); // a genuine new level still fires
+  await nextTick();
+  expect(s.notifier.instances).toHaveLength(1);
+});

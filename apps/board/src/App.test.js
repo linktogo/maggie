@@ -7,6 +7,7 @@ import Column from './Column.vue';
 import { createBoardRouter } from './router.js';
 import { DEFAULT_LOCALE, locale, STORAGE_KEY } from './i18n.js';
 import { setBudget } from './budget.js';
+import { USD_TO_EUR } from './pricing.js';
 
 // The /history route mounts real chart components; jsdom has no <canvas>
 // support, so Chart.js is mocked the same way the dedicated chart test
@@ -362,4 +363,28 @@ test('App polls /api/history only once a day threshold is set', async () => {
 test('App shows the budget settings in the header', async () => {
   const { wrapper } = await mountApp(routedFetch());
   expect(wrapper.find('[data-test=budget-settings]').exists()).toBe(true);
+});
+
+test('App does not replay a day alert on reload when the history arrives before the board', async () => {
+  const sent = [];
+  class FakeNotification { constructor(title) { sent.push(title); } }
+  FakeNotification.permission = 'granted';
+  vi.stubGlobal('Notification', FakeNotification);
+
+  const usage = { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, byModel: { 'claude-sonnet-5': { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 } } };
+  const oneMillion = 3 * USD_TO_EUR; // euros
+  setBudget({ day: oneMillion * 1.5 }); // history alone (1x) is below it, history + live (2x) is above
+  let releaseBoard;
+  const boardGate = new Promise((r) => { releaseBoard = r; });
+  const fetchImpl = vi.fn().mockImplementation((url) => {
+    if (url === '/api/config') return Promise.resolve({ json: async () => ({ repos: {} }) });
+    if (url === '/api/history') return Promise.resolve({ json: async () => ([{ repo: 'h', sessionId: 'old', endedAt: new Date().toISOString(), usage }]) });
+    return boardGate.then(() => ({ json: async () => ({ version: 2, repos: { a: { sessions: { s1: { status: 'inprogress', lastEvent: 'Stop', updatedAt: 'T', title: 't', lastPrompt: 'p', events: [], usage } } } } }) }));
+  });
+  await mountApp(fetchImpl);
+  releaseBoard();
+  await settle();
+  expect(sent).toHaveLength(0);
+  setBudget({ day: null });
+  vi.unstubAllGlobals();
 });

@@ -26,7 +26,7 @@ const props = defineProps({
 });
 const fetchImpl = props.fetchImpl ?? fetch;
 
-const { repos, transitions, connected, refresh } = useBoard({ intervalMs: props.intervalMs, fetchImpl });
+const { repos, transitions, connected, loaded: boardLoaded, refresh } = useBoard({ intervalMs: props.intervalMs, fetchImpl });
 const { repos: config } = useConfig({ fetchImpl });
 const { repos: ci, syncError: ciError } = useCi({ fetchImpl });
 const now = useNow();
@@ -46,7 +46,10 @@ const { permission, soundOn, requestPermission, toggleSound } = useNotifications
 // The day total needs closed sessions from /api/history; that is only fetched
 // while a day threshold is set.
 const dayEnabled = computed(() => budget.value.day !== null);
-const { entries: dayEntries, loaded: dayReady } = useDayHistory({ fetchImpl, intervalMs: props.intervalMs, enabled: dayEnabled });
+const { entries: dayEntries, loaded: historyLoaded } = useDayHistory({ fetchImpl, intervalMs: props.intervalMs, enabled: dayEnabled });
+// Ready only once both halves of the total have arrived, so a reload never takes
+// its baseline from one of them alone.
+const dayReady = computed(() => boardLoaded.value && historyLoaded.value);
 const dayCost = computed(() => (dayEnabled.value ? dayTotal(repos.value, dayEntries.value, now.value) : null));
 useBudgetAlerts({ repos, dayCost, dayReady, now, permission, soundOn });
 

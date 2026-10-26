@@ -77,8 +77,10 @@ export function useBudgetAlerts({
       dayLevel = level;
       return;
     }
+    // Never lowered within a day: a total that briefly dips (a closing session
+    // missing from both lists for one poll) must not make the same level fire again.
     const rose = level > dayLevel;
-    dayLevel = level;
+    dayLevel = Math.max(dayLevel, level);
     if (rose) emit([translate('budget.dayAlert', { cost: euro(dayCost.value), threshold: euro(threshold) })]);
   }
 

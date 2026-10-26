@@ -30,3 +30,15 @@ test('dayTotal ignores sessions and entries without usage, and repos without ses
 test('dayTotal ignores an entry whose endedAt is missing or unparsable', () => {
   expect(dayTotal({}, [{ usage: sonnet }, { endedAt: 'nope', usage: sonnet }], at(26, 15))).toBe(0);
 });
+
+test('dayTotal does not count a closed session twice while it is briefly in both the board and the history', () => {
+  const repos = { a: { sessions: { s1: { usage: sonnet } } } };
+  const entries = [{ repo: 'a', sessionId: 's1', endedAt: iso(26, 9), usage: sonnet }];
+  expect(dayTotal(repos, entries, at(26, 15))).toBeCloseTo(3 * USD_TO_EUR, 6);
+});
+
+test('dayTotal still counts a same-id session of another repo', () => {
+  const repos = { a: { sessions: { s1: { usage: sonnet } } } };
+  const entries = [{ repo: 'b', sessionId: 's1', endedAt: iso(26, 9), usage: sonnet }];
+  expect(dayTotal(repos, entries, at(26, 15))).toBeCloseTo(6 * USD_TO_EUR, 6);
+});

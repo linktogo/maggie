@@ -214,6 +214,127 @@ test('an EPIPE on the CLI stdin is ignored: the exit code decides the outcome', 
   assert.equal(manager.get(run.id).status, 'failed');
 });
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function killRecorder(child) {
+  child.signals = [];
+  child.kill = (signal) => { child.signals.push(signal); };
+}
+
+test('a CLI that ignores SIGTERM on cancel is killed with SIGKILL and the run ends cancelled', async () => {
+  const { manager, calls } = harness({ killGraceMs: 20 });
+  const run = manager.start(START);
+  killRecorder(calls[0].child);
+  manager.cancel(run.id);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM']);
+  await wait(80);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM', 'SIGKILL']);
+  assert.equal(manager.get(run.id).status, 'cancelled');
+  assert.doesNotThrow(() => manager.start(START));
+});
+
+test('a CLI that ignores SIGTERM on timeout is killed with SIGKILL and the run ends timed-out', async () => {
+  const { manager, calls } = harness({ timeoutMs: 20, killGraceMs: 20 });
+  const run = manager.start(START);
+  killRecorder(calls[0].child);
+  await wait(120);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM', 'SIGKILL']);
+  assert.equal(manager.get(run.id).status, 'timed-out');
+  assert.match(manager.get(run.id).error, /timed out after/);
+  calls[0].child.emit('close', null);
+  assert.equal(manager.get(run.id).status, 'timed-out');
+});
+
+test('a run that closes within the grace period never receives SIGKILL', async () => {
+  const { manager, calls } = harness({ killGraceMs: 30 });
+  const run = manager.start(START);
+  killRecorder(calls[0].child);
+  manager.cancel(run.id);
+  calls[0].child.emit('close', null);
+  await wait(80);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM']);
+  assert.equal(manager.get(run.id).status, 'cancelled');
+});
+
+test('cancel then timeout still ends cancelled, with a single SIGKILL', async () => {
+  const { manager, calls } = harness({ timeoutMs: 20, killGraceMs: 60 });
+  const run = manager.start(START);
+  killRecorder(calls[0].child);
+  manager.cancel(run.id);
+  await wait(30);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM']);
+  await wait(100);
+  assert.deepEqual(calls[0].child.signals, ['SIGTERM', 'SIGKILL']);
+  assert.equal(manager.get(run.id).status, 'cancelled');
+});
+
+test('a UTF-8 character split across two chunks is not corrupted', () => {
+  const { manager, calls } = harness();
+  const run = manager.start(START);
+  const bytes = Buffer.from('a€😀b');
+  const seen = [];
+  manager.subscribe(run.id, (event) => seen.push(event));
+  for (const stream of [calls[0].child.stdout, calls[0].child.stderr]) {
+    for (let i = 0; i < bytes.length; i += 2) stream.emit('data', bytes.subarray(i, i + 2));
+  }
+  const text = (type) => seen.filter((e) => e.type === type).map((e) => e.data.text).join('');
+  assert.equal(text('stdout'), 'a€😀b');
+  assert.equal(text('stderr'), 'a€😀b');
+});
+
+test('output beyond maxOutputChars evicts the oldest output, keeping status events and the newest chunk', () => {
+  const { manager, calls } = harness({ maxOutputChars: 5 });
+  const run = manager.start(START);
+  for (const text of ['aaa', 'bbb', 'ccc']) calls[0].child.stdout.emit('data', text);
+  calls[0].child.emit('close', 0);
+  const seen = [];
+  manager.subscribe(run.id, (event) => seen.push([event.type, event.data.text ?? event.data.status]));
+  assert.deepEqual(seen, [['status', 'running'], ['stdout', 'ccc'], ['status', 'succeeded']]);
+});
+
+test('a single chunk larger than the budget is still kept', () => {
+  const { manager, calls } = harness({ maxOutputChars: 2 });
+  const run = manager.start(START);
+  calls[0].child.stdout.emit('data', 'huge chunk');
+  const seen = [];
+  manager.subscribe(run.id, (event) => seen.push(event.type));
+  assert.deepEqual(seen, ['status', 'stdout']);
+});
+
+test('a throwing live listener is dropped without affecting others or the run', () => {
+  const { manager, calls } = harness();
+  const run = manager.start(START);
+  let bad = 0;
+  const good = [];
+  manager.subscribe(run.id, () => { bad += 1; if (bad > 1) throw new Error('boom'); });
+  manager.subscribe(run.id, (event) => good.push(event.type));
+  calls[0].child.stdout.emit('data', 'x');
+  calls[0].child.stdout.emit('data', 'y');
+  calls[0].child.emit('close', 0);
+  assert.equal(bad, 2);
+  assert.deepEqual(good, ['status', 'stdout', 'stdout', 'status']);
+  assert.equal(manager.get(run.id).status, 'succeeded');
+});
+
+test('a listener that throws during replay is not registered', () => {
+  const { manager, calls } = harness();
+  const run = manager.start(START);
+  let calledCount = 0;
+  const unsubscribe = manager.subscribe(run.id, () => { calledCount += 1; throw new Error('boom'); });
+  assert.equal(typeof unsubscribe, 'function');
+  assert.doesNotThrow(() => unsubscribe());
+  calls[0].child.stdout.emit('data', 'x');
+  assert.equal(calledCount, 1);
+});
+
+test('start validates provider, repo and cwd before spawning anything', () => {
+  const { manager, calls } = harness();
+  for (const bad of [{ provider: 'typo' }, { provider: undefined }, { cwd: '' }, { cwd: undefined }, { repo: '' }, { repo: 5 }]) {
+    assert.throws(() => manager.start({ ...START, ...bad }), (err) => err.code === 'invalid');
+  }
+  assert.equal(calls.length, 0);
+});
+
 test('the real child_process.spawn is used by default', async () => {
   // An empty PATH makes `claude` unspawnable: hermetic, and it proves the ENOENT message end to end.
   const savedPath = process.env.PATH;

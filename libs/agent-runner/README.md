@@ -13,3 +13,5 @@ manager.subscribe(run.id, (event) => console.log(event.type, event.data));
 
 Providers: `claude-cli` (`claude -p`) and `copilot` (`copilot --allow-all-tools`). The prompt goes
 in on stdin. `spawn` is injectable, so tests never launch a real CLI.
+
+Options of `createRunManager`: `spawn`, `now`, `timeoutMs`, `killGraceMs`, `maxEvents`, `maxOutputChars`, `maxRuns`.

@@ -7,5 +7,5 @@ export { createRepoResolver } from './repos.js';
 export { listSkills, loadSkill } from './skills.js';
 export { MAX_PROMPT_CHARS, buildPrompt } from './prompt.js';
 export {
-  DEFAULT_MAX_EVENTS, DEFAULT_MAX_RUNS, DEFAULT_TIMEOUT_MS, TERMINAL, createRunManager,
+  DEFAULT_KILL_GRACE_MS, DEFAULT_MAX_EVENTS, DEFAULT_MAX_OUTPUT_CHARS, DEFAULT_MAX_RUNS, DEFAULT_TIMEOUT_MS, TERMINAL, createRunManager,
 } from './run.js';

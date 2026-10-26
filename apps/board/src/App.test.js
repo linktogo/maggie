@@ -313,6 +313,18 @@ test('the retro-doc tab mounts its page, with the repos of the config', async ()
   expect(w.get('[data-test=retro-run-a]').exists()).toBe(true);
 });
 
+test('the AI Factory tab mounts its page', async () => {
+  const router = createBoardRouter(createMemoryHistory());
+  const w = mount(App, { props: { fetchImpl: routedFetch(), intervalMs: 100000 }, global: { plugins: [router] } });
+  await router.isReady();
+  await flushPromises();
+
+  await w.get('[data-test=view-factory]').trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.name).toBe('factory');
+  expect(w.get('[data-test=factory-run]').exists()).toBe(true);
+});
+
 test('the header carries the theme and mode pickers', async () => {
   const { wrapper } = await mountApp(routedFetch());
   expect(wrapper.find('[data-test=theme]').exists()).toBe(true);
@@ -331,7 +343,7 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   expect(container.className).toContain('bg-surface-muted');
 
   const tabs = wrapper.findAll('[data-test^=view-]');
-  expect(tabs).toHaveLength(3);
+  expect(tabs).toHaveLength(4);
   for (const tab of tabs) {
     const classes = tab.classes().join(' ');
     expect(classes).not.toMatch(/slate-|bg-white/);

@@ -23,8 +23,11 @@ export function useFactory({ fetchImpl = fetch, EventSourceImpl = globalThis.Eve
   }
 
   async function refreshRuns() {
-    const { ok, data } = await api('/runs');
-    if (ok) runs.value = data.runs ?? [];
+    // Never throws: a failed refresh keeps the previous list, and says nothing about availability.
+    try {
+      const { ok, data } = await api('/runs');
+      if (ok) runs.value = data.runs ?? [];
+    } catch { /* the list is just not refreshed */ }
   }
 
   async function load() {
@@ -104,6 +107,8 @@ export function useFactory({ fetchImpl = fetch, EventSourceImpl = globalThis.Eve
       const { ok, status, data } = await api(`/runs/${id}`, { method: 'DELETE' });
       if (!ok) error.value = data.error ?? `HTTP ${status}`;
       await refreshRuns();
+      // SIGTERM is asynchronous: following the run lets its final status settle the list.
+      if (ok && followed.value !== id) follow(id);
     } catch (err) {
       error.value = err.message ?? String(err);
     }

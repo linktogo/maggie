@@ -48,6 +48,7 @@ export default {
   'factory.noProvider': 'Kein Agenten-CLI (claude, copilot) auf dem Agentenserver gefunden.',
   'factory.noRepos': 'Auf dem Agentenserver ist kein Repository freigegeben.',
   'factory.runs': 'Läufe',
+  'factory.runPrompt': 'Prompt',
   'factory.noRuns': 'Noch kein Lauf.',
   'factory.output': 'Ausgabe',
   'factory.noOutput': 'Wähle einen Lauf, um seine Ausgabe zu verfolgen.',

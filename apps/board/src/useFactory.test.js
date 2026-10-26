@@ -2,6 +2,7 @@ import { test, expect, vi } from 'vitest';
 import { defineComponent, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { useFactory } from './useFactory.js';
+import process from 'node:process';
 
 async function settle() {
   await nextTick();
@@ -257,4 +258,68 @@ test('unmounting the host component closes the stream', async () => {
   f.follow('run-1');
   w.unmount();
   expect(FakeEventSource.instances[0].closed).toBe(true);
+});
+
+test('stopping a run that is not followed follows it, so its final status settles the list', async () => {
+  let listed = [{ id: 'run-1', status: 'running' }];
+  const f = factory({
+    'GET /api/factory/runs': () => ({ body: { runs: listed } }),
+    'DELETE /api/factory/runs/run-1': () => ({ status: 202, body: {} }),
+  });
+  await settle();
+  await f.cancel('run-1');
+  expect(f.followed.value).toBe('run-1');
+  const stream = FakeEventSource.instances[0];
+  listed = [{ id: 'run-1', status: 'cancelled' }];
+  stream.emit('status', { status: 'cancelled' });
+  await settle();
+  expect(f.runs.value).toEqual([{ id: 'run-1', status: 'cancelled' }]);
+  expect(stream.closed).toBe(true);
+});
+
+test('stopping the run already followed keeps its stream, and a refused stop follows nothing', async () => {
+  const f = factory({ 'DELETE /api/factory/runs/run-1': () => ({ status: 202, body: {} }) });
+  await settle();
+  f.follow('run-1');
+  await f.cancel('run-1');
+  expect(FakeEventSource.instances).toHaveLength(1);
+
+  const g = factory({ 'DELETE /api/factory/runs/run-1': () => ({ status: 404, body: { error: 'unknown run' } }) });
+  await settle();
+  await g.cancel('run-1');
+  expect(FakeEventSource.instances).toHaveLength(0);
+});
+
+test('a failing runs refresh after a successful start still follows the new run', async () => {
+  let posted = false;
+  const f = factory({
+    'GET /api/factory/runs': () => { if (posted) throw new Error('refresh down'); return { body: { runs: [] } }; },
+    'POST /api/factory/runs': () => { posted = true; return { status: 202, body: { id: 'run-2', run: { id: 'run-2' } } }; },
+  });
+  await settle();
+  const run = await f.start({ repo: 'api', provider: 'claude-cli', prompt: 'x' });
+  expect(run.id).toBe('run-2');
+  expect(f.followed.value).toBe('run-2');
+  expect(f.error.value).toBeNull();
+  expect(f.available.value).toBe(true);
+});
+
+test('a final status with a failing refresh raises no unhandled rejection', async () => {
+  const seen = [];
+  const listener = (reason) => seen.push(reason);
+  process.on('unhandledRejection', listener);
+  try {
+    let down = false;
+    const f = factory({ 'GET /api/factory/runs': () => { if (down) throw new Error('refresh down'); return { body: { runs: [{ id: 'run-1' }] } }; } });
+    await settle();
+    f.follow('run-1');
+    down = true;
+    FakeEventSource.instances[0].emit('status', { status: 'failed' });
+    await settle();
+    expect(seen).toEqual([]);
+    expect(f.runs.value).toEqual([{ id: 'run-1' }]);
+    expect(f.available.value).toBe(true);
+  } finally {
+    process.off('unhandledRejection', listener);
+  }
 });

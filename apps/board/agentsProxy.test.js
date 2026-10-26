@@ -7,7 +7,7 @@ import { Readable } from 'node:stream';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createAgentsProxy, defaultTokenFile, DEFAULT_AGENTS_URL } from './agentsProxy.js';
+import { createAgentsProxy, defaultTokenFile, DEFAULT_AGENTS_URL, MAX_BODY_BYTES } from './agentsProxy.js';
 
 const listen = (server) => new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 
@@ -216,6 +216,38 @@ test('a request body that cannot be read is a 400 and nothing is forwarded', asy
   await proxy(req, res, '/api/factory/runs');
   assert.equal(out.status, 400);
   assert.deepEqual(JSON.parse(out.body), { error: 'unreadable request body' });
+  assert.equal(called, false);
+});
+
+test('a body over the cap is a 413 and never reaches the agents server', async (t) => {
+  const agents = await upstream(t, (req, res) => res.end('{}'));
+  const { base } = await board(t, { url: agents.url });
+  const res = await fetch(`${base}/api/factory/runs`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES + 1) });
+  assert.equal(res.status, 413);
+  assert.deepEqual(await res.json(), { error: 'request body too large' });
+  assert.equal(agents.seen.length, 0);
+});
+
+test('a body exactly at the cap passes through', async (t) => {
+  const agents = await upstream(t, (req, res) => res.end('{}'));
+  const { base } = await board(t, { url: agents.url });
+  const res = await fetch(`${base}/api/factory/runs`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES) });
+  assert.equal(res.status, 200);
+  assert.equal(agents.seen[0].body.length, MAX_BODY_BYTES);
+});
+
+test('a body split in chunks that crosses the cap is a 413', async () => {
+  let called = false;
+  const proxy = createAgentsProxy({ tokenFile: import.meta.filename, fetchImpl: async () => { called = true; } });
+  const half = Buffer.alloc(MAX_BODY_BYTES / 2 + 1, 'x');
+  const req = Readable.from([half, half, half]);
+  req.method = 'POST';
+  const out = {};
+  const res = {
+    on() {}, writeHead(status) { out.status = status; }, end(body) { out.body = body; },
+  };
+  await proxy(req, res, '/api/factory/runs');
+  assert.equal(out.status, 413);
   assert.equal(called, false);
 });
 

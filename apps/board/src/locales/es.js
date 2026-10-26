@@ -48,6 +48,7 @@ export default {
   'factory.noProvider': 'No se encontró ningún CLI de agente (claude, copilot) en el servidor de agentes.',
   'factory.noRepos': 'No hay ningún repositorio permitido en el servidor de agentes.',
   'factory.runs': 'Ejecuciones',
+  'factory.runPrompt': 'prompt',
   'factory.noRuns': 'Aún no hay ejecuciones.',
   'factory.output': 'Salida',
   'factory.noOutput': 'Elige una ejecución para seguir su salida.',

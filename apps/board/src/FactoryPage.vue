@@ -115,7 +115,7 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
       <ul v-else class="mt-2 flex flex-col gap-1 text-sm">
         <li v-for="item in runs" :key="item.id" :data-test="`factory-run-row-${item.id}`" class="flex flex-wrap items-center gap-2">
           <span class="font-medium text-ink">{{ item.repo }}</span>
-          <span class="text-xs text-ink-faint">{{ item.skill ?? 'prompt' }} · {{ item.provider }}</span>
+          <span class="text-xs text-ink-faint">{{ item.skill ?? t('factory.runPrompt') }} · {{ item.provider }}</span>
           <span :class="['text-xs', item.status === 'failed' || item.status === 'timed-out' ? 'text-question-on-soft' : 'text-ink-soft']">{{ t(`factory.status.${item.status}`) }}</span>
           <button type="button" :data-test="`factory-follow-${item.id}`" class="text-xs text-accent hover:underline" @click="factory.follow(item.id)">{{ t('factory.follow') }}</button>
           <button v-if="item.status === 'running'" type="button" :data-test="`factory-stop-${item.id}`" class="text-xs text-accent hover:underline" @click="factory.cancel(item.id)">{{ t('factory.stop') }}</button>
@@ -126,7 +126,7 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
     <div class="bg-surface border border-line rounded-card shadow-panel p-4">
       <h3 class="font-semibold text-ink-strong text-sm">{{ t('factory.output') }}<span v-if="followed" class="font-normal text-ink-faint"> · {{ followed }}</span></h3>
       <p v-if="!followed" data-test="factory-no-output" class="mt-2 text-xs text-ink-faint">{{ t('factory.noOutput') }}</p>
-      <pre v-else data-test="factory-output" class="mt-2 max-h-96 overflow-auto rounded-control bg-surface-muted p-2 text-xs text-ink-soft whitespace-pre-wrap"><template v-for="(line, index) in output" :key="index"><span :class="line.type === 'stderr' ? 'text-question-on-soft' : ''">{{ line.type === 'status' ? `— ${line.text}\n` : line.text }}</span></template></pre>
+      <pre v-else data-test="factory-output" class="mt-2 max-h-96 overflow-auto rounded-control bg-surface-muted p-2 text-xs text-ink-soft whitespace-pre-wrap"><template v-for="(line, index) in output" :key="index"><span :class="line.type === 'stderr' ? 'text-question-on-soft' : ''">{{ line.type === 'status' ? `— ${t(`factory.status.${line.text}`)}\n` : line.text }}</span></template></pre>
     </div>
   </div>
 </template>

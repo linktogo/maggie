@@ -48,6 +48,7 @@ export default {
   'factory.noProvider': 'Aucun CLI d’agent (claude, copilot) trouvé sur le serveur d’agents.',
   'factory.noRepos': 'Aucun dépôt n’est autorisé sur le serveur d’agents.',
   'factory.runs': 'Exécutions',
+  'factory.runPrompt': 'prompt',
   'factory.noRuns': 'Aucune exécution pour l’instant.',
   'factory.output': 'Sortie',
   'factory.noOutput': 'Choisis une exécution pour suivre sa sortie.',

@@ -20,9 +20,19 @@ function reply(res, status, body) {
 
 const unavailable = (res, detail) => reply(res, 503, { error: 'agents-unavailable', detail });
 
+/** Largest request body relayed to the agents server (a prompt, not an upload). */
+export const MAX_BODY_BYTES = 1_000_000;
+
+class BodyTooLarge extends Error {}
+
 async function readBody(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new BodyTooLarge();
+    chunks.push(chunk);
+  }
   return Buffer.concat(chunks);
 }
 
@@ -51,7 +61,8 @@ export function createAgentsProxy({
     if (req.method === 'POST') {
       try {
         body = await readBody(req);
-      } catch {
+      } catch (err) {
+        if (err instanceof BodyTooLarge) return reply(res, 413, { error: 'request body too large' });
         return reply(res, 400, { error: 'unreadable request body' });
       }
     }

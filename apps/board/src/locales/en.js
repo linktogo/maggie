@@ -50,6 +50,7 @@ export default {
   'factory.noProvider': 'No agent CLI (claude, copilot) found on the agents server.',
   'factory.noRepos': 'No repository is allowed on the agents server.',
   'factory.runs': 'Runs',
+  'factory.runPrompt': 'prompt',
   'factory.noRuns': 'No run yet.',
   'factory.output': 'Output',
   'factory.noOutput': 'Pick a run to follow its output.',

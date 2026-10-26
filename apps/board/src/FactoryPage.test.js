@@ -1,6 +1,7 @@
 import { test, expect, vi, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import FactoryPage from './FactoryPage.vue';
+import { setLocale } from './i18n.js';
 
 class FakeEventSource {
   static instances = [];
@@ -29,7 +30,7 @@ function fetchWith({ health = { status: 200, body: HEALTH }, runs = [], onPost =
 }
 
 const mounted = [];
-afterEach(() => { while (mounted.length) mounted.pop().unmount(); });
+afterEach(() => { setLocale('en'); while (mounted.length) mounted.pop().unmount(); });
 
 // Attached to the document: jsdom only submits a form that is connected.
 async function page(fetchImpl) {
@@ -168,4 +169,17 @@ test('the output shows stdout, stderr and status lines as plain text', async () 
   expect(spans[1].classes()).toContain('text-question-on-soft');
   expect(spans[0].classes()).not.toContain('text-question-on-soft');
   expect(w.get('h3 .font-normal, h3 span').text()).toContain('run-1');
+});
+
+test('the run list and the status lines of the output follow the locale', async () => {
+  setLocale('fr');
+  const runs = [{ id: 'run-1', repo: 'api', provider: 'copilot', skill: null, status: 'timed-out' }];
+  const w = await page(fetchWith({ runs }));
+  expect(w.get('[data-test=factory-run-row-run-1]').text()).toContain('délai dépassé');
+  expect(w.get('[data-test=factory-run-row-run-1]').text()).toContain('prompt · copilot');
+  await w.get('[data-test=factory-follow-run-1]').trigger('click');
+  FakeEventSource.instances[0].emit('status', { status: 'succeeded' });
+  await flushPromises();
+  expect(w.get('[data-test=factory-output]').text()).toContain('— réussie');
+  expect(w.get('[data-test=factory-output]').text()).not.toContain('succeeded');
 });

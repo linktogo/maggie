@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter, once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { mkdtemp, mkdir, readFile, stat, writeFile, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, stat, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { defaultTokenFile, main, onProcessSignal } from '../src/main.js';
@@ -100,14 +100,44 @@ test('SIGINT/SIGTERM close the server and remove the token', async (t) => {
   await waitFor(() => !existsSync(tokenFile));
 });
 
-test('a port that is already taken fails the start and leaves no token behind', async (t) => {
+test('a port that is already taken fails the start and leaves the existing token file untouched', async (t) => {
   const { args, tokenFile } = await workspace(t);
+  await mkdir(path.dirname(tokenFile), { recursive: true });
+  await writeFile(tokenFile, 'running-instance-token\n');
   const blocker = createServer();
   await new Promise((resolve) => blocker.listen(0, '127.0.0.1', resolve));
   t.after(() => blocker.close());
   const port = String(blocker.address().port);
   const taken = [...args.slice(0, args.indexOf('--port') + 1), port, ...args.slice(args.indexOf('--port') + 2)];
   await assert.rejects(main(taken, { log: quiet, detect: () => [], onSignal: noSignals, env: {} }), (err) => err.code === 'EADDRINUSE');
+  assert.equal(await readFile(tokenFile, 'utf8'), 'running-instance-token\n');
+});
+
+test('a failed token write closes the server and rethrows', async (t) => {
+  const { args, dir } = await workspace(t);
+  const blocked = path.join(dir, 'blocked');
+  await writeFile(blocked, 'a file, not a directory');
+  const bad = [...args.slice(0, args.indexOf('--token-file') + 1), path.join(blocked, 'agents.token')];
+  await assert.rejects(main(bad, { log: quiet, detect: () => [], onSignal: noSignals, env: {} }), (err) => err.code === 'ENOTDIR');
+});
+
+test('a stale token file is replaced by a private one with the new token', async (t) => {
+  const { args, tokenFile } = await workspace(t);
+  await mkdir(path.dirname(tokenFile), { recursive: true });
+  await writeFile(tokenFile, 'stale\n', { mode: 0o644 });
+  await chmod(tokenFile, 0o644);
+  const server = await main(args, { log: quiet, detect: () => [], onSignal: noSignals, env: {} });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.match((await readFile(tokenFile, 'utf8')).trim(), /^[0-9a-f]{64}$/);
+  if (process.platform !== 'win32') assert.equal((await stat(tokenFile)).mode & 0o777, 0o600);
+});
+
+test('invalid --port and --timeout are refused before any token is written', async (t) => {
+  const { args, tokenFile } = await workspace(t);
+  const withOpt = (flag, value) => [...args, `${flag}=${value}`];
+  const refuse = (flag, value, message) => assert.rejects(main(withOpt(flag, value), { log: quiet, onSignal: noSignals, env: {} }), message);
+  for (const value of ['abc', '', '-1', '65536', '1.5']) await refuse('--port', value, new RegExp(`Invalid --port: ${value}`));
+  for (const value of ['abc', '0', '-5', 'Infinity', '0.0']) await refuse('--timeout', value, new RegExp(`Invalid --timeout: ${value} \\(seconds, > 0\\)`));
   assert.equal(existsSync(tokenFile), false);
 });
 

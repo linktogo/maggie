@@ -54,8 +54,8 @@ async function boot(t, options = {}) {
 }
 
 test('isLoopbackHost only accepts loopback names', () => {
-  for (const ok of ['localhost:4318', '127.0.0.1:4318', '[::1]:4318', 'localhost']) assert.equal(isLoopbackHost(ok), true, ok);
-  for (const bad of ['evil.example', 'evil.example:4318', '127.0.0.1.evil.example', undefined, '', 'a b']) assert.equal(isLoopbackHost(bad), false, String(bad));
+  for (const ok of ['localhost:4318', '127.0.0.1:4318', '[::1]:4318', 'localhost', 'LOCALHOST:4318']) assert.equal(isLoopbackHost(ok), true, ok);
+  for (const bad of ['evil.example', 'evil.example:4318', '127.0.0.1.evil.example', undefined, '', 'a b', 'x@localhost', 'localhost/evil', 'localhost:']) assert.equal(isLoopbackHost(bad), false, String(bad));
 });
 
 test('isAuthorized wants the exact bearer token', () => {

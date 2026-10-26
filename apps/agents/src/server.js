@@ -11,17 +11,13 @@ import {
 export const LOOPBACK = '127.0.0.1';
 export const DEFAULT_BODY_LIMIT = 1_000_000;
 
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, 'too-large': 413 };
 const RUN_PATH = /^\/runs\/([\w-]+)(\/events)?$/;
 
+const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/i;
+
 export function isLoopbackHost(host) {
-  if (!host) return false;
-  try {
-    return LOCAL_HOSTNAMES.has(new URL(`http://${host}`).hostname);
-  } catch {
-    return false;
-  }
+  return LOOPBACK_HOST.test(host ?? '');
 }
 
 export function isAuthorized(header, token) {

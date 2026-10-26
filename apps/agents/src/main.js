@@ -22,6 +22,14 @@ export function onProcessSignal(signals, handler, proc = process) {
   for (const signal of signals) proc.once(signal, handler);
 }
 
+function parseNumber(text, { integer = false, min, max = Infinity }) {
+  if (!/^\d+(\.\d+)?$/.test(text)) return null;
+  const value = Number(text);
+  if (!Number.isFinite(value) || value < min || value > max) return null;
+  if (integer && !Number.isInteger(value)) return null;
+  return value;
+}
+
 export async function main(argv, {
   log = console.log,
   loadConfig = defaultLoadConfig,
@@ -43,6 +51,10 @@ export async function main(argv, {
       timeout: { type: 'string', default: '600' },
     },
   });
+  const port = parseNumber(values.port, { integer: true, min: 0, max: 65535 });
+  if (port === null) throw new Error(`Invalid --port: ${values.port}`);
+  const timeoutSeconds = parseNumber(values.timeout, { min: Number.MIN_VALUE });
+  if (timeoutSeconds === null) throw new Error(`Invalid --timeout: ${values.timeout} (seconds, > 0)`);
   if (!values.repos) throw new Error('Missing required --repos <repos.json>');
   const defaultProvider = resolveProvider({
     requested: values.provider ?? env.MAGGIE_AGENT_PROVIDER,
@@ -53,15 +65,10 @@ export async function main(argv, {
 
   const config = await loadConfig(path.resolve(values.repos));
   const repos = createRepoResolver({ repos: config.repos, workspace: path.resolve(values.workspace) });
-  const manager = createRunManager({ timeoutMs: Number(values.timeout) * 1000 });
+  const manager = createRunManager({ timeoutMs: timeoutSeconds * 1000 });
 
-  // The token never reaches a log or a command line: it lives in a 0600 file the
-  // board reads, and goes away with the server.
   const token = randomBytes(32).toString('hex');
   const tokenFile = path.resolve(values['token-file'] ?? defaultTokenFile(home));
-  await mkdir(path.dirname(tokenFile), { recursive: true, mode: 0o700 });
-  await writeFile(tokenFile, `${token}\n`, { mode: 0o600 });
-  await chmod(tokenFile, 0o600);
 
   const server = createAgentsServer({
     token,
@@ -71,20 +78,34 @@ export async function main(argv, {
     providers: { detect, defaultProvider },
     allowedOrigins: values['allow-origin'],
   });
-  server.on('close', () => { void rm(tokenFile, { force: true }); });
 
-  try {
-    await new Promise((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(Number(values.port), LOOPBACK, () => {
-        server.off('error', reject);
-        resolve();
-      });
+  // Listen first: a start that fails (port taken) must never touch the token file
+  // of the instance that is already running.
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, LOOPBACK, () => {
+      server.off('error', reject);
+      resolve();
     });
-  } catch (err) {
+  });
+
+  // The token never reaches a log or a command line: it lives in a 0600 file the
+  // board reads, and goes away with the server.
+  try {
+    const dir = path.dirname(tokenFile);
+    if (!existsSync(dir)) {
+      await mkdir(dir, { recursive: true });
+      await chmod(dir, 0o700);
+    }
     await rm(tokenFile, { force: true });
+    await writeFile(tokenFile, `${token}\n`, { flag: 'wx', mode: 0o600 });
+    await chmod(tokenFile, 0o600);
+  } catch (err) {
+    server.close();
     throw err;
   }
+
+  server.on('close', () => { void rm(tokenFile, { force: true }); });
 
   const installed = detect();
   log(`agents server on http://localhost:${server.address().port} (token: ${tokenFile})`);

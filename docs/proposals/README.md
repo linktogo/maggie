@@ -24,6 +24,8 @@ faith.
 | [P8](#p8--sync-status-on-the-board) | Sync status on the board | The board tracks sessions; it cannot tell you which repos drifted | P1, P2 |
 | [P9](#p9--survive-a-board-restart-with-the-retro-doc-jobs) | Survive a board restart with the retro-doc jobs | A restart forgets a run you waited minutes and real money for | — |
 | [P10](#p10--spike-do-cursor-and-windsurf-have-hooks-to-wire) | Spike: do Cursor and Windsurf have hooks to wire? | maggie renders for four targets and tracks sessions for two | — |
+| [P11](#p11--maggie-audit-config-health-across-the-organization) | `maggie audit`: config health across the organization | Nothing reads what the agent actually loads in each repo, or flags a secret or a contradictory `settings.json` | P2, P7 |
+| [P12](#p12--live-cost-and-budget-alerts-on-the-board) | Live cost and budget alerts on the board | Cost exists only for closed sessions, in History; a running session burning money shows tokens and no alarm | — |
 
 P1 through P4 are the ones that make the existing promise true; the rest are
 additions. **P3 carries a live documentation bug** — two contributor-facing
@@ -419,6 +421,146 @@ known boundary.
 **Cost.** A day, and the deliverable is a document regardless of the outcome.
 This is deliberately not scoped as a feature; scoping it as one would be
 assuming the answer.
+
+---
+
+## P11 — `maggie audit`: config health across the organization
+
+**Problem.** maggie's whole job is to put guidance in front of agents, and it
+never looks at the result. [`skill.js`](../../libs/skill-sync/src/skill.js)
+validates three fields of a skill (see P7); the pipeline then writes files into
+each target repo and stops. Nothing reads what the agent will actually load
+there: a `CLAUDE.md` that has grown past usefulness, a hand-written rule whose
+`globs` match no file, a `.claude/settings.json` that allows and denies the same
+command, a credential pasted into an instruction file. Each repo accumulates its
+own drift, and the only reviewer is whoever happens to open the file.
+
+Local tools exist for one workstation — [Claudoscope](https://github.com/cordwainersmith/Claudoscope)
+ships a 72-rule config linter and a secret scanner for a single Mac. None of
+them can answer the organizational question, because they do not know which
+repositories belong to the organization. maggie does: `repos.json` lists them,
+`libs/renderers` knows what each target should contain, and `libs/git` can
+reach them.
+
+**Proposal.** `maggie audit`: read-only, no branch, no commit, no push. Clone
+shallow (the P2 machinery), run a set of rules over what the checkout contains,
+report per repo, exit non-zero at or above a chosen severity.
+
+Rules are independent modules in a new `libs/audit`, each `(checkout) => finding[]`,
+grouped in families:
+
+| Family | Looks at | Examples |
+|---|---|---|
+| `STRUCT` | Instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/`, Windsurf rules) | Size over a threshold; frontmatter invalid or missing a required key; `globs` matching zero files in the repo |
+| `SYNC` | Rendered files vs. the library | Drift from source (P2's comparison); stale files a skill no longer renders (P1's manifest); a generated file edited by hand |
+| `COHERE` | Across targets of one repo | A rule present for Claude and absent for Copilot; the same skill with diverging bodies |
+| `SEC` | Instruction files and `settings.json` | A credential-shaped string in a file an agent reads (private keys, cloud and platform tokens, connection strings); permissions that allow and deny the same pattern; a sandbox switched off; a wildcard shell allow |
+| `BUDGET` | Everything an agent loads at session start | Estimated tokens of the always-loaded instructions, per repo, so "this repo spends 18k tokens before the first prompt" becomes a number |
+
+Output is a score per repo with findings grouped by rule, a `--format json` for
+CI, and — once P8 exists — a badge on the board card, which is where an
+organization would actually look.
+
+```
+$ maggie audit --config repos.json
+= example-api   A   (0 error, 1 warn)
+    ! STRUCT002  CLAUDE.md is 612 lines (limit 300)
+≠ example-web   C   (1 error, 3 warn)
+    ✗ SEC001     .claude/settings.json: "Bash(*)" allowed and "Bash(rm *)" denied
+    ✗ SYNC003    .cursor/rules/reactjs-hooks.mdc differs from skills/reactjs/hooks
+✗ 1 of 2 repos below threshold
+```
+
+**Two lines that must hold.**
+
+- *A finding never carries the secret.* `SEC` reports the file, the line and the
+  rule that matched, never the matched text. The report goes to a terminal, to
+  CI logs and eventually to a board; a scanner that prints what it found is a
+  second leak.
+- *Scope is files in the repo, not transcripts.* Reading agent session
+  transcripts on a developer's machine is a different trust boundary from
+  reading a repository the organization already controls, and it belongs in its
+  own proposal if it is wanted at all.
+
+**Cost.** Large, which is why it phases. Phase 1 is the framework, `STRUCT` and
+`SYNC` — it absorbs P7's library lint (same rules, different input) and P2's
+comparison rather than duplicating them. Phase 2 is `SEC` and `COHERE`. Phase 3
+is `BUDGET` and the board badge. Every rule needs its own fixtures to hold the
+100% coverage gate, so the real cost is the rule count, not the framework.
+
+**Open questions.** Does a rule's severity live in the rule or in the config
+(`audit: { SEC001: "warn" }` per repo)? Config, probably, with the rule's value
+as default — an organization will disagree with some defaults, and the
+alternative is forking the rules. How are false positives suppressed for `SEC`:
+an inline marker, an allowlist in config, or an entropy filter first? An entropy
+filter alone tends to bury real hits under noise or hide them; start with
+patterns that are specific, and let the allowlist be explicit.
+
+---
+
+## P12 — Live cost and budget alerts on the board
+
+**Problem.** The board prices tokens in exactly one place:
+[`useHistoryStats.js`](../../apps/board/src/useHistoryStats.js) feeds
+[`pricing.js`](../../apps/board/src/pricing.js), and it does so for *closed*
+sessions on the History page. A session that is running now — the one that can
+actually be stopped — shows a token count and a tooltip
+([`SessionRow.vue`](../../apps/board/src/SessionRow.vue)) and no money. The data
+is there: `usage`, with its `byModel` breakdown, is rewritten on every `Stop`
+([`board.js`](../../libs/workspace-bootstrap/src/board.js)). `costOf()` is a pure
+function over exactly that shape. Nothing connects them.
+
+Three further gaps, all in what the numbers can say once shown:
+
+- **No alarm.** The board already raises a browser notification when a repo
+  enters `question` or `done`
+  ([`useNotifications.js`](../../apps/board/src/useNotifications.js)). A session
+  looping on a failing tool call for forty minutes triggers none, because
+  nothing about its status changed.
+- **No cache signal.** `cacheReadInputTokens` and `cacheCreationInputTokens` are
+  stored and summed, never compared. The ratio is the cheapest diagnosis for "why
+  is this session expensive": a low read share means the prefix is being
+  invalidated on every turn.
+- **A pricing table that fails quietly.** `PRICING` is keyed by exact model id
+  and falls back to `default` (the Sonnet rate) for anything not listed, with no
+  indication on screen that the figure is a guess. A new model id is priced as
+  Sonnet, silently, across the whole history. The table's own comment labels the
+  unit €/million while published API prices are in USD; one of the two is wrong,
+  and the page does not say which currency it shows.
+
+**Proposal.** Four small pieces, shippable independently, in this order:
+
+1. **Cost on the live card and detail panel.** `costOf(session.usage)` next to
+   the token total, with per-model detail in the tooltip. No server change.
+2. **Cache hit rate.** `cacheRead / (cacheRead + cacheCreation + input)` on the
+   card and per repo in History, with a low-rate hint.
+3. **Honest pricing.** Match model ids by family prefix before falling back, mark
+   any figure priced at `default` with a visible "estimate" marker, and settle
+   and display the currency. Keep the table hand-maintained, as its comment
+   already argues: no network lookup.
+4. **Budget alerts.** Optional thresholds in the board config — per session, and
+   per day across repos — that reuse the existing notification path and highlight
+   the card. Alert at the threshold and again at each doubling, so a runaway
+   session is flagged more than once and a steady one is not nagged.
+
+```json
+{ "budget": { "session": 5, "day": 50 } }
+```
+
+**Cost.** Small for 1–3: a computed property, a ratio and a lookup change, with
+`pricing.test.js` and the component tests already in place to extend. Medium for
+4, because it adds board config the board does not have today and the
+"per day" total needs a defined day boundary and a definition of whose clock.
+
+**Open questions.** Which currency? If the table is dollars the label is the bug;
+if the intent is euros, the rates are wrong. Are thresholds per user or per
+board? Today the board is a single-user local tool (see "Deliberately not
+proposed"), so per board is enough, and a team-wide budget is a change to the
+security model first. Is a model-switch what-if (what this session would have
+cost on a cheaper model) worth a place on the History page? It is the part of
+Claudoscope's analytics most likely to change behaviour, and it needs nothing
+beyond `byModel` and the table — but it is a comparison tool, so it can wait
+until 1–3 have shown whether the numbers are trusted.
 
 ---
 

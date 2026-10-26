@@ -1,0 +1,14 @@
+{
+  "name": "agent-runner",
+  "sourceRoot": "libs/agent-runner/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:lib"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test --experimental-test-coverage --test-coverage-include=\"libs/agent-runner/src/**/*.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"libs/agent-runner/test/**/*.test.js\""
+      }
+    }
+  }
+}

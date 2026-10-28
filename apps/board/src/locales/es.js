@@ -34,6 +34,11 @@ export default {
   'notifications.blocked': 'Notificaciones bloqueadas por el navegador.',
   'notification.question': 'Un agente espera tu respuesta',
   'notification.done': 'Trabajo terminado',
+  'budget.sessionAlert': '{name} · {title} — {cost} (umbral {threshold})',
+  'budget.dayAlert': 'Hoy: {cost} (umbral {threshold})',
+  'budget.title': 'Presupuesto',
+  'budget.session': 'Por sesión (€)',
+  'budget.day': 'Por día (€)',
 
   'banner.disconnected': 'desconectado — nuevo intento en el próximo sondeo…',
   'banner.ciDesync': 'CI desincronizado — {reason}',
@@ -46,6 +51,8 @@ export default {
 
   'summary.repos': 'repos',
   'summary.percentDone': '{percent} % completado',
+  'summary.today': 'hoy {cost} de {threshold}',
+  'summary.todayPartial': 'solo sesiones en curso — historial no disponible',
 
   'filter.searchRepo': '🔍 filtrar un repo…',
   'filter.techAll': 'tecnología: todas',
@@ -67,6 +74,10 @@ export default {
   'session.agentTooltip': 'Ejecutada con {agent}',
   'session.worktreeTooltip': 'Aislado en un worktree de git · rama {branch}',
   'session.usageTooltip': 'entrada {input} · salida {output} · caché escrita {cacheWrite} · caché leída {cacheRead}',
+  'session.costTooltip': 'Coste estimado por modelo: {breakdown}',
+  'session.estimateHint': 'Estimación — al menos un modelo se calcula con la tarifa por defecto',
+  'session.cacheRate': 'tasa de aciertos de caché {rate} %',
+  'session.cacheLow': 'tasa de aciertos de caché baja — el prefijo del prompt puede cambiar en cada turno',
   'session.messagePlaceholder': 'Mensaje a la sesión…',
   'session.send': 'Enviar',
 

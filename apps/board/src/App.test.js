@@ -6,6 +6,8 @@ import App from './App.vue';
 import Column from './Column.vue';
 import { createBoardRouter } from './router.js';
 import { DEFAULT_LOCALE, locale, STORAGE_KEY } from './i18n.js';
+import { setBudget } from './budget.js';
+import { USD_TO_EUR } from './pricing.js';
 
 // The /history route mounts real chart components; jsdom has no <canvas>
 // support, so Chart.js is mocked the same way the dedicated chart test
@@ -21,6 +23,7 @@ vi.mock('chart.js', () => {
 });
 
 afterEach(() => {
+  setBudget({ session: null, day: null });
   vi.restoreAllMocks();
   locale.value = DEFAULT_LOCALE;
   window.localStorage.clear();
@@ -343,4 +346,55 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
   const inactive = wrapper.get('[data-test=view-history]');
   expect(inactive.classes()).toContain('text-ink-muted');
+});
+
+test('App polls /api/history only once a day threshold is set', async () => {
+  setBudget({ day: null });
+  const off = routedFetch();
+  await mountApp(off);
+  expect(off.mock.calls.filter(([u]) => u === '/api/history')).toHaveLength(0);
+
+  setBudget({ day: 50 });
+  const on = routedFetch();
+  await mountApp(on);
+  expect(on.mock.calls.filter(([u]) => u === '/api/history').length).toBeGreaterThan(0);
+  setBudget({ day: null });
+});
+
+test('App shows the budget settings in the header', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  expect(wrapper.find('[data-test=budget-settings]').exists()).toBe(true);
+});
+
+test('App does not replay a day alert on reload when the history arrives before the board', async () => {
+  const sent = [];
+  class FakeNotification { constructor(title) { sent.push(title); } }
+  FakeNotification.permission = 'granted';
+  vi.stubGlobal('Notification', FakeNotification);
+
+  const usage = { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, byModel: { 'claude-sonnet-5': { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 } } };
+  const oneMillion = 3 * USD_TO_EUR; // euros
+  setBudget({ day: oneMillion * 1.5 }); // history alone (1x) is below it, history + live (2x) is above
+  let releaseBoard;
+  const boardGate = new Promise((r) => { releaseBoard = r; });
+  const fetchImpl = vi.fn().mockImplementation((url) => {
+    if (url === '/api/config') return Promise.resolve({ json: async () => ({ repos: {} }) });
+    if (url === '/api/history') return Promise.resolve({ json: async () => ([{ repo: 'h', sessionId: 'old', endedAt: new Date().toISOString(), usage }]) });
+    return boardGate.then(() => ({ json: async () => ({ version: 2, repos: { a: { sessions: { s1: { status: 'inprogress', lastEvent: 'Stop', updatedAt: 'T', title: 't', lastPrompt: 'p', events: [], usage } } } } }) }));
+  });
+  await mountApp(fetchImpl);
+  releaseBoard();
+  await settle();
+  expect(sent).toHaveLength(0);
+  setBudget({ day: null });
+  vi.unstubAllGlobals();
+});
+
+test('App says the day figure is live-only when the history cannot be loaded', async () => {
+  setBudget({ day: 50 });
+  const base = routedFetch();
+  const fetchImpl = vi.fn().mockImplementation((url) => (url === '/api/history' ? Promise.reject(new Error('down')) : base(url)));
+  const { wrapper } = await mountApp(fetchImpl);
+  expect(wrapper.find('[data-test=day-partial]').exists()).toBe(true);
+  setBudget({ day: null });
 });

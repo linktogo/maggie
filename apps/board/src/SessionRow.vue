@@ -6,6 +6,10 @@ import { agentOf, agentLabel, agentPillClass } from './agentBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
 import { eventLabel } from './labels.js';
+import { describeUsage } from './liveUsage.js';
+import { costText, costTitle } from './costDisplay.js';
+import { budget } from './budget.js';
+import { STATUS_STYLES } from './statusStyles.js';
 
 const { t } = useI18n();
 
@@ -30,6 +34,8 @@ const displayedPrompt = computed(() => (
 const agent = computed(() => agentOf(props.session));
 
 const usage = computed(() => props.session.usage ?? null);
+const described = computed(() => describeUsage(usage.value));
+const overBudget = computed(() => budget.value.session !== null && described.value !== null && described.value.cost >= budget.value.session);
 const totalTokens = computed(() => {
   if (!usage.value) return 0;
   const u = usage.value;
@@ -38,12 +44,13 @@ const totalTokens = computed(() => {
 const usageTooltip = computed(() => {
   if (!usage.value) return '';
   const u = usage.value;
-  return t('session.usageTooltip', {
+  const tokens = t('session.usageTooltip', {
     input: u.inputTokens,
     output: u.outputTokens,
     cacheWrite: u.cacheCreationInputTokens,
     cacheRead: u.cacheReadInputTokens,
   });
+  return described.value ? `${tokens}\n${costTitle(described.value)}` : tokens;
 });
 
 function open() { emit('open', props.session.sessionId); }
@@ -86,6 +93,7 @@ function onDragStart(e) {
         :title="t('session.worktreeTooltip', { branch: session.worktree })"
         class="inline-flex items-center gap-0.5 max-w-full bg-worktree-soft text-worktree-on-soft font-medium px-1.5 py-0.5 rounded-badge"
       ><Icon name="account_tree" emoji="⎇" :size="14" /><span class="truncate">{{ session.worktree }}</span></span>
+      <span v-if="described" data-test="cost-badge" :title="costTitle(described)" :class="['inline-flex items-center border font-medium px-1.5 py-0.5 rounded-badge', overBudget ? ['border-line-soft', STATUS_STYLES.question.chip] : 'bg-surface text-ink-soft border-line-soft']">{{ costText(described) }}</span>
       <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-flex items-center bg-surface text-ink-soft border border-line-soft font-medium px-1.5 py-0.5 rounded-badge">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
     </div>
     <p v-if="prompt" class="mt-1 text-xs text-ink-soft whitespace-pre-wrap">

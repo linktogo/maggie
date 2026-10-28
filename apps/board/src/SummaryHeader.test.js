@@ -1,6 +1,11 @@
-import { test, expect } from 'vitest';
+import { test, expect, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SummaryHeader from './SummaryHeader.vue';
+import { setBudget } from './budget.js';
+import { formatChartValue } from './chartFormat.js';
+import { translate } from './i18n.js';
+
+afterEach(() => { setBudget({ day: null }); window.localStorage.clear(); });
 
 const repos = {
   a: { sessions: {} }, // idle repo -> counts as one "todo" card
@@ -25,4 +30,34 @@ test('computes the done percentage', () => {
 test('handles an empty board without dividing by zero', () => {
   const w = mount(SummaryHeader, { props: { repos: {} } });
   expect(w.text()).toContain('0 %');
+});
+
+test('shows no day cost line when no day threshold is set', () => {
+  setBudget({ day: null });
+  const w = mount(SummaryHeader, { props: { repos, dayCost: 12 } });
+  expect(w.find('[data-test=day-cost]').exists()).toBe(false);
+});
+
+test('shows today\'s cost against the day threshold when one is set', () => {
+  setBudget({ day: 50 });
+  const w = mount(SummaryHeader, { props: { repos, dayCost: 12 } });
+  expect(w.get('[data-test=day-cost]').text()).toBe(translate('summary.today', {
+    cost: formatChartValue(12, 'cost'), threshold: formatChartValue(50, 'cost'),
+  }));
+  setBudget({ day: null });
+});
+
+test('shows no day cost line while the day total is unknown', () => {
+  setBudget({ day: 50 });
+  const w = mount(SummaryHeader, { props: { repos } });
+  expect(w.find('[data-test=day-cost]').exists()).toBe(false);
+  setBudget({ day: null });
+});
+
+test('says so when the day figure covers live sessions only', () => {
+  setBudget({ day: 50 });
+  const partial = mount(SummaryHeader, { props: { repos, dayCost: 12, dayPartial: true } });
+  expect(partial.get('[data-test=day-partial]').text()).toBe(translate('summary.todayPartial'));
+  const full = mount(SummaryHeader, { props: { repos, dayCost: 12 } });
+  expect(full.find('[data-test=day-partial]').exists()).toBe(false);
 });

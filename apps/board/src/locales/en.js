@@ -36,6 +36,11 @@ export default {
   'notifications.blocked': 'Notifications blocked by the browser.',
   'notification.question': 'An agent is waiting for your input',
   'notification.done': 'Work finished',
+  'budget.sessionAlert': '{name} · {title} — {cost} (threshold {threshold})',
+  'budget.dayAlert': 'Today: {cost} (threshold {threshold})',
+  'budget.title': 'Budget',
+  'budget.session': 'Per session (€)',
+  'budget.day': 'Per day (€)',
 
   'banner.disconnected': 'disconnected — retrying at the next poll…',
   'banner.ciDesync': 'CI out of sync — {reason}',
@@ -48,6 +53,8 @@ export default {
 
   'summary.repos': 'repos',
   'summary.percentDone': '{percent} % done',
+  'summary.today': 'today {cost} of {threshold}',
+  'summary.todayPartial': 'live sessions only — history unavailable',
 
   'filter.searchRepo': '🔍 filter a repo…',
   'filter.techAll': 'tech: all',
@@ -69,6 +76,10 @@ export default {
   'session.agentTooltip': 'Running on {agent}',
   'session.worktreeTooltip': 'Isolated in git worktree · branch {branch}',
   'session.usageTooltip': 'input {input} · output {output} · cache write {cacheWrite} · cache read {cacheRead}',
+  'session.costTooltip': 'Estimated cost by model: {breakdown}',
+  'session.estimateHint': 'Estimate — at least one model is priced at the default rate',
+  'session.cacheRate': 'cache hit rate {rate} %',
+  'session.cacheLow': 'low cache hit rate — the prompt prefix may be changing every turn',
   'session.messagePlaceholder': 'Message to the session…',
   'session.send': 'Send',
 

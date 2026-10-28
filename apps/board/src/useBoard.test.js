@@ -66,3 +66,22 @@ test('useBoard sets connected=false on a fetch error', async () => {
   expect(connected.value).toBe(false);
   stop();
 });
+
+test('useBoard reports loaded only after the first successful fetch', async () => {
+  let resolve;
+  const fetchImpl = vi.fn().mockReturnValueOnce(new Promise((r) => { resolve = r; }));
+  const { loaded, stop } = useBoard({ intervalMs: 100000, fetchImpl });
+  await nextTick();
+  expect(loaded.value).toBe(false);
+  resolve({ json: async () => ({ version: 2, repos: {} }) });
+  await vi.waitFor(() => expect(loaded.value).toBe(true));
+  stop();
+});
+
+test('useBoard stays not loaded when the first fetch fails', async () => {
+  const fetchImpl = vi.fn().mockRejectedValue(new Error('down'));
+  const { loaded, connected, stop } = useBoard({ intervalMs: 100000, fetchImpl });
+  await vi.waitFor(() => expect(connected.value).toBe(false));
+  expect(loaded.value).toBe(false);
+  stop();
+});

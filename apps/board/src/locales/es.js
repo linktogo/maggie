@@ -52,6 +52,7 @@ export default {
   'summary.repos': 'repos',
   'summary.percentDone': '{percent} % completado',
   'summary.today': 'hoy {cost} de {threshold}',
+  'summary.todayPartial': 'solo sesiones en curso — historial no disponible',
 
   'filter.searchRepo': '🔍 filtrar un repo…',
   'filter.techAll': 'tecnología: todas',

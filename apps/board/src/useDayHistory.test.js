@@ -67,3 +67,37 @@ test('a first failed fetch leaves it not loaded, and a non-array payload is igno
   expect(odd.loaded.value).toBe(false);
   expect(odd.entries.value).toEqual([]);
 });
+
+test('a fetch still in flight when the history is switched off does not mark it loaded afterwards', async () => {
+  vi.useFakeTimers();
+  let resolve;
+  const fetchImpl = vi.fn().mockReturnValue(new Promise((r) => { resolve = r; }));
+  const enabled = ref(true);
+  const { entries, loaded } = useDayHistory({ fetchImpl, intervalMs: 1000, enabled });
+  enabled.value = false;
+  await nextTick();
+  resolve({ json: async () => [{ endedAt: 'x' }] });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(loaded.value).toBe(false);
+  expect(entries.value).toEqual([]);
+});
+
+test('refetches as soon as refreshOn changes while enabled, and not while disabled', async () => {
+  vi.useFakeTimers();
+  const fetchImpl = okFetch([]);
+  const refreshOn = ref(2);
+  const enabled = ref(true);
+  useDayHistory({ fetchImpl, intervalMs: 60_000, enabled, refreshOn });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+  refreshOn.value = 1; // a session closed
+  await nextTick();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fetchImpl).toHaveBeenCalledTimes(2);
+  enabled.value = false;
+  await nextTick();
+  refreshOn.value = 0;
+  await nextTick();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fetchImpl).toHaveBeenCalledTimes(2);
+});

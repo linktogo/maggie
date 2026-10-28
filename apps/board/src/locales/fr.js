@@ -52,6 +52,7 @@ export default {
   'summary.repos': 'dépôts',
   'summary.percentDone': '{percent} % terminé',
   'summary.today': 'aujourd\'hui {cost} sur {threshold}',
+  'summary.todayPartial': 'sessions en cours seulement — historique indisponible',
 
   'filter.searchRepo': '🔍 filtrer un dépôt…',
   'filter.techAll': 'techno : toutes',

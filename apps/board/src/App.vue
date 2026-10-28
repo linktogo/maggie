@@ -46,7 +46,10 @@ const { permission, soundOn, requestPermission, toggleSound } = useNotifications
 // The day total needs closed sessions from /api/history; that is only fetched
 // while a day threshold is set.
 const dayEnabled = computed(() => budget.value.day !== null);
-const { entries: dayEntries, loaded: historyLoaded } = useDayHistory({ fetchImpl, intervalMs: props.intervalMs, enabled: dayEnabled });
+// A session closing is the only thing that grows the history, so refetch when
+// the number of live sessions changes rather than on every board poll.
+const liveSessionCount = computed(() => Object.values(repos.value).reduce((n, r) => n + Object.keys(r.sessions ?? {}).length, 0));
+const { entries: dayEntries, loaded: historyLoaded } = useDayHistory({ fetchImpl, enabled: dayEnabled, refreshOn: liveSessionCount });
 // Ready only once both halves of the total have arrived, so a reload never takes
 // its baseline from one of them alone.
 const dayReady = computed(() => boardLoaded.value && historyLoaded.value);
@@ -63,7 +66,7 @@ const ciUnavailable = computed(() => {
 const routeProps = computed(() => {
   if (route.name === 'history') return { fetchImpl };
   if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
-  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value };
+  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value, dayPartial: dayEnabled.value && !historyLoaded.value };
 });
 </script>
 

@@ -14,9 +14,10 @@ function clean(raw) {
 
 // Thresholds are euros, held in this browser only (same convention as the sound
 // preference). Anything unreadable means "off" — the board never needs them.
-export function readBudget(storage = globalThis.localStorage) {
+export function readBudget(storage) {
   try {
-    const raw = storage?.getItem(BUDGET_KEY);
+    // resolved inside the try: reading the localStorage getter itself can throw
+    const raw = (storage ?? globalThis.localStorage)?.getItem(BUDGET_KEY);
     return raw ? clean(JSON.parse(raw)) : { ...OFF };
   } catch {
     return { ...OFF };
@@ -27,7 +28,7 @@ export const budget = ref(readBudget());
 
 // A null field clears it; a field that is not a finite number above zero is
 // ignored and the previous value kept.
-export function setBudget(next, storage = globalThis.localStorage) {
+export function setBudget(next, storage) {
   const merged = { ...budget.value };
   for (const key of ['session', 'day']) {
     if (!(key in next)) continue;
@@ -36,7 +37,7 @@ export function setBudget(next, storage = globalThis.localStorage) {
   }
   budget.value = merged;
   try {
-    storage?.setItem(BUDGET_KEY, JSON.stringify(merged));
+    (storage ?? globalThis.localStorage)?.setItem(BUDGET_KEY, JSON.stringify(merged));
   } catch { /* storage unavailable — the value is still held for this page */ }
 }
 

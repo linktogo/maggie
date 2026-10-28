@@ -7,6 +7,12 @@ const { t } = useI18n();
 // An empty box turns the threshold off; anything the store rejects is shown
 // back as the value it kept.
 function commit(field, event) {
+  // A number input reports text it cannot parse as ''; that is a typo, not a
+  // request to turn the threshold off.
+  if (event.target.validity?.badInput) {
+    event.target.value = budget.value[field] ?? '';
+    return;
+  }
   const raw = event.target.value.trim();
   setBudget({ [field]: raw === '' ? null : Number(raw) });
   event.target.value = budget.value[field] ?? '';

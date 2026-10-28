@@ -76,3 +76,15 @@ test('alertLevel rises at the threshold and at each doubling', () => {
   expect(alertLevel(2, 1)).toBe(2);
   expect(alertLevel(4.5, 1)).toBe(3);
 });
+
+test('a localStorage getter that throws is treated as unavailable, for reading and writing', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('SecurityError'); } });
+  try {
+    expect(readBudget()).toEqual({ session: null, day: null });
+    expect(() => setBudget({ day: 3 })).not.toThrow();
+    expect(budget.value.day).toBe(3);
+  } finally {
+    Object.defineProperty(globalThis, 'localStorage', original);
+  }
+});

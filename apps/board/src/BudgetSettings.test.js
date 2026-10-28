@@ -44,3 +44,14 @@ test('the inputs start from the stored thresholds', () => {
   expect(w.get('[data-test=budget-session]').element.value).toBe('5');
   expect(w.get('[data-test=budget-day]').element.value).toBe('40');
 });
+
+test('text the browser cannot parse as a number keeps the previous threshold instead of turning it off', async () => {
+  setBudget({ session: 5 });
+  const w = mount(BudgetSettings);
+  const input = w.get('[data-test=budget-session]');
+  Object.defineProperty(input.element, 'validity', { value: { badInput: true } });
+  await input.setValue('');
+  await input.trigger('change');
+  expect(budget.value.session).toBe(5);
+  expect(input.element.value).toBe('5');
+});

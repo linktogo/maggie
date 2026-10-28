@@ -1,9 +1,11 @@
-import { test, expect } from 'vitest';
+import { test, expect, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SummaryHeader from './SummaryHeader.vue';
 import { setBudget } from './budget.js';
 import { formatChartValue } from './chartFormat.js';
 import { translate } from './i18n.js';
+
+afterEach(() => { setBudget({ day: null }); window.localStorage.clear(); });
 
 const repos = {
   a: { sessions: {} }, // idle repo -> counts as one "todo" card
@@ -50,4 +52,12 @@ test('shows no day cost line while the day total is unknown', () => {
   const w = mount(SummaryHeader, { props: { repos } });
   expect(w.find('[data-test=day-cost]').exists()).toBe(false);
   setBudget({ day: null });
+});
+
+test('says so when the day figure covers live sessions only', () => {
+  setBudget({ day: 50 });
+  const partial = mount(SummaryHeader, { props: { repos, dayCost: 12, dayPartial: true } });
+  expect(partial.get('[data-test=day-partial]').text()).toBe(translate('summary.todayPartial'));
+  const full = mount(SummaryHeader, { props: { repos, dayCost: 12 } });
+  expect(full.find('[data-test=day-partial]').exists()).toBe(false);
 });

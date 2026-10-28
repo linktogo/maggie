@@ -214,7 +214,11 @@ A session over its threshold also turns its cost badge to the warning colour.
 
 The day total counts the sessions that closed on the browser's local calendar
 day plus every running session, so it needs `/api/history`; the board only
-fetches it while a day threshold is set. A session spanning midnight counts
+fetches it while a day threshold is set, and then only when it can have changed
+— when the number of running sessions changes (a session closing is what grows
+the history), plus a slow 60-second safety-net poll. If the history cannot be
+loaded the header says the figure covers running sessions only, and day alerts
+stay silent until it loads. A session spanning midnight counts
 wholly toward the day it is running in or closes in — it is an alarm, not an
 invoice.
 

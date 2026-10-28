@@ -23,6 +23,7 @@ vi.mock('chart.js', () => {
 });
 
 afterEach(() => {
+  setBudget({ session: null, day: null });
   vi.restoreAllMocks();
   locale.value = DEFAULT_LOCALE;
   window.localStorage.clear();
@@ -387,4 +388,13 @@ test('App does not replay a day alert on reload when the history arrives before 
   expect(sent).toHaveLength(0);
   setBudget({ day: null });
   vi.unstubAllGlobals();
+});
+
+test('App says the day figure is live-only when the history cannot be loaded', async () => {
+  setBudget({ day: 50 });
+  const base = routedFetch();
+  const fetchImpl = vi.fn().mockImplementation((url) => (url === '/api/history' ? Promise.reject(new Error('down')) : base(url)));
+  const { wrapper } = await mountApp(fetchImpl);
+  expect(wrapper.find('[data-test=day-partial]').exists()).toBe(true);
+  setBudget({ day: null });
 });

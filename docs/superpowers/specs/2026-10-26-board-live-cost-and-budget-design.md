@@ -141,8 +141,12 @@ injected so it tests without a browser.
 - Notification text: `<repo> · <title> — €X.XX (threshold €T)`, translated.
 
 **Where history comes from.** The board page does not fetch `/api/history` today
-(only the History page does). When a day threshold is set, the board polls it at
-the same interval as `/api/board`; with no day threshold nothing is fetched.
+(only the History page does). When a day threshold is set, the board fetches it
+when the number of live sessions changes — closing a session is what grows the
+file — plus a 60-second safety-net poll, not on every `/api/board` poll; with no
+day threshold nothing is fetched. A day total is only alerted on once both the
+board and the history have loaded, and the header marks the figure as live-only
+while the history is unavailable.
 
 **Accepted imprecision.** A live session's `usage` is cumulative since the
 session started, so a session spanning midnight counts wholly toward the day it

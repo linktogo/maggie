@@ -44,12 +44,13 @@ const totalTokens = computed(() => {
 const usageTooltip = computed(() => {
   if (!usage.value) return '';
   const u = usage.value;
-  return t('session.usageTooltip', {
+  const tokens = t('session.usageTooltip', {
     input: u.inputTokens,
     output: u.outputTokens,
     cacheWrite: u.cacheCreationInputTokens,
     cacheRead: u.cacheReadInputTokens,
   });
+  return described.value ? `${tokens}\n${costTitle(described.value)}` : tokens;
 });
 
 function open() { emit('open', props.session.sessionId); }

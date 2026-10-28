@@ -1,4 +1,4 @@
-import { test, expect, vi } from 'vitest';
+import { test, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SessionRow from './SessionRow.vue';
 import { formatChartValue } from './chartFormat.js';
@@ -8,6 +8,9 @@ import { setBudget } from './budget.js';
 import { STATUS_STYLES } from './statusStyles.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
+
+// the budget is module state backed by localStorage: never let a test leak it
+afterEach(() => { setBudget({ session: null, day: null }); window.localStorage.clear(); });
 
 function session(overrides = {}) {
   return {
@@ -78,7 +81,7 @@ test('the token badge tooltip breaks down usage by type', () => {
       now,
     },
   });
-  expect(w.get('[data-test=token-badge]').attributes('title')).toBe('input 1 · output 2 · cache write 3 · cache read 4');
+  expect(w.get('[data-test=token-badge]').attributes('title').split('\n')[0]).toBe('input 1 · output 2 · cache write 3 · cache read 4');
 });
 
 test('dragstart sets the drag payload to the repo name and session id', async () => {
@@ -192,4 +195,10 @@ test('cost badge takes the warning style once the session reaches its budget', (
   expect(under).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
   setBudget({ session: null });
   expect(withUsage(usage).get('[data-test=cost-badge]').classes()).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
+});
+
+test('the token badge tooltip also carries the per-model cost and the cache hit rate', () => {
+  const title = withUsage({ ...FULL, byModel: { 'claude-sonnet-5': FULL } }).get('[data-test=token-badge]').attributes('title');
+  expect(title).toContain('claude-sonnet-5');
+  expect(title).toContain(translate('session.cacheRate', { rate: 33 }));
 });

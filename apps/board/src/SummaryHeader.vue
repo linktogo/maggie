@@ -10,6 +10,7 @@ const { t } = useI18n();
 const props = defineProps({
   repos: { type: Object, required: true },
   dayCost: { type: Number, default: null },
+  dayPartial: { type: Boolean, default: false },
 });
 
 // A repo with zero active sessions counts as one "todo" card (same
@@ -41,6 +42,6 @@ const percentDone = computed(() => (total.value ? Math.round((counts.value.done 
       <div data-test="progress" class="h-full progress-fill rounded-chip" :style="{ width: percentDone + '%' }"></div>
     </div>
     <div class="text-xs text-ink-faint mt-1">{{ t('summary.percentDone', { percent: percentDone }) }}</div>
-    <div v-if="budget.day !== null && dayCost !== null" data-test="day-cost" class="text-xs text-ink-muted mt-1">{{ t('summary.today', { cost: formatChartValue(dayCost, 'cost'), threshold: formatChartValue(budget.day, 'cost') }) }}</div>
+    <div v-if="budget.day !== null && dayCost !== null" data-test="day-cost" class="text-xs text-ink-muted mt-1">{{ t('summary.today', { cost: formatChartValue(dayCost, 'cost'), threshold: formatChartValue(budget.day, 'cost') }) }}<template v-if="dayPartial"> · <span data-test="day-partial">{{ t('summary.todayPartial') }}</span></template></div>
   </div>
 </template>

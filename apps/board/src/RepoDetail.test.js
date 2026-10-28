@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import RepoDetail from './RepoDetail.vue';
 import { formatChartValue } from './chartFormat.js';
 import { USD_TO_EUR } from './pricing.js';
+import { translate } from './i18n.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
 const session = {
@@ -192,4 +193,13 @@ test('shows the estimated cost of the session when it has usage, "~"-prefixed wh
 test('shows no cost line for a session without usage', () => {
   const w = mount(RepoDetail, { props: { name: 'oc-auth', session, meta, now } });
   expect(w.find('[data-test=detail-cost]').exists()).toBe(false);
+});
+
+test('shows the low cache hit rate hint as visible text, only when it applies', () => {
+  const low = { inputTokens: 80_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 20_000 };
+  const shown = mount(RepoDetail, { props: { name: 'oc-auth', session: { ...session, usage: low }, meta, now } });
+  expect(shown.get('[data-test=detail-cache-low]').text()).toBe(translate('session.cacheLow'));
+  const healthy = { ...low, inputTokens: 10_000, cacheReadInputTokens: 90_000 };
+  const hidden = mount(RepoDetail, { props: { name: 'oc-auth', session: { ...session, usage: healthy }, meta, now } });
+  expect(hidden.find('[data-test=detail-cache-low]').exists()).toBe(false);
 });

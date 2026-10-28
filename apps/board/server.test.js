@@ -687,3 +687,68 @@ test('a cross-site POST is refused and leaves the board untouched', async () => 
   server.close();
   await rm(dir, { recursive: true, force: true });
 });
+
+test('/api/factory/* is handed to the agents proxy, behind the same Host and Origin guards', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const seen = [];
+  const agentsProxy = async (req, res, pathname, search) => {
+    seen.push(`${req.method} ${pathname}${search}`);
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('relayed');
+  };
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir, agentsProxy });
+  const port = await listen(server);
+
+  const ok = await fetch(`http://127.0.0.1:${port}/api/factory/runs?x=1`, { method: 'DELETE' });
+  assert.equal(ok.status, 200);
+  assert.equal(await ok.text(), 'relayed');
+  assert.deepEqual(seen, ['DELETE /api/factory/runs?x=1']);
+
+  const crossSite = await fetch(`http://127.0.0.1:${port}/api/factory/runs`, {
+    method: 'POST', headers: { origin: 'http://evil.example', 'content-type': 'application/json' }, body: '{}',
+  });
+  assert.equal(crossSite.status, 403);
+  const rebinding = await rawRequest(port, { path: '/api/factory/health', headers: { host: 'evil.example' } });
+  assert.equal(rebinding.status, 403);
+  assert.equal(seen.length, 1);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv accepts --agents-url and --agents-token-file and relays /api/factory/* with that token', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const tokenFile = path.join(dir, 'agents.token');
+  await writeFile(tokenFile, 'file-token\n');
+  const seen = [];
+  const agents = createServer((req, res) => {
+    seen.push({ url: req.url, authorization: req.headers.authorization });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end('{"ok":true}');
+  });
+  const agentsPort = await listen(agents);
+  const server = await startFromArgv(
+    ['--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir,
+      '--agents-url', `http://127.0.0.1:${agentsPort}`, '--agents-token-file', tokenFile],
+    { log: () => {} },
+  );
+  const port = await listening(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/factory/health`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { ok: true });
+  assert.deepEqual(seen, [{ url: '/health', authorization: 'Bearer file-token' }]);
+  server.close();
+  agents.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv without agents options targets the default agents server and token file', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = await startFromArgv(['--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir], { log: () => {} });
+  const port = await listening(server);
+  // Whatever is (not) running on 4318 and in ~/.maggie, the answer is the proxy's, never the SPA fallback.
+  const res = await fetch(`http://127.0.0.1:${port}/api/factory/nope`);
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: 'unknown factory route' });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});

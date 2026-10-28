@@ -1,0 +1,14 @@
+{
+  "name": "agents",
+  "sourceRoot": "apps/agents/src",
+  "projectType": "application",
+  "tags": ["scope:agents", "type:app"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test --experimental-test-coverage --test-coverage-include=\"apps/agents/src/**/*.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"apps/agents/test/**/*.test.js\""
+      }
+    }
+  }
+}

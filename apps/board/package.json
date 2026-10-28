@@ -54,8 +54,15 @@
         "dependsOn": [
           "test-server",
           "test-reader",
-          "test-retro-doc"
+          "test-retro-doc",
+          "test-agents-proxy"
         ]
+      },
+      "test-agents-proxy": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test apps/board/agentsProxy.test.js"
+        }
       },
       "test-retro-doc": {
         "executor": "nx:run-commands",

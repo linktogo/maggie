@@ -8,6 +8,7 @@ import { loadConfig, loadConfigFromRepo, resolveConfigSource } from '@linktogo/m
 import { reconcileHooks, resolveHistoryPath, closeSession, queueMessage } from '@linktogo/maggie-workspace-bootstrap';
 import { createCiReader } from './ciReader.js';
 import { createRetroDocRunner } from './retroDocJobs.js';
+import { createAgentsProxy, DEFAULT_AGENTS_URL } from './agentsProxy.js';
 
 // Resolve the board file the server should read. Explicit --board and the
 // AI_SYNC_BOARD env var always win; otherwise auto-detect the workspace board
@@ -219,7 +220,7 @@ async function serveStatic(distDir, pathname, res) {
   }
 }
 
-export function createBoardServer({ boardPath, distDir, config = null, ciReader = null, retroDoc = undefined }) {
+export function createBoardServer({ boardPath, distDir, config = null, ciReader = null, retroDoc = undefined, agentsProxy = createAgentsProxy() }) {
   const historyPath = resolveHistoryPath(boardPath);
   // Without a config the board cannot know where a repo is checked out, so the
   // endpoint answers 503 rather than guessing a directory to write into.
@@ -240,6 +241,7 @@ export function createBoardServer({ boardPath, distDir, config = null, ciReader 
       if (url.pathname === '/api/sessions/close' && req.method === 'POST') return await serveCloseSession(boardPath, req, res);
       if (url.pathname === '/api/sessions/message' && req.method === 'POST') return await serveQueueMessage(boardPath, req, res);
       if (url.pathname === '/api/retro-doc' && (req.method === 'GET' || req.method === 'POST')) return await serveRetroDoc(retroDocRunner, req, res, url);
+      if (url.pathname.startsWith('/api/factory/')) return await agentsProxy(req, res, url.pathname, url.search);
       return await serveStatic(distDir, url.pathname, res);
     } catch (err) {
       res.writeHead(500, { 'content-type': 'text/plain' });
@@ -261,6 +263,8 @@ export async function startFromArgv(argv, {
       'status-repo': { type: 'string' }, 'ci-interval': { type: 'string', default: '60' },
       'ci-state': { type: 'string' }, 'ci-cache': { type: 'string' },
       'config-repo': { type: 'string' }, 'config-file': { type: 'string' },
+      'agents-url': { type: 'string', default: DEFAULT_AGENTS_URL },
+      'agents-token-file': { type: 'string' },
     },
   });
   const boardPath = resolveServerBoardPath({ board: values.board });
@@ -301,7 +305,11 @@ export async function startFromArgv(argv, {
     void ciReader.tick();
   }
   const distDir = values.dist ?? path.join(path.dirname(fileURLToPath(import.meta.url)), 'dist');
-  const server = createBoardServer({ boardPath, distDir, config, ciReader });
+  const agentsProxy = createAgentsProxy({
+    url: values['agents-url'],
+    ...(values['agents-token-file'] ? { tokenFile: path.resolve(values['agents-token-file']) } : {}),
+  });
+  const server = createBoardServer({ boardPath, distDir, config, ciReader, agentsProxy });
 
   // Like the Angular CLI: if the port is taken, fall back to the next one.
   const maxAttempts = 10;

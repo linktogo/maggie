@@ -38,6 +38,8 @@
     "apps/sync/src",
     "apps/workspace/bin",
     "apps/workspace/src",
+    "apps/agents/bin",
+    "apps/agents/src",
     "skills",
     "README.md",
     "CHANGELOG.md",
@@ -46,10 +48,12 @@
   ],
   "bin": {
     "maggie": "apps/sync/bin/sync.js",
-    "maggie-workspace": "apps/workspace/bin/workspace.js"
+    "maggie-workspace": "apps/workspace/bin/workspace.js",
+    "maggie-agents": "apps/agents/bin/agents.js"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
+    "@linktogo/maggie-agent-runner": "^1.3.1",
     "@linktogo/maggie-config": "^1.3.1",
     "@linktogo/maggie-skill-sync": "^1.3.1",
     "@linktogo/maggie-workspace-bootstrap": "^1.3.1"
@@ -75,6 +79,7 @@
     "build": "nx run-many -t build",
     "start": "nx run board:start",
     "sync": "node apps/sync/bin/sync.js",
+    "agents": "node apps/agents/bin/agents.js",
     "wk": "node apps/workspace/bin/workspace.js --workspace wk",
     "board:build": "nx run board:build",
     "test:board": "nx run board:test",

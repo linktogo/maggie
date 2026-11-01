@@ -34,6 +34,7 @@ export default [
             { sourceTag: 'scope:shared', onlyDependOnLibsWithTags: ['scope:shared'] },
             { sourceTag: 'scope:sync', onlyDependOnLibsWithTags: ['scope:shared', 'scope:sync'] },
             { sourceTag: 'scope:workspace', onlyDependOnLibsWithTags: ['scope:shared', 'scope:workspace'] },
+            { sourceTag: 'scope:agents', onlyDependOnLibsWithTags: ['scope:shared', 'scope:agents'] },
             { sourceTag: 'scope:board', onlyDependOnLibsWithTags: ['scope:board'] },
           ],
         },

@@ -1,0 +1,39 @@
+{
+  "name": "@linktogo/maggie-agent-runner",
+  "version": "1.3.1",
+  "description": "Run local AI agent CLIs (Claude Code, GitHub Copilot) on a repository checkout, with streamed output, timeouts and cancellation.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linktogo/maggie.git",
+    "directory": "libs/agent-runner"
+  },
+  "homepage": "https://github.com/linktogo/maggie/tree/main/libs/agent-runner#readme",
+  "bugs": {
+    "url": "https://github.com/linktogo/maggie/issues"
+  },
+  "keywords": [
+    "maggie",
+    "ai-agents",
+    "claude-code",
+    "github-copilot",
+    "developer-tools"
+  ],
+  "dependencies": {
+    "@linktogo/maggie-retro-doc": "^1.3.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

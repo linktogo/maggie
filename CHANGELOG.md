@@ -10,6 +10,14 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- **AI Factory.** A new `maggie-agents` server (`npm run agents`) runs Claude Code or GitHub Copilot
+  CLI agents on the repositories of the config, and a new **AI Factory** tab in the board launches them
+  and streams their output. The server is independent of the board (loopback only, bearer token kept in
+  a `0600` file, repository allowlist, one run per repository). Logic lives in the new
+  `@linktogo/maggie-agent-runner` library. See `docs/ai-factory.md`.
+
 ## [1.3.1] - 2026-10-18
 
 ## [1.3.0] - 2026-10-01

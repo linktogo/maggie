@@ -2,6 +2,8 @@
 
 Launch local AI coding agents from the board. Three pieces:
 
+![The AI Factory tab of the board](images/board/ai-factory.png)
+
 | Piece | What it is |
 |---|---|
 | [`libs/agent-runner`](../libs/agent-runner) | the logic: providers, repo allowlist, skills, run lifecycle |

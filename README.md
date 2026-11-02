@@ -25,6 +25,24 @@ Cursor. `maggie` keeps one reviewed source of truth: write the guidance once,
 declare which technologies each repo uses, and let the tool render and open the
 pull requests.
 
+## Screenshots
+
+The board tracks every local agent session — Claude Code and GitHub Copilot CLI
+— as a card in a kanban column (To do, In progress, Question, Done):
+
+![The maggie workspace board](docs/images/board/board-en.png)
+
+Open a session to read its prompt, token usage and worktree, and send it a
+message that is queued until the agent picks it up:
+
+![Session detail side panel with the message box and queued messages](docs/images/board/send-message-detail.png)
+
+Pick a theme and a light/dark mode, in English, French, German or Spanish:
+
+![The theme and mode pickers](docs/images/board/theme-picker.png)
+
+More in the [Board dashboard](docs/board-dashboard.md) guide.
+
 ## Quick start
 
 Requires **Node.js >= 22** and `git` on your PATH.

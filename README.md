@@ -37,6 +37,21 @@ message that is queued until the agent picks it up:
 
 ![Session detail side panel with the message box and queued messages](docs/images/board/send-message-detail.png)
 
+**AI Factory** launches a local Claude Code or Copilot CLI agent on one of your
+repositories — with a free prompt or a skill from the library — and streams its
+output live ([docs](docs/ai-factory.md)):
+
+![The AI Factory tab: run form, runs list and live output](docs/images/board/ai-factory.png)
+
+**History** charts token usage and cost per day, week, month, year or project:
+
+![The history page with the token usage chart](docs/images/board/history-en.png)
+
+**Retro-doc** folds a repository's specs and plans into one document an agent
+can read, with a live console ([docs](docs/retro-doc.md)):
+
+![The retro-documentation page with its run console](docs/images/board/retro-doc.png)
+
 Pick a theme and a light/dark mode, in English, French, German or Spanish:
 
 ![The theme and mode pickers](docs/images/board/theme-picker.png)

@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { ref } from 'vue';
 import { useHistoryStats, bucketKey } from './useHistoryStats.js';
+import { USD_TO_EUR } from './pricing.js';
 
 function entry(overrides = {}) {
   return {
@@ -58,7 +59,9 @@ test('bucketByPeriod attributes cost per model, and pre-migration entries with n
   ]);
   const { bucketByPeriod } = useHistoryStats(entries);
   const [bucket] = bucketByPeriod('day');
-  expect(bucket.costByModel).toEqual({ 'claude-sonnet-5': 3, unknown: 3 });
+  expect(bucket.costByModel['claude-sonnet-5']).toBeCloseTo(3 * USD_TO_EUR, 6);
+  expect(bucket.costByModel.unknown).toBeCloseTo(3 * USD_TO_EUR, 6);
+  expect(Object.keys(bucket.costByModel).sort()).toEqual(['claude-sonnet-5', 'unknown']);
 });
 
 test('totalsByProject aggregates every entry by repo, regardless of granularity, sorted by token volume descending', () => {

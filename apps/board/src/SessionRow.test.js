@@ -1,8 +1,16 @@
-import { test, expect, vi } from 'vitest';
+import { test, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SessionRow from './SessionRow.vue';
+import { formatChartValue } from './chartFormat.js';
+import { translate } from './i18n.js';
+import { USD_TO_EUR } from './pricing.js';
+import { setBudget } from './budget.js';
+import { STATUS_STYLES } from './statusStyles.js';
 
 const now = Date.parse('2026-06-21T10:00:00.000Z');
+
+// the budget is module state backed by localStorage: never let a test leak it
+afterEach(() => { setBudget({ session: null, day: null }); window.localStorage.clear(); });
 
 function session(overrides = {}) {
   return {
@@ -73,7 +81,7 @@ test('the token badge tooltip breaks down usage by type', () => {
       now,
     },
   });
-  expect(w.get('[data-test=token-badge]').attributes('title')).toBe('input 1 · output 2 · cache write 3 · cache read 4');
+  expect(w.get('[data-test=token-badge]').attributes('title').split('\n')[0]).toBe('input 1 · output 2 · cache write 3 · cache read 4');
 });
 
 test('dragstart sets the drag payload to the repo name and session id', async () => {
@@ -139,4 +147,58 @@ test('shows a copilot badge for a session recorded by the GitHub Copilot hooks',
   expect(badge.text()).toBe('copilot');
   expect(badge.attributes('title')).toBe('Running on GitHub Copilot CLI');
   expect(badge.classes().join(' ')).toContain('agent-copilot');
+});
+
+const FULL = { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheCreationInputTokens: 1_000_000, cacheReadInputTokens: 1_000_000 };
+
+function withUsage(usage) {
+  return mount(SessionRow, { props: { session: session({ usage }), now } });
+}
+
+test('cost badge shows the estimated euro cost of a session priced from known models', () => {
+  const w = withUsage({ ...FULL, byModel: { 'claude-sonnet-5': FULL } });
+  expect(w.get('[data-test=cost-badge]').text()).toBe(formatChartValue(22.05 * USD_TO_EUR, 'cost'));
+});
+
+test('cost badge is "~"-prefixed with an explanatory title when a model is priced at the default rate', () => {
+  const w = withUsage({ ...FULL, byModel: { 'gpt-5': FULL } });
+  const badge = w.get('[data-test=cost-badge]');
+  expect(badge.text().startsWith('~')).toBe(true);
+  expect(badge.attributes('title')).toContain(translate('session.estimateHint'));
+});
+
+test('cost badge is "~"-prefixed for usage with no per-model breakdown', () => {
+  expect(withUsage(FULL).get('[data-test=cost-badge]').text().startsWith('~')).toBe(true);
+});
+
+test('there is no cost badge before the session has any usage', () => {
+  const w = mount(SessionRow, { props: { session: session(), now } });
+  expect(w.find('[data-test=cost-badge]').exists()).toBe(false);
+});
+
+test('cost badge title carries the cache hit rate and, when it is low over a large session, the hint', () => {
+  const low = { inputTokens: 80_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 20_000, byModel: { 'claude-sonnet-5': { inputTokens: 80_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 20_000 } } };
+  const title = withUsage(low).get('[data-test=cost-badge]').attributes('title');
+  expect(title).toContain(translate('session.cacheRate', { rate: 20 }));
+  expect(title).toContain(translate('session.cacheLow'));
+  const healthy = { ...low, inputTokens: 10_000, cacheReadInputTokens: 90_000, byModel: { 'claude-sonnet-5': { ...low.byModel['claude-sonnet-5'], inputTokens: 10_000, cacheReadInputTokens: 90_000 } } };
+  expect(withUsage(healthy).get('[data-test=cost-badge]').attributes('title')).not.toContain(translate('session.cacheLow'));
+});
+
+test('cost badge takes the warning style once the session reaches its budget', () => {
+  const usage = { ...FULL, byModel: { 'claude-sonnet-5': FULL } }; // 22.05 USD
+  setBudget({ session: 22.05 * USD_TO_EUR });
+  const over = withUsage(usage).get('[data-test=cost-badge]').classes();
+  expect(over).toEqual(expect.arrayContaining(STATUS_STYLES.question.chip.split(' ')));
+  setBudget({ session: 22.05 * USD_TO_EUR * 2 });
+  const under = withUsage(usage).get('[data-test=cost-badge]').classes();
+  expect(under).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
+  setBudget({ session: null });
+  expect(withUsage(usage).get('[data-test=cost-badge]').classes()).not.toContain(STATUS_STYLES.question.chip.split(' ')[0]);
+});
+
+test('the token badge tooltip also carries the per-model cost and the cache hit rate', () => {
+  const title = withUsage({ ...FULL, byModel: { 'claude-sonnet-5': FULL } }).get('[data-test=token-badge]').attributes('title');
+  expect(title).toContain('claude-sonnet-5');
+  expect(title).toContain(translate('session.cacheRate', { rate: 33 }));
 });

@@ -6,6 +6,8 @@ import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
 import { eventLabel, ciConclusionLabel, ciReasonLabel } from './labels.js';
+import { describeUsage } from './liveUsage.js';
+import { costText, costTitle } from './costDisplay.js';
 
 const { t } = useI18n();
 
@@ -34,6 +36,7 @@ const ciUsers = computed(() => visibleBadges(props.ci?.users, Infinity).shown);
 
 const draft = ref('');
 const pending = computed(() => props.session?.pendingMessages ?? []);
+const described = computed(() => describeUsage(props.session?.usage ?? null));
 function send() {
   const text = draft.value.trim();
   if (!text) return;
@@ -54,6 +57,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
       <div class="pb-3 border-b border-line-soft mb-3">
         <h2 class="font-bold text-ink-strong break-all">{{ name }}</h2>
         <p v-if="session?.title" class="text-sm text-ink-soft mt-1">{{ session.title }}</p>
+        <p v-if="described?.lowCache" data-test="detail-cache-low" class="text-xs text-question-on-soft mt-1">{{ t('session.cacheLow') }}</p>
+        <p v-if="described" data-test="detail-cost" :title="costTitle(described)" class="text-xs text-ink-muted mt-1">{{ costText(described) }}</p>
         <a v-if="meta?.url" :href="meta.url" target="_blank" rel="noopener"
            class="text-sm text-accent underline break-all">{{ meta.url }}</a>
         <div v-if="meta" class="mt-2 flex flex-wrap gap-1">

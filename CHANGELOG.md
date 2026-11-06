@@ -10,6 +10,8 @@ changes in minor releases.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-06
+
 ### Added
 
 - **AI Factory.** A new `maggie-agents` server (`npm run agents`) runs Claude Code or GitHub Copilot
@@ -272,7 +274,8 @@ Initial release.
 - Starter skills library for NestJS, Postgres, Next.js, React, Angular, Vue, Nx,
   Firebase, and Cloudflare Workers.
 
-[Unreleased]: https://github.com/linktogo/maggie/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/linktogo/maggie/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/linktogo/maggie/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/linktogo/maggie/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/linktogo/maggie/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/linktogo/maggie/compare/v1.1.0...v1.2.0

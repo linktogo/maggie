@@ -107,6 +107,7 @@ test('GET /health reports the providers found, the default one and the allowed r
   assert.deepEqual(await res.json(), {
     providers: { available: ['claude-cli'], default: 'claude-cli' },
     repos: ['api', 'web'],
+    terminal: { available: false, reason: 'disabled' },
   });
 });
 
@@ -478,4 +479,147 @@ test('a resumed run that cannot spawn answers 202 with the thread settled and is
   assert.equal(res.status, 202);
   assert.equal((await res.json()).thread.status, 'idle');
   assert.equal(lines.filter((line) => line === `[${thread.id}] idle`).length, 2);
+});
+
+const TM = 'tm_0123456789abcdef';
+
+// Records every call and lets the test drive the shell's output.
+function fakeTerminals({ available = { ok: true }, fail = {} } = {}) {
+  const fake = { calls: [], subscribers: [], unsubscribed: 0 };
+  const record = (name, ...args) => {
+    fake.calls.push([name, ...args]);
+    if (fail[name]) throw fail[name];
+  };
+  fake.available = async () => available;
+  fake.open = async (body) => {
+    record('open', body);
+    return { id: TM, repo: body.repo, cwd: `/ws/${body.repo}` };
+  };
+  fake.subscribe = (id, onEvent) => {
+    record('subscribe', id);
+    fake.subscribers.push(onEvent);
+    return () => { fake.unsubscribed += 1; };
+  };
+  fake.write = (id, data) => record('write', id, data);
+  fake.resize = (id, cols, rows) => record('resize', id, cols, rows);
+  fake.kill = (id) => record('kill', id);
+  return fake;
+}
+
+const until = async (check) => {
+  for (let i = 0; i < 100 && !check(); i += 1) await new Promise((resolve) => setTimeout(resolve, 5));
+};
+
+test('GET /health reports the console as available, or unavailable with its reason', async (t) => {
+  const ok = await boot(t, { server: { terminals: fakeTerminals() } });
+  assert.deepEqual((await (await ok.call('/health')).json()).terminal, { available: true });
+  const broken = await boot(t, { server: { terminals: fakeTerminals({ available: { ok: false, reason: 'no prebuilt' } }) } });
+  assert.deepEqual((await (await broken.call('/health')).json()).terminal, { available: false, reason: 'no prebuilt' });
+});
+
+test('POST /terminals opens a shell and answers 201', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call('/terminals', post({ repo: 'api', cols: 80, rows: 24 }));
+  assert.equal(res.status, 201);
+  assert.deepEqual(await res.json(), { terminal: { id: TM, repo: 'api', cwd: '/ws/api' } });
+  assert.deepEqual(terminals.calls, [['open', { repo: 'api', cols: 80, rows: 24 }]]);
+});
+
+test('the events stream sends data as base64 and ends after exit', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call(`/terminals/${TM}/events`);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('content-type'), 'text/event-stream');
+  await until(() => terminals.subscribers.length === 1);
+  terminals.subscribers[0]({ type: 'data', data: Buffer.from('é') });
+  terminals.subscribers[0]({ type: 'exit', code: 0, signal: null });
+  assert.equal(await res.text(), 'event: data\ndata: w6k=\n\nevent: exit\ndata: {"code":0,"signal":null}\n\n');
+  assert.deepEqual(terminals.calls, [['subscribe', TM]]);
+});
+
+test('closing the events stream unsubscribes', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  const controller = new AbortController();
+  const res = await call(`/terminals/${TM}/events`, { signal: controller.signal });
+  assert.equal(res.status, 200);
+  controller.abort();
+  await until(() => terminals.unsubscribed === 1);
+  assert.equal(terminals.unsubscribed, 1);
+});
+
+test('input, resize and delete answer 204 and reach the manager', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  assert.equal((await call(`/terminals/${TM}/input`, post({ data: 'ls\r' }))).status, 204);
+  assert.equal((await call(`/terminals/${TM}/resize`, post({ cols: 120, rows: 40 }))).status, 204);
+  assert.equal((await call(`/terminals/${TM}`, { method: 'DELETE' })).status, 204);
+  assert.deepEqual(terminals.calls, [['write', TM, 'ls\r'], ['resize', TM, 120, 40], ['kill', TM]]);
+});
+
+test('an input body that is not { data: string } is invalid', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  for (const body of [{}, { data: 1 }, null, 'ls']) {
+    const res = await call(`/terminals/${TM}/input`, post(body));
+    assert.equal(res.status, 400, JSON.stringify(body));
+  }
+  assert.equal((await call(`/terminals/${TM}/resize`, post(null))).status, 400);
+  assert.equal((await call('/terminals', post(null))).status, 400);
+  assert.deepEqual(terminals.calls, []);
+});
+
+test('an unknown terminal is 404 and a wrong method or sub-route is 404', async (t) => {
+  const terminals = fakeTerminals({ fail: { kill: new AgentError('not-found', 'unknown terminal: x') } });
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call(`/terminals/${TM}`, { method: 'DELETE' });
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: 'unknown terminal: x' });
+  assert.equal((await call(`/terminals/${TM}/input`)).status, 404);
+  assert.equal((await call('/terminals')).status, 404);
+  assert.equal((await call('/terminals/tm_123/events')).status, 404);
+});
+
+test('without a manager every /terminals route is 503 terminal-unavailable', async (t) => {
+  const { call } = await boot(t);
+  const res = await call('/terminals', post({ repo: 'api', cols: 80, rows: 24 }));
+  assert.equal(res.status, 503);
+  assert.deepEqual(await res.json(), { error: 'terminal-unavailable', detail: 'the console is disabled (--no-terminal)' });
+  assert.equal((await call(`/terminals/${TM}/events`)).status, 503);
+});
+
+test('a manager that cannot load the pty answers 503 with its reason', async (t) => {
+  const terminals = fakeTerminals({ fail: { open: new AgentError('unavailable', 'no prebuilt') } });
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call('/terminals', post({ repo: 'api', cols: 80, rows: 24 }));
+  assert.equal(res.status, 503);
+  assert.deepEqual(await res.json(), { error: 'terminal-unavailable', detail: 'no prebuilt' });
+});
+
+test('the terminal routes still require the bearer token', async (t) => {
+  const { call } = await boot(t, { server: { terminals: fakeTerminals() } });
+  assert.equal((await call('/terminals', { ...post({ repo: 'api' }), headers: { authorization: 'Bearer wrong', 'content-type': 'application/json' } })).status, 401);
+});
+
+test('the events stream of an unknown terminal is a plain 404', async (t) => {
+  const terminals = fakeTerminals({ fail: { subscribe: new AgentError('not-found', `unknown terminal: ${TM}`) } });
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call(`/terminals/${TM}/events`);
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: `unknown terminal: ${TM}` });
+});
+
+test('output replayed during subscribe is sent after the stream headers', async (t) => {
+  const terminals = fakeTerminals();
+  terminals.subscribe = (id, onEvent) => {
+    onEvent({ type: 'data', data: Buffer.from('$ ') });
+    onEvent({ type: 'exit', code: 1, signal: null });
+    return () => {};
+  };
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call(`/terminals/${TM}/events`);
+  assert.equal(res.headers.get('content-type'), 'text/event-stream');
+  assert.equal(await res.text(), 'event: data\ndata: JCA=\n\nevent: exit\ndata: {"code":1,"signal":null}\n\n');
 });

@@ -9,3 +9,6 @@ linkWorkspacePackages: true
 # nx runs a postinstall script (native binary setup) that pnpm blocks by default.
 allowBuilds:
   nx: true
+  # node-pty ships prebuilt binaries for macOS and Windows; elsewhere its install
+  # script compiles one with node-gyp.
+  node-pty: true

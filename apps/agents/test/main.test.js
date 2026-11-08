@@ -51,7 +51,7 @@ test('main starts the server, writes a private token and serves /health with it'
   await waitFor(() => lines.some((line) => /^GET \/health 200 \d+ms$/.test(line)));
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 401);
   const health = await (await fetch(`http://127.0.0.1:${port}/health`, { headers: { authorization: `Bearer ${token}` } })).json();
-  assert.deepEqual(health, { providers: { available: ['copilot'], default: 'claude-cli' }, repos: ['api'] });
+  assert.deepEqual(health, { providers: { available: ['copilot'], default: 'claude-cli' }, repos: ['api'], terminal: { available: true } });
 });
 
 test('main says so when no agent CLI is installed', async (t) => {
@@ -335,4 +335,51 @@ test('the warning filter defaults to process and console.error', (t) => {
   installSqliteWarningFilter();
   process.emit('warning', Object.assign(new Error('x'), { name: 'Warning' }));
   assert.deepEqual(printed, ['Warning: x']);
+});
+
+function fakeTerminals() {
+  const fake = { options: null, killed: 0 };
+  fake.create = (options) => {
+    fake.options = options;
+    return { available: async () => ({ ok: true }), killAll: () => { fake.killed += 1; } };
+  };
+  return fake;
+}
+
+async function health(server, tokenFile) {
+  const token = (await readFile(tokenFile, 'utf8')).trim();
+  return (await fetch(`http://127.0.0.1:${server.address().port}/health`, { headers: { authorization: `Bearer ${token}` } })).json();
+}
+
+test('the terminal manager gets the repo resolver and the log, and serves the console', async (t) => {
+  const { args, tokenFile, dir } = await workspace(t);
+  const terminals = fakeTerminals();
+  const server = await main(args, { log: quiet, detect: () => [], onSignal: noSignals, env: {}, createTerminals: terminals.create });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.equal(terminals.options.log, quiet);
+  assert.throws(() => terminals.options.repos.resolve('api'), /not checked out/);
+  await mkdir(path.join(dir, 'api'));
+  assert.equal(terminals.options.repos.resolve('api'), path.join(dir, 'api'));
+  assert.deepEqual((await health(server, tokenFile)).terminal, { available: true });
+});
+
+test('--no-terminal disables the console and says so', async (t) => {
+  const { args, tokenFile } = await workspace(t);
+  const terminals = fakeTerminals();
+  const lines = [];
+  const server = await main([...args, '--no-terminal'], { log: (line) => lines.push(line), detect: () => [], onSignal: noSignals, env: {}, createTerminals: terminals.create });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.equal(terminals.options, null);
+  assert.ok(lines.includes('  console disabled (--no-terminal)'));
+  assert.deepEqual((await health(server, tokenFile)).terminal, { available: false, reason: 'disabled' });
+});
+
+test('SIGINT/SIGTERM kill every open console', async (t) => {
+  const { args } = await workspace(t);
+  const terminals = fakeTerminals();
+  let handler;
+  const server = await main(args, { log: quiet, detect: () => [], env: {}, createTerminals: terminals.create, onSignal: (signals, fn) => { handler = fn; } });
+  handler();
+  await once(server, 'close');
+  assert.equal(terminals.killed, 1);
 });

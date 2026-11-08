@@ -9,7 +9,7 @@ import {
   loadConfig as defaultLoadConfig, loadConfigFromRepo as defaultLoadConfigFromRepo, resolveConfigSource,
 } from '@linktogo/maggie-config';
 import {
-  DEFAULT_AGENT_PROVIDER, createRepoResolver, createRunManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
+  DEFAULT_AGENT_PROVIDER, createRepoResolver, createRunManager, createTerminalManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
 } from '@linktogo/maggie-agent-runner';
 import { LOOPBACK, createAgentsServer } from './server.js';
 
@@ -51,6 +51,7 @@ export async function main(argv, {
   home = os.homedir(),
   onSignal = onProcessSignal,
   openStore = createThreadStore,
+  createTerminals = createTerminalManager,
 } = {}) {
   const { values } = parseArgs({
     args: argv,
@@ -67,6 +68,7 @@ export async function main(argv, {
       db: { type: 'string' },
       timeout: { type: 'string', default: '600' },
       'trust-repos': { type: 'boolean', default: false },
+      'no-terminal': { type: 'boolean', default: false },
     },
   });
   const port = parseNumber(values.port, { integer: true, min: 0, max: 65535 });
@@ -101,6 +103,8 @@ export async function main(argv, {
     for (const dir of trusted) log(`  trusted for Claude Code: ${dir}`);
   }
   const manager = createRunManager({ timeoutMs: timeoutSeconds * 1000 });
+  const terminals = values['no-terminal'] ? null : createTerminals({ repos, log });
+  if (!terminals) log('  console disabled (--no-terminal)');
 
   const dbFile = path.resolve(values.db ?? defaultDbFile(home));
   let store;
@@ -125,6 +129,7 @@ export async function main(argv, {
     repos,
     skillsDir,
     providers: { detect, defaultProvider },
+    terminals,
     allowedOrigins: values['allow-origin'],
     log,
   });
@@ -172,6 +177,7 @@ export async function main(argv, {
   log(`agents server on http://localhost:${server.address().port} (token: ${tokenFile})`);
   log(`  default provider ${defaultProvider}; installed: ${installed.length ? installed.join(', ') : 'none (claude / copilot not found on PATH)'}`);
   onSignal(['SIGINT', 'SIGTERM'], () => {
+    terminals?.killAll();
     server.close();
     server.closeAllConnections();
   });

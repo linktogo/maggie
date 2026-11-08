@@ -31,6 +31,7 @@ npm start                                                  # the board; open the
 | `--token-file <file>` | `~/.maggie/agents.token` | where the token is written |
 | `--db <file>` | `~/.maggie/factory.db` | SQLite file holding the threads, kept `0600` (its directory is created `0700`). The server refuses to start when it cannot be opened (no in-memory fallback) |
 | `--trust-repos` | off | before listening, mark the checked-out repos as trusted in `~/.claude.json` (see below) |
+| `--no-terminal` | off | disable the console (interactive shell from a conversation, see below) |
 
 Claude Code ignores a repository's `.claude/settings.json` permissions until its trust dialog has been accepted,
 and a server-launched run cannot answer that dialog. `--trust-repos` does what accepting it would: it sets
@@ -66,6 +67,19 @@ Providers are `claude-cli` (`claude -p --permission-mode acceptEdits`) and `copi
 installed and logged in. A request may override the provider, but only among those two; if its CLI is
 missing the run fails with an explicit message (`Could not run ...`), never with a silent fallback.
 
+## Console
+
+A conversation's **Console** button opens an interactive shell (`$SHELL -l`) in the thread's repository
+checkout, in a tab next to the conversation. The shell runs on a pseudo-terminal from
+[node-pty](https://github.com/microsoft/node-pty), in the agents server; the board relays it like the other
+routes. It dies with its tab: closing it, opening another conversation or closing the page kills it (5 s after
+its last reader leaves). At most 4 shells run at once; the last 64 KiB of output are replayed when the tab
+reconnects within those 5 s.
+
+node-pty is a native, optional dependency: it ships prebuilt binaries for macOS and Windows, and elsewhere
+compiles one with node-gyp at install time (Python and a C++ toolchain). When it cannot load, the server still
+starts, `/health` reports `terminal: { available: false, reason }` and the button is disabled with that reason.
+
 ## Security model
 
 The server executes commands on your machine, so:
@@ -82,7 +96,10 @@ The server executes commands on your machine, so:
   `<techno>/<name>` and cannot leave the skills directory; the model is validated as an identifier;
 - one active run per repository, a timeout per run (SIGTERM, then SIGKILL after a 5 s grace); live output
   buffers are bounded (events, characters and number of runs); the history in `factory.db` is a plain `0600`
-  file readable by your user, in a `0700` directory, so treat it like your shell history.
+  file readable by your user, in a `0700` directory, so treat it like your shell history;
+- the console is a shell as your user in an allowlisted checkout: anyone who can drive the board locally can
+  use it. Opening one, typing in it and closing it are `POST`/`DELETE` requests, so the board's `Origin` check
+  applies; terminal ids (`tm_` + 16 random hex digits) are never listed. `--no-terminal` turns it off.
 
 **Agent permissions are the CLI's own.** `claude -p --permission-mode acceptEdits` may edit files in the
 repository without asking, while shell commands and other tools still need allowed tools configured in the
@@ -109,7 +126,7 @@ use every tool without asking. Review what you point an agent at.
 
 | Route | |
 |---|---|
-| `GET /health` | `{ providers: { available, default }, repos }` |
+| `GET /health` | `{ providers: { available, default }, repos, terminal: { available, reason? } }` |
 | `GET /skills` | `{ skills: [{ id, techno, name, description }] }` |
 | `GET /projects` | `{ projects: [{ repo, threads, running, lastActivity }] }` for every allowlisted repo |
 | `GET /threads?repo=&status=&q=&before=` | `{ threads }`, newest first, 50 per page; `q` searches titles and text messages; archived excluded unless `status=archived` |
@@ -120,9 +137,14 @@ use every tool without asking. Review what you point an agent at.
 | `DELETE /threads/:id/run` | SIGTERM the active run -> `202`; `404` when none |
 | `PATCH /threads/:id` | `{ status: 'archived' \| 'idle' }`; `409` while running |
 | `DELETE /threads/:id` | permanent delete with its messages; `409` while running |
+| `POST /terminals` | `{ repo, cols, rows }` (cols 1-500, rows 1-200) -> `201 { terminal: { id, repo, cwd } }`; `409` when 4 are open |
+| `GET /terminals/:id/events` | SSE: `data` events (pty bytes in base64), then `exit` (`{ code, signal }`) and the stream ends |
+| `POST /terminals/:id/input` | `{ data }` (at most 64 KiB) -> `204` |
+| `POST /terminals/:id/resize` | `{ cols, rows }` -> `204` |
+| `DELETE /terminals/:id` | kill the shell -> `204` |
 
 Errors: `400` invalid input, `401` bad token, `403` Host/Origin, `404` unknown repo/skill/thread, `409` thread
-running or repo busy, `413` body too large. The board exposes the same routes (and only those, with their
+running or repo busy, `413` body too large, `503 { "error": "terminal-unavailable", "detail" }` console disabled or node-pty missing. The board exposes the same routes (and only those, with their
 methods) under `/api/factory/*`; when the agents server or its token file is missing, the relay answers
 `503 { "error": "agents-unavailable", "detail": ... }`.
 
@@ -133,8 +155,8 @@ replace it, and its routes now answer `404`.
 
 - **Windows `.cmd` shims.** `claude` or `copilot` installed as a `.cmd` shim are detected, but Node cannot
   spawn them without a shell; the run then fails with an explicit message.
-- **Shutdown.** SIGINT/SIGTERM stops the server (and removes the token file) but does not cancel active
-  agent runs.
+- **Shutdown.** SIGINT/SIGTERM stops the server (and removes the token file) and kills open console shells,
+  but does not cancel active agent runs.
 - **One active run per repo, no queue.** A second request on a busy repo is refused with `409`.
 
 ## Not in this version

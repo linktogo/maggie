@@ -298,3 +298,33 @@ test('the defaults point at the local agents server and its token file', async (
   await proxy({ method: 'GET' }, { writeHead(status) { out.status = status; }, end() {} }, '/api/factory/nope');
   assert.equal(out.status, 404);
 });
+
+const TM = 'tm_0123456789abcdef';
+
+test('every terminal route is relayed with its method and body', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
+  const { base } = await board(t, { url: agents.url });
+  const cases = [
+    ['POST', '/terminals', '{"repo":"api","cols":80,"rows":24}'],
+    ['GET', `/terminals/${TM}/events`],
+    ['POST', `/terminals/${TM}/input`, '{"data":"ls\\r"}'],
+    ['POST', `/terminals/${TM}/resize`, '{"cols":120,"rows":40}'],
+    ['DELETE', `/terminals/${TM}`],
+  ];
+  for (const [method, route, body] of cases) {
+    const res = await fetch(`${base}/api/factory${route}`, { method, body });
+    assert.equal(res.status, 200, `${method} ${route}`);
+  }
+  assert.deepEqual(agents.seen.map(({ method, url, body }) => [method, url, body]), cases.map(([method, route, body]) => [method, route, body ?? '']));
+});
+
+test('neighbouring terminal paths are refused', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(200); res.end('{}'); });
+  const { base } = await board(t, { url: agents.url });
+  for (const route of ['/terminals/tm_123', `/terminals/${TM}/other`, '/terminals/x/events', `/terminals/${TM}/events/x`, '/terminalsx']) {
+    const res = await fetch(`${base}/api/factory${route}`);
+    assert.equal(res.status, 404, route);
+    assert.deepEqual(await res.json(), { error: 'unknown factory route' });
+  }
+  assert.equal(agents.seen.length, 0);
+});

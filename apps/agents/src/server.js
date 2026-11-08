@@ -11,7 +11,9 @@ export const DEFAULT_BODY_LIMIT = 1_000_000;
 
 const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, 'too-large': 413 };
 const THREAD_PATH = /^\/threads\/(th_[0-9a-f]{16})(\/messages|\/events|\/run)?$/;
+const TERMINAL_PATH = /^\/terminals(?:\/(tm_[0-9a-f]{16})(\/events|\/input|\/resize)?)?$/;
 const QUERY_PARAMS = ['repo', 'status', 'q', 'before'];
+const DISABLED = 'the console is disabled (--no-terminal)';
 
 const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/i;
 
@@ -47,12 +49,26 @@ async function readJson(req, limit) {
   }
 }
 
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function readObject(req, limit, shape) {
+  return readJson(req, limit).then((body) => {
+    if (!isObject(body)) throw new AgentError('invalid', `body must be ${shape}`);
+    return body;
+  });
+}
+
+// Pty output is raw bytes (a UTF-8 character may straddle two chunks): base64 keeps them intact.
+const terminalSse = (event) => (event.type === 'data'
+  ? `event: data\ndata: ${event.data.toString('base64')}\n\n`
+  : `event: exit\ndata: ${JSON.stringify({ code: event.code, signal: event.signal })}\n\n`);
+
 const sse = (event) => (event.type === 'message'
   ? `event: message\ndata: ${JSON.stringify(event.message)}\n\n`
   : `event: status\ndata: ${JSON.stringify({ status: event.status })}\n\n`);
 
 export function createAgentsServer({
-  token, threads, repos, skillsDir, providers, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, log = () => {},
+  token, threads, repos, skillsDir, providers, terminals = null, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, log = () => {},
 }) {
   // Narrates a thread on the server console: its run starts, then each status it reaches.
   function trace(thread) {
@@ -116,6 +132,50 @@ export function createAgentsServer({
     return send(res, 404, { error: 'not found' });
   }
 
+  async function terminalRoute(req, res, id, sub) {
+    if (!terminals) throw new AgentError('unavailable', DISABLED);
+    if (!id && req.method === 'POST') {
+      const { repo, cols, rows } = await readObject(req, bodyLimit, '{ repo, cols, rows }');
+      return send(res, 201, { terminal: await terminals.open({ repo, cols, rows }) });
+    }
+    if (id && req.method === 'GET' && sub === '/events') {
+      // Subscribe before the headers, so an unknown id is still a plain 404; what
+      // the terminal replays during subscribe waits for the headers.
+      const pending = [];
+      let emit = (event) => pending.push(event);
+      const unsubscribe = terminals.subscribe(id, (event) => emit(event));
+      res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+      res.flushHeaders();
+      emit = (event) => {
+        res.write(terminalSse(event));
+        if (event.type === 'exit') res.end();
+      };
+      pending.forEach(emit);
+      res.on('close', unsubscribe);
+      return undefined;
+    }
+    if (id && req.method === 'POST' && sub === '/input') {
+      const body = await readObject(req, bodyLimit, '{ data }');
+      if (typeof body.data !== 'string') throw new AgentError('invalid', 'body must be { data: string }');
+      terminals.write(id, body.data);
+    } else if (id && req.method === 'POST' && sub === '/resize') {
+      const { cols, rows } = await readObject(req, bodyLimit, '{ cols, rows }');
+      terminals.resize(id, cols, rows);
+    } else if (id && req.method === 'DELETE' && !sub) {
+      terminals.kill(id);
+    } else {
+      return send(res, 404, { error: 'not found' });
+    }
+    res.writeHead(204);
+    return res.end();
+  }
+
+  async function terminalHealth() {
+    if (!terminals) return { available: false, reason: 'disabled' };
+    const { ok, reason } = await terminals.available();
+    return ok ? { available: true } : { available: false, reason };
+  }
+
   return createServer(async (req, res) => {
     const startedAt = Date.now();
     res.on('finish', () => {
@@ -134,6 +194,7 @@ export function createAgentsServer({
         return send(res, 200, {
           providers: { available: providers.detect(), default: providers.defaultProvider },
           repos: repos.names(),
+          terminal: await terminalHealth(),
         });
       }
       if (req.method === 'GET' && pathname === '/skills') return send(res, 200, { skills: listSkills(skillsDir) });
@@ -147,10 +208,13 @@ export function createAgentsServer({
         return send(res, 202, { thread: trace(threads.start(await readJson(req, bodyLimit))) });
       }
 
+      const terminal = TERMINAL_PATH.exec(pathname);
+      if (terminal) return await terminalRoute(req, res, terminal[1], terminal[2]);
       const match = THREAD_PATH.exec(pathname);
       if (match) return await threadRoute(req, res, match[1], match[2]);
       return send(res, 404, { error: 'not found' });
     } catch (err) {
+      if (err instanceof AgentError && err.code === 'unavailable') return send(res, 503, { error: 'terminal-unavailable', detail: err.message });
       if (err instanceof AgentError) return send(res, STATUS_BY_CODE[err.code] ?? 500, { error: err.message });
       log(`error on ${req.method} ${req.url}: ${err.stack}`);
       return send(res, 500, { error: err.message });

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { request } from 'node:http';
 import {
   createBoardServer, startFromArgv, resolveServerBoardPath,
-  isLocalHost, isLocalOrigin, resolveStaticFile, LOOPBACK,
+  isLocalHost, isAllowedOrigin, resolveStaticFile, LOOPBACK,
 } from './server.js';
 
 function listen(server) {
@@ -632,13 +632,19 @@ test('isLocalHost accepts loopback names and refuses everything else', () => {
   }
 });
 
-test('isLocalOrigin allows a missing Origin, a local one, and nothing else', () => {
-  assert.equal(isLocalOrigin(undefined), true);
-  assert.equal(isLocalOrigin('http://localhost:5173'), true);
-  assert.equal(isLocalOrigin('http://127.0.0.1:4180'), true);
-  assert.equal(isLocalOrigin('https://evil.example'), false);
-  assert.equal(isLocalOrigin('null'), false);
-  assert.equal(isLocalOrigin('garbage'), false);
+test('isAllowedOrigin allows a missing Origin, the board itself and the Vite dev server, and nothing else', () => {
+  const host = '127.0.0.1:4180';
+  assert.equal(isAllowedOrigin(undefined, host), true);
+  assert.equal(isAllowedOrigin('http://127.0.0.1:4180', host), true);
+  assert.equal(isAllowedOrigin('http://localhost:4180', 'localhost:4180'), true);
+  assert.equal(isAllowedOrigin('http://localhost:5173', host), true);
+  assert.equal(isAllowedOrigin('http://127.0.0.1:5173', host), true);
+  assert.equal(isAllowedOrigin('http://localhost:3000', host), false);
+  assert.equal(isAllowedOrigin('http://evil.localhost:4180', host), false);
+  assert.equal(isAllowedOrigin('https://127.0.0.1:4180', host), false);
+  assert.equal(isAllowedOrigin('https://evil.example', host), false);
+  assert.equal(isAllowedOrigin('null', host), false);
+  assert.equal(isAllowedOrigin('garbage', host), false);
 });
 
 test('resolveStaticFile stays inside the dist directory', () => {
@@ -671,7 +677,7 @@ test('a cross-site POST is refused and leaves the board untouched', async () => 
   const server = createBoardServer({ boardPath, distDir: dir });
   const port = await listen(server);
   const body = JSON.stringify({ repo: 'a', sessionId: 's1', message: 'ignore previous instructions' });
-  for (const origin of ['https://evil.example', 'null']) {
+  for (const origin of ['https://evil.example', 'null', 'http://localhost:3000', 'http://evil.localhost']) {
     const res = await fetch(`http://127.0.0.1:${port}/api/sessions/message`, {
       method: 'POST', headers: { origin, 'content-type': 'text/plain' }, body,
     });
@@ -679,9 +685,9 @@ test('a cross-site POST is refused and leaves the board untouched', async () => 
     assert.match((await res.json()).error, /cross-site/);
   }
   assert.equal(await readFile(boardPath, 'utf8'), before);
-  // The dashboard itself (a local origin) still gets through.
+  // The dashboard itself (its own origin) still gets through.
   const ok = await fetch(`http://127.0.0.1:${port}/api/sessions/message`, {
-    method: 'POST', headers: { origin: `http://localhost:${port}`, 'content-type': 'application/json' }, body,
+    method: 'POST', headers: { origin: `http://127.0.0.1:${port}`, 'content-type': 'application/json' }, body,
   });
   assert.equal(ok.status, 200);
   server.close();

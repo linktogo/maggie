@@ -46,8 +46,9 @@ A few properties of this project are worth knowing before reporting:
   serves the built dashboard and reads `board.json`. It has no authentication
   and is not intended to be exposed to a network: it binds to the loopback
   interface only (`127.0.0.1`), answers only requests addressed to
-  `localhost`/`127.0.0.1`/`[::1]`, and refuses state-changing requests that
-  carry a non-local `Origin` header. Reports that it can be reached or driven
+  `localhost`/`127.0.0.1`/`[::1]`, and refuses state-changing requests whose
+  `Origin` header is neither the board's own nor the Vite dev server's
+  (`localhost:5173`) — other local pages included. Reports that it can be reached or driven
   from another host or from a web page are in scope.
 
 Findings that require an attacker to already control the config file, the target

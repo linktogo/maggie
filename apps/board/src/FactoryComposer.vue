@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import Icon from './Icon.vue';
+import { vTooltip } from './tooltip.js';
 import { useI18n } from './i18n.js';
 
 const { t } = useI18n();
@@ -47,21 +48,26 @@ async function submit() {
         :placeholder="t('factory.reply')"
         :disabled="running || !resumable"
         class="flex-1 rounded-control border border-line bg-surface px-2 py-1 text-sm text-ink-soft focus:border-accent focus:outline-hidden disabled:opacity-40"
+        @keydown.enter.exact.prevent="submit"
       />
       <button
         v-if="running"
         type="button"
         data-test="factory-stop"
-        class="whitespace-nowrap rounded-control border border-line bg-surface px-3 py-1 text-sm text-ink-soft hover:bg-surface-hover"
+        :aria-label="t('factory.stop')"
+        v-tooltip="t('factory.stop')"
+        class="inline-flex items-center justify-center rounded-control border border-line bg-surface p-1.5 text-ink-soft hover:bg-surface-hover"
         @click="emit('stop')"
-      >{{ t('factory.stop') }}</button>
+      ><Icon name="stop" emoji="⏹" /></button>
       <button
         v-else
         type="submit"
         data-test="factory-send"
         :disabled="!resumable || !prompt.trim() || blocked"
-        class="whitespace-nowrap rounded-control bg-accent px-3 py-1 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
-      >{{ t('factory.send') }}</button>
+        :aria-label="t('factory.send')"
+        v-tooltip="t('factory.send')"
+        class="inline-flex items-center justify-center rounded-control bg-accent p-1.5 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+      ><Icon name="send" emoji="➤" /></button>
     </form>
     <div v-if="showRestart">
       <button type="button" data-test="factory-restart" class="text-xs text-accent hover:underline" @click="emit('restart')">{{ t('factory.restart') }}</button>

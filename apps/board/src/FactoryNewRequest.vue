@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive } from 'vue';
 import Icon from './Icon.vue';
+import { vTooltip } from './tooltip.js';
 import { useI18n } from './i18n.js';
 
 const { t } = useI18n();
@@ -39,6 +40,8 @@ const canRun = computed(() => props.available && !props.busy && repo.value && pr
   && (form.mode === 'skill' ? form.skill : form.prompt.trim()));
 
 function submit() {
+  // Enter in the prompt submits too, bypassing the disabled Run button.
+  if (!canRun.value) return;
   emit('submit', {
     repo: repo.value,
     provider: provider.value,
@@ -86,7 +89,7 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
     </label>
 
     <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ form.mode === 'skill' ? t('factory.extraPrompt') : t('factory.prompt') }}
-      <textarea v-model="form.prompt" data-test="factory-prompt" rows="4" :class="FIELD" :disabled="!available" />
+      <textarea v-model="form.prompt" data-test="factory-prompt" rows="4" :class="FIELD" :disabled="!available" @keydown.enter.exact.prevent="submit" />
     </label>
 
     <p v-if="error" data-test="factory-error" class="text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ error }}</p>
@@ -96,8 +99,10 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
         type="submit"
         data-test="factory-run"
         :disabled="!canRun"
-        class="whitespace-nowrap rounded-control bg-accent px-3 py-1 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
-      >{{ t('factory.run') }}</button>
+        :aria-label="t('factory.run')"
+        v-tooltip="t('factory.run')"
+        class="inline-flex items-center justify-center rounded-control bg-accent p-1.5 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+      ><Icon name="play_arrow" emoji="▶" /></button>
     </div>
   </form>
 </template>

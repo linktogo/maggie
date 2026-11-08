@@ -17,6 +17,19 @@ test('sends a trimmed prompt and clears it once the reply is accepted', async ()
   expect(w.get('[data-test=factory-reply]').element.value).toBe('');
 });
 
+test('Enter sends the reply, Shift+Enter does not', async () => {
+  const send = sender(true);
+  const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, error: null, send } });
+  const reply = w.get('[data-test=factory-reply]');
+  await reply.setValue('keep going');
+  await reply.trigger('keydown', { key: 'Enter', shiftKey: true });
+  expect(send).not.toHaveBeenCalled();
+  await reply.trigger('keydown', { key: 'Enter' });
+  await flushPromises();
+  expect(send).toHaveBeenCalledWith('keep going');
+  expect(reply.element.value).toBe('');
+});
+
 test('a refused reply (409) keeps the draft', async () => {
   const send = sender(false);
   const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, error: null, send } });

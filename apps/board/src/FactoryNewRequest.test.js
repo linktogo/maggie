@@ -43,6 +43,22 @@ test('submitting emits the chosen repo, provider, model and prompt', async () =>
   expect(w.emitted('submit')).toEqual([[{ repo: 'web', provider: 'claude-cli', model: 'sonnet', prompt: 'fix it', skill: '' }]]);
 });
 
+test('Enter in the prompt submits, Shift+Enter does not', async () => {
+  const w = form();
+  const prompt = w.get('[data-test=factory-prompt]');
+  await prompt.setValue('fix it');
+  await prompt.trigger('keydown', { key: 'Enter', shiftKey: true });
+  expect(w.emitted('submit')).toBeUndefined();
+  await prompt.trigger('keydown', { key: 'Enter' });
+  expect(w.emitted('submit')).toEqual([[{ repo: 'api', provider: 'copilot', model: '', prompt: 'fix it', skill: '' }]]);
+});
+
+test('Enter does not submit an incomplete request', async () => {
+  const w = form();
+  await w.get('[data-test=factory-prompt]').trigger('keydown', { key: 'Enter' });
+  expect(w.emitted('submit')).toBeUndefined();
+});
+
 test('skill mode needs a skill, the prompt becoming extra instructions', async () => {
   const w = form();
   await w.get('[data-test=factory-mode-skill]').setValue(true);

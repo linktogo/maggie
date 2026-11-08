@@ -79,6 +79,22 @@
   html[data-theme='legacy'] .icon.has-emoji .icon-symbol { display: none; }
   html[data-theme='legacy'] .icon.has-emoji .icon-emoji { display: inline; }
 
+  /* Popover from the v-tooltip directive (tooltip.js), appended to <body>. */
+  .tooltip {
+    position: fixed;
+    z-index: 1000;
+    max-width: 16rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: min(var(--radius-control), 0.5rem);
+    background: var(--color-ink);
+    color: var(--color-surface);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: var(--shadow-overlay);
+  }
+
   /*
    * Properties Tailwind has no namespace for. Classic sets --nav-transform to
    * uppercase with wide tracking; Expressive sets --title-weight to 700. Every

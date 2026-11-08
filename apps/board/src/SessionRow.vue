@@ -5,6 +5,7 @@ import { formatTokens } from './formatTokens.js';
 import { agentOf, agentLabel, agentPillClass } from './agentBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
+import { vTooltip } from './tooltip.js';
 import { eventLabel } from './labels.js';
 
 const { t } = useI18n();
@@ -119,8 +120,10 @@ function onDragStart(e) {
         type="submit"
         data-test="message-send"
         :disabled="!draft.trim()"
-        class="shrink-0 rounded-control bg-accent px-2 py-1 text-xs font-medium text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
-      >{{ t('session.send') }}</button>
+        :aria-label="t('session.send')"
+        v-tooltip="t('session.send')"
+        class="inline-flex shrink-0 items-center justify-center rounded-control bg-accent p-1 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+      ><Icon name="send" emoji="➤" :size="16" /></button>
     </form>
   </div>
 </template>

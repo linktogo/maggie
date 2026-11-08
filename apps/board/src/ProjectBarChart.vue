@@ -32,7 +32,8 @@ const canvas = ref(null);
 let chart = null;
 
 function render() {
-  const options = { el: canvas.value ?? undefined };
+  // render() only runs while mounted, so the canvas ref is always set.
+  const options = { el: canvas.value };
   const ink = chartInk(options);
   const grid = chartGrid(options);
   const format = (value) => formatChartValue(value, props.mode);

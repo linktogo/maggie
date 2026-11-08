@@ -55,3 +55,13 @@ test('text the browser cannot parse as a number keeps the previous threshold ins
   expect(budget.value.session).toBe(5);
   expect(input.element.value).toBe('5');
 });
+
+test('unparseable text in an empty box clears it back to empty, keeping the threshold off', async () => {
+  const w = mount(BudgetSettings);
+  const input = w.get('[data-test=budget-session]');
+  Object.defineProperty(input.element, 'validity', { value: { badInput: true } });
+  input.element.value = '';
+  await input.trigger('change');
+  expect(input.element.value).toBe('');
+  expect(budget.value.session).toBeNull();
+});

@@ -297,3 +297,59 @@ test('the credential header is appended after GIT_CONFIG_* entries already in th
   assert.deepEqual(env, { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'user.name', GIT_CONFIG_VALUE_0: 'bot', PATH: '/bin' }, 'the caller\'s env is not mutated');
   await rm(root, { recursive: true, force: true });
 });
+
+test('a contributor directory that cannot be read fails the sync instead of being skipped', async () => {
+  const { root, cacheDir, stateFile } = await fixture();
+  const updates = path.join(cacheDir, 'updates');
+  const r = reader({
+    cacheDir, stateFile,
+    readdirImpl: async (dir) => {
+      if (dir === updates) return ['fabien'];
+      const err = new Error('EACCES: permission denied, scandir');
+      err.code = 'EACCES';
+      throw err;
+    },
+  });
+  await r.tick();
+  assert.match(JSON.parse(await readFile(stateFile, 'utf8')).lastSyncError, /EACCES/);
+  await rm(root, { recursive: true, force: true });
+});
+
+test('a vanished contributor directory and non-JSON files are skipped', async () => {
+  const { root, cacheDir, stateFile } = await fixture({ 'fabien/lk-myasso.json': update(), 'fabien/README.md': '# notes' });
+  const updates = path.join(cacheDir, 'updates');
+  const r = reader({
+    cacheDir, stateFile,
+    readdirImpl: async (dir) => {
+      if (dir === updates) return ['fabien', 'ghost'];
+      if (dir.endsWith('ghost')) { const err = new Error('gone'); err.code = 'ENOENT'; throw err; }
+      return ['lk-myasso.json', 'README.md'];
+    },
+  });
+  await r.tick();
+  const state = JSON.parse(await readFile(stateFile, 'utf8'));
+  assert.equal(state.lastSyncError, null);
+  assert.deepEqual(Object.keys(state.repos), ['lk-myasso']);
+  await rm(root, { recursive: true, force: true });
+});
+
+test('an unconfigured reader asked for no repo list answers with no repos', async () => {
+  const r = reader({ statusRepo: null, cacheDir: '/nope', stateFile: '/nope/ci.json' });
+  assert.deepEqual((await r.read()).repos, {});
+});
+
+test('a state file without repos reads as empty', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'ci-reader-'));
+  const stateFile = path.join(root, 'ci.json');
+  await writeFile(stateFile, JSON.stringify({ version: 1 }));
+  const r = reader({ cacheDir: path.join(root, 'c'), stateFile });
+  assert.deepEqual((await r.read()).repos, {});
+  await rm(root, { recursive: true, force: true });
+});
+
+test('without an injected clock, read stamps the current time', async () => {
+  const r = createCiReader({ statusRepo: null, cacheDir: '/nope', stateFile: '/nope/ci.json' });
+  const before = Date.now();
+  const { generatedAt } = await r.read([]);
+  assert.ok(Date.parse(generatedAt) >= before);
+});

@@ -94,3 +94,21 @@ test('isEstimate is true for usage without a byModel breakdown, false for null',
   expect(isEstimate({ ...usage({ inputTokens: 1 }), byModel: {} })).toBe(true);
   expect(isEstimate(null)).toBe(false);
 });
+
+test('rateFor keeps the longest matching prefix even when a shorter one is listed after it', () => {
+  PRICING['claude-opus'] = { input: 1, output: 1, cacheWrite: 1, cacheRead: 1 };
+  try {
+    expect(rateFor('claude-opus-5-5')).toBe(PRICING['claude-opus-5']);
+  } finally {
+    delete PRICING['claude-opus'];
+  }
+});
+
+test('costByModel prices a model with no usage at zero', () => {
+  expect(costByModel({ byModel: { 'claude-sonnet-5': null } })).toEqual({ 'claude-sonnet-5': 0 });
+});
+
+test('costByModel treats missing token counts as zero', () => {
+  const result = costByModel({ byModel: { 'claude-sonnet-5': { outputTokens: 1_000_000 } } });
+  expect(result['claude-sonnet-5']).toBeCloseTo(15 * USD_TO_EUR, 6);
+});

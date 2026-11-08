@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
 // The console of a retro-documentation run. Its job is to answer "is this thing
 // still alive": every line carries the time it appeared, and the box follows
@@ -18,10 +18,11 @@ function at(entry) {
     .join(':');
 }
 
-watch(() => props.log.length, async () => {
-  await nextTick();
-  if (box.value) box.value.scrollTop = box.value.scrollHeight;
-});
+// flush: 'post' runs after the new lines are in the DOM, and post-flush
+// watchers stop on unmount, so the box is always there.
+watch(() => props.log.length, () => {
+  box.value.scrollTop = box.value.scrollHeight;
+}, { flush: 'post' });
 </script>
 
 <template>

@@ -75,6 +75,7 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "test:scripts": "node --test scripts/*.test.js",
+    "check:coverage": "node scripts/check-coverage-gates.js",
     "retro-doc": "node scripts/retro-doc.js",
     "build": "nx run-many -t build",
     "start": "nx run board:start",
@@ -84,7 +85,8 @@
     "board:build": "nx run board:build",
     "test:board": "nx run board:test",
     "publish:libs": "npm publish --workspaces",
-    "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873"
+    "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873",
+    "prepare": "node scripts/install-git-hooks.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

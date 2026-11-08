@@ -203,3 +203,24 @@ test('shows the low cache hit rate hint as visible text, only when it applies', 
   const hidden = mount(RepoDetail, { props: { name: 'oc-auth', session: { ...session, usage: healthy }, meta, now } });
   expect(hidden.find('[data-test=detail-cache-low]').exists()).toBe(false);
 });
+
+test('the close button emits close, and keys other than Escape do not', async () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session, meta, now }, attachTo: document.body });
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+  expect(w.emitted('close')).toBeUndefined();
+  await w.get(`button[aria-label="${translate('detail.close')}"]`).trigger('click');
+  expect(w.emitted('close')).toHaveLength(1);
+  w.unmount();
+});
+
+test('a config entry without technologies or targets renders no chips', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session, meta: { url: 'u' }, now } });
+  expect(w.findAll('.rounded-chip')).toHaveLength(0);
+});
+
+test('a running job that has logged nothing yet shows the generic progress text', () => {
+  for (const retroDoc of [{ status: 'running' }, { status: 'running', log: [] }]) {
+    const w = mount(RepoDetail, { props: { name: 'oc-auth', session, meta, now, retroDoc } });
+    expect(w.get('[data-test=retro-doc-progress]').text()).toContain(translate('detail.retroDocRunning'));
+  }
+});

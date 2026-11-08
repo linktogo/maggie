@@ -26,3 +26,7 @@ test('the low-rate thresholds match the spec', () => {
   expect(LOW_CACHE_RATE).toBe(0.5);
   expect(LOW_CACHE_MIN_TOKENS).toBe(50_000);
 });
+
+test('cacheHitRate treats a missing cacheReadInputTokens as zero', () => {
+  expect(cacheHitRate({ inputTokens: 4 })).toBe(0);
+});

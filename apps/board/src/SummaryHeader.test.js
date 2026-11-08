@@ -61,3 +61,9 @@ test('says so when the day figure covers live sessions only', () => {
   const full = mount(SummaryHeader, { props: { repos, dayCost: 12 } });
   expect(full.find('[data-test=day-partial]').exists()).toBe(false);
 });
+
+test('a repo without a sessions object counts as todo, and an unknown status is not counted', () => {
+  const w = mount(SummaryHeader, { props: { repos: { a: {}, b: { sessions: { s1: { status: 'mystery' } } } } } });
+  expect(w.text()).toContain('1 ' + translate('status.todo'));
+  expect(w.text()).toContain('0 %');
+});

@@ -2,7 +2,7 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { AgentError } from './errors.js';
 import { buildPrompt } from './prompt.js';
-import { commandFor, resolveProvider, validateModel } from './providers.js';
+import { commandFor, resolveProvider, validateModel, validateSessionId } from './providers.js';
 
 export const TERMINAL = new Set(['succeeded', 'failed', 'cancelled', 'timed-out']);
 export const DEFAULT_TIMEOUT_MS = 600_000;
@@ -108,16 +108,17 @@ export function createRunManager({
     }
   }
 
-  function start({ repo, cwd, provider, model = null, prompt, skill = null }) {
+  function start({ repo, cwd, provider, model = null, prompt, skill = null, resume = null }) {
     if (typeof repo !== 'string' || repo === '') throw new AgentError('invalid', 'repo is required');
     if (typeof cwd !== 'string' || cwd === '') throw new AgentError('invalid', 'cwd is required');
     resolveProvider({ requested: provider, fallback: undefined });
     const input = buildPrompt({ prompt, skill });
     const checkedModel = validateModel(model);
+    const checkedResume = resume === null || resume === undefined ? null : validateSessionId(resume);
+    const { command, args } = commandFor(provider, checkedModel, { resume: checkedResume });
     if ([...runs.values()].some((record) => record.repo === repo && !TERMINAL.has(record.status))) {
       throw new AgentError('busy', `a run is already active on ${repo}`);
     }
-    const { command, args } = commandFor(provider, checkedModel);
 
     counter += 1;
     const record = {

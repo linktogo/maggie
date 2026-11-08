@@ -10,8 +10,9 @@ export const DEFAULT_AGENTS_URL = 'http://127.0.0.1:4318';
 export const defaultTokenFile = (home = os.homedir()) => path.join(home, '.maggie', 'agents.token');
 
 // The routes of apps/agents, nothing else: the proxy is not a way to reach arbitrary paths.
-const ROUTE = /^\/(health|skills|runs(\/[\w-]+(\/events)?)?)$/;
-const METHODS = new Set(['GET', 'POST', 'DELETE']);
+const ROUTE = /^\/(health|skills|projects|threads(\/th_[0-9a-f]{16}(\/messages|\/events|\/run)?)?)$/;
+const METHODS = new Set(['GET', 'POST', 'PATCH', 'DELETE']);
+const WITH_BODY = new Set(['POST', 'PATCH']);
 
 function reply(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json' });
@@ -58,7 +59,7 @@ export function createAgentsProxy({
     }
 
     let body;
-    if (req.method === 'POST') {
+    if (WITH_BODY.has(req.method)) {
       try {
         body = await readBody(req);
       } catch (err) {

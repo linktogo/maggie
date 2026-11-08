@@ -1,8 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
-import {
-  AgentError, TERMINAL, listSkills, loadSkill, resolveProvider,
-} from '@linktogo/maggie-agent-runner';
+import { AgentError, listSkills } from '@linktogo/maggie-agent-runner';
 
 // This server runs commands on the machine, so it answers loopback only, wants a
 // bearer token on every request, and refuses any request carrying an Origin that
@@ -12,7 +10,8 @@ export const LOOPBACK = '127.0.0.1';
 export const DEFAULT_BODY_LIMIT = 1_000_000;
 
 const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, 'too-large': 413 };
-const RUN_PATH = /^\/runs\/([\w-]+)(\/events)?$/;
+const THREAD_PATH = /^\/threads\/(th_[0-9a-f]{16})(\/messages|\/events|\/run)?$/;
+const QUERY_PARAMS = ['repo', 'status', 'q', 'before'];
 
 const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/i;
 
@@ -48,31 +47,81 @@ async function readJson(req, limit) {
   }
 }
 
-const sse = (event) => `id: ${event.seq}\nevent: ${event.type}\ndata: ${JSON.stringify({ ...event.data, at: event.at })}\n\n`;
+const sse = (event) => (event.type === 'message'
+  ? `event: message\ndata: ${JSON.stringify(event.message)}\n\n`
+  : `event: status\ndata: ${JSON.stringify({ status: event.status })}\n\n`);
 
 export function createAgentsServer({
-  token, manager, repos, skillsDir, providers, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT,
+  token, threads, repos, skillsDir, providers, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, log = () => {},
 }) {
-  function startRun(body) {
-    if (typeof body?.repo !== 'string') throw new AgentError('invalid', 'repo is required');
-    const provider = resolveProvider({ requested: body.provider, fallback: providers.defaultProvider });
-    const cwd = repos.resolve(body.repo);
-    const skill = body.skill === undefined || body.skill === null ? null : loadSkill(skillsDir, body.skill);
-    const run = manager.start({ repo: body.repo, cwd, provider, model: body.model, prompt: body.prompt, skill });
-    return { id: run.id, run };
+  // Narrates a thread on the server console: its run starts, then each status it reaches.
+  function trace(thread) {
+    log(`[${thread.id}] started on ${thread.repo} with ${thread.provider}${thread.model ? ` (${thread.model})` : ''}${thread.skill ? `, skill ${thread.skill}` : ''}`);
+    let unsubscribe; // a thread that already settled calls back before subscribe returns
+    unsubscribe = threads.subscribe(thread.id, (event) => {
+      if (event.type !== 'status') return;
+      log(`[${thread.id}] ${event.status}`);
+      if (event.status !== 'running') unsubscribe?.();
+    });
+    return thread;
   }
 
-  function follow(res, id) {
-    if (!manager.get(id)) throw new AgentError('not-found', `unknown run: ${id}`);
+  // With `after`, the messages stored past that id are replayed before the live
+  // ones, in the same tick as the subscription (see threads.subscribe).
+  function follow(res, id, after) {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
-    const unsubscribe = manager.subscribe(id, (event) => {
+    res.flushHeaders();
+    let unsubscribe; // a thread that already settled calls back before subscribe returns
+    unsubscribe = threads.subscribe(id, (event) => {
       res.write(sse(event));
-      if (event.type === 'status' && TERMINAL.has(event.data.status)) res.end();
-    });
+      if (event.type === 'status' && event.status !== 'running') res.end();
+    }, { after });
     res.on('close', unsubscribe);
   }
 
+  function parseAfter(url) {
+    const { searchParams } = new URL(url, 'http://localhost');
+    if (!searchParams.has('after')) return undefined;
+    const text = searchParams.get('after');
+    if (!/^\d+$/.test(text)) throw new AgentError('invalid', 'after must be a non-negative integer (a message id)');
+    return Number(text);
+  }
+
+  async function threadRoute(req, res, id, sub) {
+    if (req.method === 'GET' && sub === '/events') {
+      const after = parseAfter(req.url);
+      if (!threads.get(id)) throw new AgentError('not-found', `unknown thread: ${id}`);
+      return follow(res, id, after);
+    }
+    if (req.method === 'GET' && !sub) {
+      const found = threads.get(id);
+      if (!found) throw new AgentError('not-found', `unknown thread: ${id}`);
+      return send(res, 200, found);
+    }
+    if (req.method === 'POST' && sub === '/messages') {
+      return send(res, 202, { thread: trace(threads.reply(id, await readJson(req, bodyLimit))) });
+    }
+    if (req.method === 'DELETE' && sub === '/run') return send(res, 202, { thread: threads.stop(id) });
+    if (req.method === 'PATCH' && !sub) {
+      const body = await readJson(req, bodyLimit);
+      const keys = body !== null && typeof body === 'object' ? Object.keys(body) : [];
+      if (keys.length !== 1 || keys[0] !== 'status') throw new AgentError('invalid', 'body must be { status }');
+      return send(res, 200, { thread: threads.setStatus(id, body.status) });
+    }
+    if (req.method === 'DELETE' && !sub) {
+      threads.remove(id);
+      res.writeHead(204);
+      return res.end();
+    }
+    return send(res, 404, { error: 'not found' });
+  }
+
   return createServer(async (req, res) => {
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      const { pathname } = new URL(req.url, 'http://localhost');
+      log(`${req.method} ${pathname} ${res.statusCode} ${Date.now() - startedAt}ms`);
+    });
     try {
       if (!isLoopbackHost(req.headers.host)) return send(res, 403, { error: 'forbidden: only loopback hosts are served' });
       if (req.headers.origin !== undefined && !allowedOrigins.includes(req.headers.origin)) {
@@ -88,23 +137,22 @@ export function createAgentsServer({
         });
       }
       if (req.method === 'GET' && pathname === '/skills') return send(res, 200, { skills: listSkills(skillsDir) });
-      if (pathname === '/runs' && req.method === 'GET') return send(res, 200, { runs: manager.list() });
-      if (pathname === '/runs' && req.method === 'POST') return send(res, 202, startRun(await readJson(req, bodyLimit)));
-
-      const match = RUN_PATH.exec(pathname);
-      if (match) {
-        const [, id, events] = match;
-        if (req.method === 'GET' && events) return follow(res, id);
-        if (req.method === 'GET') {
-          const run = manager.get(id);
-          if (!run) throw new AgentError('not-found', `unknown run: ${id}`);
-          return send(res, 200, { run });
-        }
-        if (req.method === 'DELETE' && !events) return send(res, 202, { run: manager.cancel(id) });
+      if (req.method === 'GET' && pathname === '/projects') return send(res, 200, { projects: threads.projects() });
+      if (pathname === '/threads' && req.method === 'GET') {
+        const { searchParams } = new URL(req.url, 'http://localhost');
+        const query = Object.fromEntries(QUERY_PARAMS.filter((key) => searchParams.has(key)).map((key) => [key, searchParams.get(key)]));
+        return send(res, 200, { threads: threads.list(query) });
       }
+      if (pathname === '/threads' && req.method === 'POST') {
+        return send(res, 202, { thread: trace(threads.start(await readJson(req, bodyLimit))) });
+      }
+
+      const match = THREAD_PATH.exec(pathname);
+      if (match) return await threadRoute(req, res, match[1], match[2]);
       return send(res, 404, { error: 'not found' });
     } catch (err) {
       if (err instanceof AgentError) return send(res, STATUS_BY_CODE[err.code] ?? 500, { error: err.message });
+      log(`error on ${req.method} ${req.url}: ${err.stack}`);
       return send(res, 500, { error: err.message });
     }
   });

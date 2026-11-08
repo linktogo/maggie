@@ -1,185 +1,138 @@
 import { test, expect, vi, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
+import { createMemoryHistory } from 'vue-router';
 import FactoryPage from './FactoryPage.vue';
+import { createBoardRouter } from './router.js';
 import { setLocale } from './i18n.js';
 
 class FakeEventSource {
-  static instances = [];
-
-  constructor(url) { this.url = url; this.listeners = {}; FakeEventSource.instances.push(this); }
+  constructor() { this.listeners = {}; }
 
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
 
-  close() { this.closed = true; }
-
-  emit(type, data) { for (const fn of this.listeners[type] ?? []) fn({ data: JSON.stringify(data) }); }
+  close() {}
 }
 
-const HEALTH = { providers: { available: ['claude-cli', 'copilot'], default: 'copilot' }, repos: ['api', 'web'] };
-const SKILLS = [{ id: 'nx/monorepo', techno: 'nx', name: 'monorepo', description: 'Keep Nx tidy' }];
+const HEALTH = { providers: { available: ['claude-cli', 'copilot'], default: 'claude-cli' }, repos: ['api', 'web'] };
+const SKILLS = [{ id: 'nx/monorepo' }];
+const PROJECTS = [{ repo: 'api', threads: 2, running: 0, lastActivity: null }, { repo: 'web', threads: 0, running: 0, lastActivity: null }];
+const NOW = '2026-11-07T10:00:00.000Z';
+const THREAD = { id: 'th_0123456789abcdef', repo: 'api', provider: 'claude-cli', model: 'opus', skill: null, title: 'Fix the flaky test', sessionId: 's1', status: 'idle', createdAt: NOW, updatedAt: NOW };
+const MESSAGES = [
+  { id: 'm1', threadId: THREAD.id, role: 'user', kind: 'text', content: 'fix the flaky test', runId: 'r1', createdAt: NOW },
+  { id: 'm2', threadId: THREAD.id, role: 'agent', kind: 'text', content: 'Done, **really**.', runId: 'r1', createdAt: NOW },
+];
 
-function fetchWith({ health = { status: 200, body: HEALTH }, runs = [], onPost = () => ({ status: 202, body: { id: 'run-1', run: { id: 'run-1', status: 'running' } } }), onDelete = () => ({ status: 202, body: {} }) } = {}) {
-  return vi.fn(async (url, init = {}) => {
+function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ status: 201, body: { thread: THREAD } }), onMessage = () => ({ status: 202, body: { thread: { ...THREAD, status: 'running' } } }) } = {}) {
+  const calls = [];
+  const fetchImpl = vi.fn(async (url, init = {}) => {
+    calls.push([init.method ?? 'GET', url]);
     const answer = (status, body) => ({ ok: status < 400, status, json: async () => body });
+    if (init.method === 'POST' && url.endsWith('/messages')) { const r = onMessage(JSON.parse(init.body)); return answer(r.status, r.body); }
     if (init.method === 'POST') { const r = onPost(JSON.parse(init.body)); return answer(r.status, r.body); }
-    if (init.method === 'DELETE') { const r = onDelete(url); return answer(r.status, r.body); }
     if (url === '/api/factory/health') return answer(health.status, health.body);
     if (url === '/api/factory/skills') return answer(200, { skills: SKILLS });
-    return answer(200, { runs });
+    if (url === '/api/factory/projects') return answer(200, { projects: PROJECTS });
+    if (url.startsWith(`/api/factory/threads/${THREAD.id}`)) return answer(200, { thread: THREAD, messages: MESSAGES });
+    if (url.startsWith('/api/factory/threads')) return answer(200, { threads: [THREAD] });
+    return answer(404, {});
   });
+  fetchImpl.calls = calls;
+  return fetchImpl;
 }
 
 const mounted = [];
 afterEach(() => { setLocale('en'); while (mounted.length) mounted.pop().unmount(); });
 
-// Attached to the document: jsdom only submits a form that is connected.
-async function page(fetchImpl) {
-  FakeEventSource.instances = [];
-  const w = mount(FactoryPage, { props: { fetchImpl, EventSourceImpl: FakeEventSource }, attachTo: document.body });
+async function page(fetchImpl, path = '/factory') {
+  const router = createBoardRouter(createMemoryHistory());
+  await router.push(path);
+  const w = mount(FactoryPage, { props: { fetchImpl, EventSourceImpl: FakeEventSource }, global: { plugins: [router] }, attachTo: document.body });
   mounted.push(w);
   await flushPromises();
-  return w;
+  return { w, router };
 }
 
-test('the form offers the repos and providers of the agents server, preselecting its default provider', async () => {
-  const w = await page(fetchWith());
-  expect(w.findAll('[data-test=factory-repo] option').map((o) => o.text())).toEqual(['api', 'web']);
-  expect(w.findAll('[data-test=factory-provider] option').map((o) => o.element.value)).toEqual(['claude-cli', 'copilot']);
-  expect(w.get('[data-test=factory-provider]').element.value).toBe('copilot');
+test('deep link /factory/api/th_… opens that thread', async () => {
+  const fetchImpl = fetchWith();
+  const { w } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  expect(fetchImpl.calls).toContainEqual(['GET', `/api/factory/threads/${THREAD.id}`]);
+  expect(w.get('[data-test=factory-user]').text()).toBe('fix the flaky test');
+  expect(w.get('[data-test=factory-agent] strong').text()).toBe('really');
+  expect(w.get('[data-test=factory-reply]').exists()).toBe(true);
+  expect(w.get(`[data-test=factory-thread-${THREAD.id}]`).exists()).toBe(true);
 });
 
-test('the run button waits for a prompt', async () => {
-  const w = await page(fetchWith());
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(true);
-  await w.get('[data-test=factory-prompt]').setValue('fix the failing test');
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(false);
+test('selecting a project then a thread updates the route', async () => {
+  const { w, router } = await page(fetchWith());
+  await w.get('[data-test=factory-project-api]').trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+  await w.get(`[data-test=factory-thread-${THREAD.id}]`).trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}`);
+  expect(w.get('[data-test=factory-user]').exists()).toBe(true);
 });
 
-test('running posts the chosen repo, provider, model and prompt, then follows the output', async () => {
+test('creating a request opens its thread', async () => {
   const posted = [];
-  const w = await page(fetchWith({ onPost: (body) => { posted.push(body); return { status: 202, body: { id: 'run-1', run: { id: 'run-1', status: 'running' } } }; } }));
-  await w.get('[data-test=factory-repo]').setValue('web');
-  await w.get('[data-test=factory-provider]').setValue('claude-cli');
-  await w.get('[data-test=factory-model]').setValue('sonnet');
-  await w.get('[data-test=factory-prompt]').setValue('fix it');
-  await w.get('[data-test=factory-run]').trigger('click');
+  const fetchImpl = fetchWith({ onPost: (body) => { posted.push(body); return { status: 201, body: { thread: THREAD } }; } });
+  const { w, router } = await page(fetchImpl, '/factory/api');
+  await w.get('[data-test=factory-new]').trigger('click');
+  expect(w.get('[data-test=factory-repo]').element.value).toBe('api');
+  await w.get('[data-test=factory-prompt]').setValue('fix the flaky test');
+  await w.get('form').trigger('submit');
   await flushPromises();
-
-  expect(posted).toEqual([{ repo: 'web', provider: 'claude-cli', model: 'sonnet', prompt: 'fix it' }]);
-  FakeEventSource.instances[0].emit('stdout', { text: 'working…' });
-  await flushPromises();
-  expect(w.get('[data-test=factory-output]').text()).toContain('working…');
+  expect(posted).toEqual([{ repo: 'api', provider: 'claude-cli', prompt: 'fix the flaky test' }]);
+  expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}`);
+  expect(w.find('[data-test=factory-run]').exists()).toBe(false);
+  expect(w.get('[data-test=factory-user]').exists()).toBe(true);
 });
 
-test('skill mode needs a skill and posts it, the prompt becoming extra instructions', async () => {
-  const posted = [];
-  const w = await page(fetchWith({ onPost: (body) => { posted.push(body); return { status: 202, body: { id: 'run-1', run: {} } }; } }));
-  await w.get('[data-test=factory-mode-skill]').setValue(true);
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(true);
-  await w.get('[data-test=factory-skill]').setValue('nx/monorepo');
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(false);
-  await w.get('[data-test=factory-run]').trigger('click');
-  await flushPromises();
-  expect(posted).toEqual([{ repo: 'api', provider: 'copilot', skill: 'nx/monorepo' }]);
-});
-
-test('an unreachable agents server explains how to start it and disables the form', async () => {
-  const w = await page(fetchWith({ health: { status: 503, body: { error: 'agents-unavailable', detail: 'agents server unreachable at http://127.0.0.1:4318' } } }));
-  expect(w.get('[data-test=factory-unavailable]').text()).toContain('not reachable');
-  expect(w.get('[data-test=factory-unavailable]').text()).toContain('npm run agents');
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(true);
-});
-
-test('a server with no agent CLI says so', async () => {
-  const w = await page(fetchWith({ health: { status: 200, body: { ...HEALTH, providers: { available: [], default: 'claude-cli' } } } }));
-  expect(w.get('[data-test=factory-no-provider]').exists()).toBe(true);
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(true);
-});
-
-test('a refused run shows the reason', async () => {
-  const w = await page(fetchWith({ onPost: () => ({ status: 409, body: { error: 'a run is already active on api' } }) }));
-  await w.get('[data-test=factory-prompt]').setValue('again');
-  await w.get('[data-test=factory-run]').trigger('click');
+test('a busy repo error is shown in the composer', async () => {
+  const { w } = await page(fetchWith({ onMessage: () => ({ status: 409, body: { error: 'a run is already active on api' } }) }), `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-reply]').setValue('go on');
+  await w.get('form').trigger('submit');
   await flushPromises();
   expect(w.get('[data-test=factory-error]').text()).toContain('already active');
+  // The refused reply is still there to send again.
+  expect(w.get('[data-test=factory-reply]').element.value).toBe('go on');
 });
 
-test('runs are listed; a running one can be stopped, any one can be followed', async () => {
-  const deleted = [];
-  const runs = [
-    { id: 'run-2', repo: 'web', provider: 'copilot', skill: 'nx/monorepo', status: 'running' },
-    { id: 'run-1', repo: 'api', provider: 'claude-cli', skill: null, status: 'succeeded' },
-  ];
-  const w = await page(fetchWith({ runs, onDelete: (url) => { deleted.push(url); return { status: 202, body: {} }; } }));
-  expect(w.get('[data-test=factory-run-row-run-2]').text()).toContain('running');
-  expect(w.get('[data-test=factory-run-row-run-1]').text()).toContain('succeeded');
-  expect(w.find('[data-test=factory-stop-run-1]').exists()).toBe(false);
-
-  await w.get('[data-test=factory-stop-run-2]').trigger('click');
-  expect(deleted).toEqual(['/api/factory/runs/run-2']);
-
-  await w.get('[data-test=factory-follow-run-1]').trigger('click');
-  expect(FakeEventSource.instances.at(-1).url).toBe('/api/factory/runs/run-1/events');
-});
-
-test('with nothing to show the page says so', async () => {
-  const w = await page(fetchWith());
-  expect(w.get('[data-test=factory-no-runs]').exists()).toBe(true);
-  expect(w.get('[data-test=factory-no-output]').exists()).toBe(true);
-});
-
-test('a default provider that is not installed falls back to the first available one', async () => {
-  const w = await page(fetchWith({ health: { status: 200, body: { ...HEALTH, providers: { available: ['claude-cli'], default: 'copilot' } } } }));
-  expect(w.get('[data-test=factory-provider]').element.value).toBe('claude-cli');
-});
-
-test('a server with no allowed repository says so', async () => {
-  const w = await page(fetchWith({ health: { status: 200, body: { ...HEALTH, repos: [] } } }));
-  expect(w.get('[data-test=factory-no-repos]').exists()).toBe(true);
-  expect(w.get('[data-test=factory-run]').element.disabled).toBe(true);
-});
-
-test('failed and timed-out runs are flagged, the others are not', async () => {
-  const runs = [
-    { id: 'a', repo: 'api', provider: 'copilot', skill: null, status: 'failed' },
-    { id: 'b', repo: 'api', provider: 'copilot', skill: null, status: 'timed-out' },
-    { id: 'c', repo: 'api', provider: 'copilot', skill: null, status: 'cancelled' },
-  ];
-  const w = await page(fetchWith({ runs }));
-  const flagged = (id) => w.get(`[data-test=factory-run-row-${id}] span:nth-child(3)`).classes();
-  expect(flagged('a')).toContain('text-question-on-soft');
-  expect(flagged('b')).toContain('text-question-on-soft');
-  expect(flagged('c')).not.toContain('text-question-on-soft');
-  expect(w.get('[data-test=factory-run-row-b]').text()).toContain('timed out');
-});
-
-test('the output shows stdout, stderr and status lines as plain text', async () => {
-  const w = await page(fetchWith({ runs: [{ id: 'run-1', repo: 'api', provider: 'copilot', skill: null, status: 'running' }] }));
-  await w.get('[data-test=factory-follow-run-1]').trigger('click');
-  const stream = FakeEventSource.instances[0];
-  stream.emit('stdout', { text: '<b>not html</b>\n' });
-  stream.emit('stderr', { text: 'oops\n' });
-  stream.emit('status', { status: 'succeeded' });
+test('restart as a new request prefills the form with the last prompt', async () => {
+  const fetchImpl = fetchWith();
+  const base = fetchImpl.getMockImplementation();
+  fetchImpl.mockImplementation(async (url, init) => (url.startsWith(`/api/factory/threads/${THREAD.id}`)
+    ? { ok: true, status: 200, json: async () => ({ thread: { ...THREAD, status: 'failed', sessionId: null }, messages: MESSAGES }) }
+    : base(url, init)));
+  const { w, router } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-restart]').trigger('click');
   await flushPromises();
-  const out = w.get('[data-test=factory-output]');
-  expect(out.text()).toContain('<b>not html</b>');
-  expect(out.find('b').exists()).toBe(false);
-  expect(out.text()).toContain('— succeeded');
-  const spans = out.findAll('span');
-  expect(spans[1].classes()).toContain('text-question-on-soft');
-  expect(spans[0].classes()).not.toContain('text-question-on-soft');
-  expect(w.get('h3 .font-normal, h3 span').text()).toContain('run-1');
+  expect(w.get('[data-test=factory-prompt]').element.value).toBe('fix the flaky test');
+  expect(w.get('[data-test=factory-model]').element.value).toBe('opus');
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
 });
 
-test('the run list and the status lines of the output follow the locale', async () => {
-  setLocale('fr');
-  const runs = [{ id: 'run-1', repo: 'api', provider: 'copilot', skill: null, status: 'timed-out' }];
-  const w = await page(fetchWith({ runs }));
-  expect(w.get('[data-test=factory-run-row-run-1]').text()).toContain('délai dépassé');
-  expect(w.get('[data-test=factory-run-row-run-1]').text()).toContain('prompt · copilot');
-  await w.get('[data-test=factory-follow-run-1]').trigger('click');
-  FakeEventSource.instances[0].emit('status', { status: 'succeeded' });
+test('the unavailable banner is unchanged', async () => {
+  const { w } = await page(fetchWith({ health: { status: 503, body: { error: 'agents-unavailable', detail: 'agents server unreachable at http://127.0.0.1:4318' } } }));
+  expect(w.get('[data-test=factory-unavailable]').text()).toContain('not reachable');
+  expect(w.get('[data-test=factory-unavailable]').text()).toContain('npm run agents');
+});
+
+test('a server with no agent CLI or no allowed repository says so', async () => {
+  const noProvider = await page(fetchWith({ health: { status: 200, body: { ...HEALTH, providers: { available: [], default: 'claude-cli' } } } }));
+  expect(noProvider.w.get('[data-test=factory-no-provider]').exists()).toBe(true);
+  const noRepos = await page(fetchWith({ health: { status: 200, body: { ...HEALTH, repos: [] } } }));
+  expect(noRepos.w.get('[data-test=factory-no-repos]').exists()).toBe(true);
+});
+
+test('the back button goes up one level', async () => {
+  const { w, router } = await page(fetchWith(), `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-back]').trigger('click');
   await flushPromises();
-  expect(w.get('[data-test=factory-output]').text()).toContain('— réussie');
-  expect(w.get('[data-test=factory-output]').text()).not.toContain('succeeded');
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+  await w.get('[data-test=factory-back]').trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory');
+  expect(w.find('[data-test=factory-back]').exists()).toBe(false);
 });

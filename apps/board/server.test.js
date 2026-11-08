@@ -699,12 +699,12 @@ test('/api/factory/* is handed to the agents proxy, behind the same Host and Ori
   const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir, agentsProxy });
   const port = await listen(server);
 
-  const ok = await fetch(`http://127.0.0.1:${port}/api/factory/runs?x=1`, { method: 'DELETE' });
+  const ok = await fetch(`http://127.0.0.1:${port}/api/factory/threads/th_0123456789abcdef?x=1`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{}' });
   assert.equal(ok.status, 200);
   assert.equal(await ok.text(), 'relayed');
-  assert.deepEqual(seen, ['DELETE /api/factory/runs?x=1']);
+  assert.deepEqual(seen, ['PATCH /api/factory/threads/th_0123456789abcdef?x=1']);
 
-  const crossSite = await fetch(`http://127.0.0.1:${port}/api/factory/runs`, {
+  const crossSite = await fetch(`http://127.0.0.1:${port}/api/factory/threads`, {
     method: 'POST', headers: { origin: 'http://evil.example', 'content-type': 'application/json' }, body: '{}',
   });
   assert.equal(crossSite.status, 403);

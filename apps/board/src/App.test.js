@@ -322,7 +322,18 @@ test('the AI Factory tab mounts its page', async () => {
   await w.get('[data-test=view-factory]').trigger('click');
   await flushPromises();
   expect(router.currentRoute.value.name).toBe('factory');
-  expect(w.get('[data-test=factory-run]').exists()).toBe(true);
+  expect(w.get('[data-test=factory-search]').exists()).toBe(true);
+});
+
+test('the AI Factory tab stays active on a thread deep link', async () => {
+  const router = createBoardRouter(createMemoryHistory());
+  await router.push('/factory/api/th_0123456789abcdef');
+  const w = mount(App, { props: { fetchImpl: routedFetch(), intervalMs: 100000 }, global: { plugins: [router] } });
+  await router.isReady();
+  await flushPromises();
+  expect(router.currentRoute.value.name).toBe('factory-thread');
+  expect(w.get('[data-test=view-factory]').classes()).toContain('bg-surface');
+  expect(w.get('[data-test=view-board]').classes()).not.toContain('bg-surface');
 });
 
 test('the header carries the theme and mode pickers', async () => {

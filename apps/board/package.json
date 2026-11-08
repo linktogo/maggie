@@ -10,6 +10,8 @@
     "@linktogo/maggie-retro-doc": "^1.3.1",
     "@linktogo/maggie-workspace-bootstrap": "^1.3.1",
     "chart.js": "^4.5.1",
+    "dompurify": "3.4.17",
+    "marked": "18.1.1",
     "vue": "^3.5.44",
     "vue-router": "^5.3.1"
   },
@@ -35,7 +37,7 @@
           "build"
         ],
         "options": {
-          "command": "node apps/board/server.js"
+          "command": "node apps/board/server.js --config-repo https://github.com/linktogo-org/lk-config.git"
         }
       },
       "test-server": {

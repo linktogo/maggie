@@ -83,10 +83,10 @@ test('the token never reaches the browser, nor does an Authorization sent by it'
 test('POST carries its body as JSON, and the agents server refusal is passed straight through', async (t) => {
   const agents = await upstream(t, (req, res) => { res.writeHead(409, { 'content-type': 'application/json' }); res.end('{"error":"a run is already active on api"}'); });
   const { base } = await board(t, { url: agents.url });
-  const res = await fetch(`${base}/api/factory/runs?x=1`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{"repo":"api","prompt":"go"}' });
+  const res = await fetch(`${base}/api/factory/threads?x=1`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{"repo":"api","prompt":"go"}' });
   assert.equal(res.status, 409);
   assert.deepEqual(await res.json(), { error: 'a run is already active on api' });
-  assert.equal(agents.seen[0].url, '/runs?x=1');
+  assert.equal(agents.seen[0].url, '/threads?x=1');
   assert.equal(agents.seen[0].body, '{"repo":"api","prompt":"go"}');
   // The proxy decides the content type of what it forwards, not the browser.
   assert.equal(agents.seen[0].contentType, 'application/json');
@@ -95,17 +95,42 @@ test('POST carries its body as JSON, and the agents server refusal is passed str
 test('a GET carries no body and no content type', async (t) => {
   const agents = await upstream(t, (req, res) => res.end('{}'));
   const { base } = await board(t, { url: agents.url });
-  await fetch(`${base}/api/factory/runs`, { headers: { 'content-type': 'application/json' } });
+  await fetch(`${base}/api/factory/threads`, { headers: { 'content-type': 'application/json' } });
   assert.equal(agents.seen[0].contentType, undefined);
   assert.equal(agents.seen[0].body, '');
 });
 
-test('DELETE reaches /runs/:id', async (t) => {
-  const agents = await upstream(t, (req, res) => { res.writeHead(202, { 'content-type': 'application/json' }); res.end('{}'); });
+const TH = 'th_0123456789abcdef';
+
+test('every thread route is relayed with its method, body and query string', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
   const { base } = await board(t, { url: agents.url });
-  assert.equal((await fetch(`${base}/api/factory/runs/run-1`, { method: 'DELETE' })).status, 202);
-  assert.equal(agents.seen[0].method, 'DELETE');
-  assert.equal(agents.seen[0].url, '/runs/run-1');
+  const cases = [
+    ['GET', '/projects'],
+    ['GET', '/threads?repo=api&status=idle&q=bug'],
+    ['POST', '/threads', '{"repo":"api","prompt":"go"}'],
+    ['GET', `/threads/${TH}`],
+    ['PATCH', `/threads/${TH}`, '{"status":"archived"}'],
+    ['DELETE', `/threads/${TH}`],
+    ['POST', `/threads/${TH}/messages`, '{"prompt":"more"}'],
+    ['GET', `/threads/${TH}/events?after=12`],
+    ['DELETE', `/threads/${TH}/run`],
+  ];
+  for (const [method, route, body] of cases) {
+    const res = await fetch(`${base}/api/factory${route}`, { method, body });
+    assert.equal(res.status, 200, `${method} ${route}`);
+  }
+  assert.deepEqual(agents.seen.map(({ method, url, body, contentType }) => [method, url, body, contentType]), cases.map(([method, route, body]) => [
+    method, route, body ?? '', body ? 'application/json' : undefined,
+  ]));
+});
+
+test('a 204 from DELETE /threads/:id is passed through with no body', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(204); res.end(); });
+  const { base } = await board(t, { url: agents.url });
+  const res = await fetch(`${base}/api/factory/threads/${TH}`, { method: 'DELETE' });
+  assert.equal(res.status, 204);
+  assert.equal(await res.text(), '');
 });
 
 test('the SSE stream is relayed as it arrives', async (t) => {
@@ -115,8 +140,9 @@ test('the SSE stream is relayed as it arrives', async (t) => {
     setTimeout(() => res.end('event: status\ndata: {"status":"succeeded"}\n\n'), 30);
   });
   const { base } = await board(t, { url: agents.url });
-  const res = await fetch(`${base}/api/factory/runs/run-1/events`);
+  const res = await fetch(`${base}/api/factory/threads/${TH}/events?after=0`);
   assert.equal(res.headers.get('content-type'), 'text/event-stream');
+  assert.equal(agents.seen[0].url, `/threads/${TH}/events?after=0`);
   assert.equal(res.headers.get('cache-control'), 'no-cache');
   // The first event is readable before the upstream has finished.
   const reader = res.body.getReader();
@@ -132,15 +158,18 @@ test('only the agents routes are relayed, with their usual methods', async (t) =
   const { base, port } = await board(t, { url: agents.url });
   // Sent verbatim (no URL normalisation), so each one really reaches the proxy.
   for (const route of [
-    '/api/factory/../etc', '/api/factory/health/../runs', '/api/factory/other', '/api/factory/', '/api/factory',
-    '/api/factory/runs/a/b/c', '/api/factory/runs/%2e%2e', '/api/factory/runs/a%2fb', '/api/factory/runs/../x',
-    '/api/factory/runs/a/events/x', '/api/factory/healthz', '/api/factoryX/health', '/api/factory//health',
+    '/api/factory/../etc', '/api/factory/health/../threads', '/api/factory/other', '/api/factory/', '/api/factory',
+    '/api/factory/runs', '/api/factory/runs/run-1', '/api/factory/runs/run-1/events',
+    '/api/factory/threads/th_0123', '/api/factory/threads/th_0123456789ABCDEF', '/api/factory/threads/th_0123456789abcdefa',
+    '/api/factory/threads/x', '/api/factory/threads/%2e%2e', '/api/factory/threads/../projects',
+    `/api/factory/threads/${TH}/other`, `/api/factory/threads/${TH}/events/x`, `/api/factory/threads/${TH}/`,
+    '/api/factory/projects/x', '/api/factory/healthz', '/api/factoryX/health', '/api/factory//health',
   ]) {
     const res = await raw(port, 'GET', route);
     assert.equal(res.status, 404, route);
     assert.deepEqual(JSON.parse(res.body), { error: 'unknown factory route' }, route);
   }
-  for (const method of ['PUT', 'PATCH', 'HEAD', 'OPTIONS']) {
+  for (const method of ['PUT', 'HEAD', 'OPTIONS']) {
     assert.equal((await fetch(`${base}/api/factory/health`, { method })).status, 405, method);
   }
   assert.equal(agents.seen.length, 0);
@@ -164,7 +193,7 @@ test('a missing token file or an unreachable agents server is a 503 with a reaso
 test('a response without a body or a content type is relayed as an empty one', async (t) => {
   const fetchImpl = async () => ({ status: 204, headers: new Headers(), body: null });
   const { base } = await board(t, { fetchImpl });
-  const res = await fetch(`${base}/api/factory/runs/run-1`, { method: 'DELETE' });
+  const res = await fetch(`${base}/api/factory/threads/${TH}`, { method: 'DELETE' });
   assert.equal(res.status, 204);
   assert.equal(await res.text(), '');
 });
@@ -177,7 +206,7 @@ test('an upstream stream that breaks mid-way ends the response without crashing 
     },
   }), { status: 200, headers: { 'content-type': 'text/event-stream' } });
   const { base } = await board(t, { fetchImpl });
-  const res = await fetch(`${base}/api/factory/runs/run-1/events`);
+  const res = await fetch(`${base}/api/factory/threads/${TH}/events`);
   assert.equal(await res.text(), 'partial');
 });
 
@@ -196,12 +225,20 @@ test('the upstream request is aborted when the browser goes away', async (t) => 
   t.after(() => process.off('unhandledRejection', onUnhandled));
 
   const controller = new AbortController();
-  const res = await fetch(`${base}/api/factory/runs/run-1/events`, { signal: controller.signal });
+  const res = await fetch(`${base}/api/factory/threads/${TH}/events`, { signal: controller.signal });
   await res.body.getReader().read();
   controller.abort();
   await upstreamClosed;
   await new Promise((resolve) => setTimeout(resolve, 20));
   assert.deepEqual(unhandled, []);
+});
+
+test('a PATCH body over the cap is a 413 too', async (t) => {
+  const agents = await upstream(t, (req, res) => res.end('{}'));
+  const { base } = await board(t, { url: agents.url });
+  const res = await fetch(`${base}/api/factory/threads/${TH}`, { method: 'PATCH', body: 'x'.repeat(MAX_BODY_BYTES + 1) });
+  assert.equal(res.status, 413);
+  assert.equal(agents.seen.length, 0);
 });
 
 test('a request body that cannot be read is a 400 and nothing is forwarded', async () => {
@@ -213,7 +250,7 @@ test('a request body that cannot be read is a 400 and nothing is forwarded', asy
   const res = {
     on() {}, writeHead(status) { out.status = status; }, end(body) { out.body = body; },
   };
-  await proxy(req, res, '/api/factory/runs');
+  await proxy(req, res, '/api/factory/threads');
   assert.equal(out.status, 400);
   assert.deepEqual(JSON.parse(out.body), { error: 'unreadable request body' });
   assert.equal(called, false);
@@ -222,7 +259,7 @@ test('a request body that cannot be read is a 400 and nothing is forwarded', asy
 test('a body over the cap is a 413 and never reaches the agents server', async (t) => {
   const agents = await upstream(t, (req, res) => res.end('{}'));
   const { base } = await board(t, { url: agents.url });
-  const res = await fetch(`${base}/api/factory/runs`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES + 1) });
+  const res = await fetch(`${base}/api/factory/threads`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES + 1) });
   assert.equal(res.status, 413);
   assert.deepEqual(await res.json(), { error: 'request body too large' });
   assert.equal(agents.seen.length, 0);
@@ -231,7 +268,7 @@ test('a body over the cap is a 413 and never reaches the agents server', async (
 test('a body exactly at the cap passes through', async (t) => {
   const agents = await upstream(t, (req, res) => res.end('{}'));
   const { base } = await board(t, { url: agents.url });
-  const res = await fetch(`${base}/api/factory/runs`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES) });
+  const res = await fetch(`${base}/api/factory/threads`, { method: 'POST', body: 'x'.repeat(MAX_BODY_BYTES) });
   assert.equal(res.status, 200);
   assert.equal(agents.seen[0].body.length, MAX_BODY_BYTES);
 });
@@ -246,7 +283,7 @@ test('a body split in chunks that crosses the cap is a 413', async () => {
   const res = {
     on() {}, writeHead(status) { out.status = status; }, end(body) { out.body = body; },
   };
-  await proxy(req, res, '/api/factory/runs');
+  await proxy(req, res, '/api/factory/threads');
   assert.equal(out.status, 413);
   assert.equal(called, false);
 });

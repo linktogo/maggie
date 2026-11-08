@@ -14,6 +14,8 @@ export function createBoardRouter(history = createWebHistory()) {
       { path: '/history', name: 'history', component: HistoryPage },
       { path: '/retro-doc', name: 'retro-doc', component: RetroDocPage },
       { path: '/factory', name: 'factory', component: FactoryPage },
+      { path: '/factory/:repo', name: 'factory-repo', component: FactoryPage },
+      { path: '/factory/:repo/:threadId', name: 'factory-thread', component: FactoryPage },
     ],
   });
 }

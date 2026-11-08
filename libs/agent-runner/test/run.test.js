@@ -1,35 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
 import { createRunManager } from '../src/run.js';
+import { harness } from './helpers.js';
 
-function fakeChild() {
-  const child = new EventEmitter();
-  child.stdout = new EventEmitter();
-  child.stderr = new EventEmitter();
-  child.stdin = Object.assign(new EventEmitter(), { end(data) { child.input = data; } });
-  child.kill = (signal) => { child.killed = signal; };
-  return child;
-}
-
-function harness(options = {}) {
-  const calls = [];
-  const spawn = (command, args, opts) => {
-    const child = fakeChild();
-    calls.push({ command, args, opts, child });
-    return child;
-  };
-  const manager = createRunManager({ spawn, now: () => new Date('2026-10-26T10:00:00.000Z'), ...options });
-  return { manager, calls };
-}
-
+const CLAUDE_TAIL = ['--permission-mode', 'acceptEdits', '--output-format', 'stream-json', '--verbose'];
 const START = { repo: 'api', cwd: '/ws/api', provider: 'claude-cli', prompt: 'fix the bug' };
 
 test('start spawns the provider CLI in the checkout and writes the prompt to its stdin', () => {
   const { manager, calls } = harness();
   const run = manager.start(START);
   assert.equal(calls[0].command, 'claude');
-  assert.deepEqual(calls[0].args, ['-p']);
+  assert.deepEqual(calls[0].args, ['-p', ...CLAUDE_TAIL]);
   assert.equal(calls[0].opts.cwd, '/ws/api');
   assert.equal(calls[0].child.input, 'fix the bug');
   assert.deepEqual(run, {
@@ -38,11 +19,24 @@ test('start spawns the provider CLI in the checkout and writes the prompt to its
   });
 });
 
+test('start passes resume to the claude command', () => {
+  const { manager, calls } = harness();
+  manager.start({ ...START, resume: 'sess-1' });
+  assert.deepEqual(calls[0].args, ['-p', ...CLAUDE_TAIL, '--resume', 'sess-1']);
+});
+
+test('start rejects a bad resume id or resume on copilot before spawning', () => {
+  const { manager, calls } = harness();
+  assert.throws(() => manager.start({ ...START, resume: '--x' }), /invalid session id/);
+  assert.throws(() => manager.start({ ...START, provider: 'copilot', resume: 'sess-1' }), /cannot be resumed/);
+  assert.equal(calls.length, 0);
+});
+
 test('start passes the model and uses the Copilot CLI for the copilot provider', () => {
   const { manager, calls } = harness();
   manager.start({ ...START, repo: 'a', model: 'sonnet' });
   manager.start({ ...START, repo: 'b', provider: 'copilot' });
-  assert.deepEqual(calls[0].args, ['-p', '--model', 'sonnet']);
+  assert.deepEqual(calls[0].args, ['-p', '--model', 'sonnet', ...CLAUDE_TAIL]);
   assert.equal(calls[1].command, 'copilot');
   assert.deepEqual(calls[1].args, ['--allow-all-tools']);
 });

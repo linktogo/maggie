@@ -12,6 +12,9 @@ changes in minor releases.
 
 ### Added
 
+- **`maggie-board` command.** `@linktogo/maggie` now ships the board UI (server plus the pre-built
+  front-end, built by `prepack`) behind a `maggie-board` bin, next to `maggie-agents`: after
+  `npm install -g @linktogo/maggie`, both run from any directory without a checkout.
 - **100% coverage gate for `apps/board`, and a hook that keeps every project at 100%.** The board's
   server (`node:test`) and front-end (vitest + `@vitest/coverage-v8`) suites now fail below 100%, like
   every other project. `npm run check:coverage` fails when a project stops enforcing the gate; it runs

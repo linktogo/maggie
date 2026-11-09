@@ -35,6 +35,7 @@ export function useTerminal({
   let sending = false;
   let flushTimer = null;
   let resizeTimer = null;
+  let generation = 0; // bumped by every open() and close(): a stale open() gives up
 
   const post = (path, body) => fetchImpl(`/api/factory/terminals/${id}${path}`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
 
@@ -45,21 +46,29 @@ export function useTerminal({
 
   async function open(repo, { cols, rows }, onData) {
     if (status.value === 'opening' || status.value === 'open') return;
+    const ticket = ++generation;
     status.value = 'opening';
     exitCode.value = null;
     error.value = null;
+    let res;
     let data;
     try {
-      const res = await fetchImpl('/api/factory/terminals', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ repo, cols, rows }) });
+      res = await fetchImpl('/api/factory/terminals', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ repo, cols, rows }) });
       data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        status.value = 'error';
-        error.value = data.detail ?? data.error ?? `HTTP ${res.status}`;
-        return;
-      }
     } catch (err) {
+      if (ticket !== generation) return;
       status.value = 'error';
       error.value = err.message;
+      return;
+    }
+    // Closed while the POST was in flight: the shell it created has no reader.
+    if (ticket !== generation) {
+      if (res.ok) await kill(data.terminal.id);
+      return;
+    }
+    if (!res.ok) {
+      status.value = 'error';
+      error.value = data.detail ?? data.error ?? `HTTP ${res.status}`;
       return;
     }
     ({ id } = data.terminal);
@@ -107,8 +116,15 @@ export function useTerminal({
   }
 
   // keepalive: the DELETE must outlive the page when it runs on pagehide.
+  async function kill(target) {
+    try {
+      await fetchImpl(`/api/factory/terminals/${target}`, { method: 'DELETE', keepalive: true });
+    } catch { /* the server kills an unread shell anyway */ }
+  }
+
+  // Also cancels an open() still in flight: its shell is killed once it exists.
   async function close() {
-    if (!id) return;
+    generation += 1;
     const target = id;
     id = null;
     stopStream();
@@ -117,9 +133,7 @@ export function useTerminal({
     flushTimer = null;
     queue = '';
     status.value = 'idle';
-    try {
-      await fetchImpl(`/api/factory/terminals/${target}`, { method: 'DELETE', keepalive: true });
-    } catch { /* the server kills an unread shell anyway */ }
+    if (target) await kill(target);
   }
 
   const onPageHide = () => { void close(); };

@@ -623,3 +623,12 @@ test('output replayed during subscribe is sent after the stream headers', async 
   assert.equal(res.headers.get('content-type'), 'text/event-stream');
   assert.equal(await res.text(), 'event: data\ndata: JCA=\n\nevent: exit\ndata: {"code":1,"signal":null}\n\n');
 });
+
+test('an idle terminal stream gets a heartbeat comment', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals, heartbeatMs: 20 } });
+  const res = await call(`/terminals/${TM}/events`);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  terminals.subscribers[0]({ type: 'exit', code: 0, signal: null });
+  assert.match(await res.text(), /^:\n\n/);
+});

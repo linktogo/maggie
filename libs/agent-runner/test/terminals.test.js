@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AgentError } from '../src/errors.js';
-import { TERMINAL_LIMITS, createTerminalManager } from '../src/terminals.js';
+import { TERMINAL_LIMITS, createTerminalManager, ensureSpawnHelper } from '../src/terminals.js';
 
 function fakePty() {
   const pty = { written: [], sizes: [], killed: false };
@@ -272,4 +272,75 @@ test('the default loader loads the real node-pty', async () => {
 test('the default log is silent', async () => {
   const { manager } = harness({ log: undefined });
   await manager.open(OPEN);
+});
+
+function fakeFs(modes) {
+  const chmods = [];
+  return {
+    chmods,
+    fs: {
+      stat: async (file) => {
+        if (!(file in modes)) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+        return { mode: modes[file] };
+      },
+      chmod: async (file, mode) => { chmods.push([file, mode]); },
+    },
+  };
+}
+
+const resolve = () => '/nm/node-pty/package.json';
+
+test('ensureSpawnHelper restores the execute bit a prebuilt spawn-helper lost on install', async () => {
+  const { fs, chmods } = fakeFs({ '/nm/node-pty/prebuilds/darwin-arm64/spawn-helper': 0o100644 });
+  await ensureSpawnHelper({ platform: 'darwin', arch: 'arm64', resolve, fs });
+  assert.deepEqual(chmods, [['/nm/node-pty/prebuilds/darwin-arm64/spawn-helper', 0o100755]]);
+});
+
+test('ensureSpawnHelper leaves an executable helper alone and skips missing layouts', async () => {
+  const { fs, chmods } = fakeFs({ '/nm/node-pty/build/Release/spawn-helper': 0o100755 });
+  await ensureSpawnHelper({ platform: 'linux', arch: 'x64', resolve, fs });
+  assert.deepEqual(chmods, []);
+});
+
+test('ensureSpawnHelper does nothing on Windows', async () => {
+  const { fs, chmods } = fakeFs({});
+  await ensureSpawnHelper({ platform: 'win32', arch: 'x64', resolve: () => { throw new Error('not called'); }, fs });
+  assert.deepEqual(chmods, []);
+});
+
+test('the real helper is executable once the default loader ran', async () => {
+  const { manager } = harness({ loadPty: undefined });
+  await manager.available();
+  const { statSync } = await import('node:fs');
+  const { createRequire } = await import('node:module');
+  const path = await import('node:path');
+  const root = path.dirname(createRequire(import.meta.url).resolve('node-pty/package.json'));
+  for (const dir of [path.join(root, 'prebuilds', `${process.platform}-${process.arch}`), path.join(root, 'build', 'Release')]) {
+    try {
+      assert.equal(statSync(path.join(dir, 'spawn-helper')).mode & 0o111, 0o111);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+});
+
+test('a grace-killed terminal is removed once its shell exits', async () => {
+  const { manager, spawned, fire } = harness();
+  const { id } = await manager.open(OPEN);
+  const unsubscribe = manager.subscribe(id, () => {});
+  unsubscribe();
+  spawned[0].pty.kill = () => spawned[0].pty.emitExit({ exitCode: 0, signal: 1 });
+  fire();
+  assert.equal(manager.size(), 0);
+  assert.throws(() => manager.subscribe(id, () => {}), { code: 'not-found' });
+});
+
+test('nothing reaches a subscriber after the exit it was sent', async () => {
+  const { manager, spawned } = harness();
+  const { id } = await manager.open(OPEN);
+  const events = [];
+  manager.subscribe(id, (event) => events.push(event.type));
+  spawned[0].pty.emitExit({ exitCode: 0, signal: 0 });
+  spawned[0].pty.emitData('late');
+  assert.deepEqual(events, ['exit']);
 });

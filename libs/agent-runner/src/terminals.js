@@ -1,4 +1,7 @@
 import { randomBytes } from 'node:crypto';
+import { chmod, stat } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { AgentError } from './errors.js';
 
 export const TERMINAL_LIMITS = { maxTerminals: 4, graceMs: 5000, bufferBytes: 65536, maxInputBytes: 65536, maxCols: 500, maxRows: 200 };
@@ -9,6 +12,31 @@ function checkSize(cols, rows) {
   if (!validSize(cols, TERMINAL_LIMITS.maxCols) || !validSize(rows, TERMINAL_LIMITS.maxRows)) {
     throw new AgentError('invalid', `cols must be 1-${TERMINAL_LIMITS.maxCols} and rows 1-${TERMINAL_LIMITS.maxRows}`);
   }
+}
+
+/**
+ * node-pty's prebuilt `spawn-helper` can reach disk without its execute bit
+ * (pnpm, some npm versions), and every spawn then fails with "posix_spawnp
+ * failed". Restore it where it lost it; a layout that is not there is skipped.
+ */
+export async function ensureSpawnHelper({
+  platform = process.platform, arch = process.arch, resolve = createRequire(import.meta.url).resolve, fs = { stat, chmod },
+} = {}) {
+  if (platform === 'win32') return;
+  const root = path.dirname(resolve('node-pty/package.json'));
+  for (const dir of [path.join(root, 'prebuilds', `${platform}-${arch}`), path.join(root, 'build', 'Release')]) {
+    const helper = path.join(dir, 'spawn-helper');
+    try {
+      const { mode } = await fs.stat(helper);
+      if ((mode & 0o111) !== 0o111) await fs.chmod(helper, mode | 0o755);
+    } catch { /* not this layout */ }
+  }
+}
+
+async function loadNodePty() {
+  const pty = await import('node-pty');
+  await ensureSpawnHelper();
+  return pty;
 }
 
 function defaultShell(platform, env) {
@@ -25,7 +53,7 @@ function defaultShell(platform, env) {
  */
 export function createTerminalManager({
   repos,
-  loadPty = () => import('node-pty'),
+  loadPty = loadNodePty,
   shell,
   platform = process.platform,
   env = process.env,
@@ -101,6 +129,7 @@ export function createTerminalManager({
     const terminal = { id, repo, cwd, pty: child, buffer: [], bufferSize: 0, subscribers: new Set(), exit: null, timer: null };
     terminals.set(id, terminal);
     child.onData((data) => {
+      if (terminal.exit) return;
       const chunk = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8');
       remember(terminal, chunk);
       for (const onEvent of terminal.subscribers) onEvent({ type: 'data', data: chunk });
@@ -108,8 +137,13 @@ export function createTerminalManager({
     child.onExit(({ exitCode, signal }) => {
       terminal.exit = { type: 'exit', code: exitCode, signal: signal || null };
       log(`[${id}] exited ${exitCode}`);
-      if (terminal.subscribers.size === 0) return;
+      if (terminal.subscribers.size === 0) {
+        // Killed by the grace timer: nobody is left to replay the end to.
+        if (!terminal.timer) terminals.delete(id);
+        return;
+      }
       for (const onEvent of terminal.subscribers) onEvent(terminal.exit);
+      terminal.subscribers.clear();
       clearTimer(terminal.timer);
       terminals.delete(id);
     });

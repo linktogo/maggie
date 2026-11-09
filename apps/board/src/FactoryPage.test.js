@@ -6,7 +6,9 @@ import { createBoardRouter } from './router.js';
 import { setLocale } from './i18n.js';
 
 class FakeEventSource {
-  constructor() { this.listeners = {}; }
+  static count = 0;
+
+  constructor() { this.listeners = {}; FakeEventSource.count += 1; }
 
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
 
@@ -28,6 +30,8 @@ function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ s
   const fetchImpl = vi.fn(async (url, init = {}) => {
     calls.push([init.method ?? 'GET', url]);
     const answer = (status, body) => ({ ok: status < 400, status, json: async () => body });
+    if (url === '/api/factory/terminals') return answer(201, { terminal: { id: TM, repo: 'api', cwd: '/ws/api' } });
+    if (url.startsWith('/api/factory/terminals/')) return answer(204, {});
     if (init.method === 'POST' && url.endsWith('/messages')) { const r = onMessage(JSON.parse(init.body)); return answer(r.status, r.body); }
     if (init.method === 'POST') { const r = onPost(JSON.parse(init.body)); return answer(r.status, r.body); }
     if (url === '/api/factory/health') return answer(health.status, health.body);
@@ -135,4 +139,105 @@ test('the back button goes up one level', async () => {
   await flushPromises();
   expect(router.currentRoute.value.fullPath).toBe('/factory');
   expect(w.find('[data-test=factory-back]').exists()).toBe(false);
+});
+
+const TM = 'tm_0123456789abcdef';
+const CONSOLE_HEALTH = { status: 200, body: { ...HEALTH, terminal: { available: true } } };
+
+vi.mock('./xtermAdapter.js', () => ({
+  createXterm: () => ({ cols: 80, rows: 24, fit() {}, onData() {}, write() {}, setTheme() {}, clear() {}, focus() {}, dispose() {} }),
+}));
+
+class NoResize { observe() {} disconnect() {} }
+
+async function threadPage(health = CONSOLE_HEALTH) {
+  vi.stubGlobal('ResizeObserver', NoResize);
+  const fetchImpl = fetchWith({ health });
+  const result = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  return { ...result, fetchImpl };
+}
+
+const terminalCalls = (fetchImpl, method) => fetchImpl.calls.filter(([m, url]) => m === method && url.startsWith('/api/factory/terminals'));
+
+afterEach(() => { vi.unstubAllGlobals(); });
+
+test('without a console there are no tabs, and the Console button is enabled', async () => {
+  const { w } = await threadPage();
+  expect(w.find('[data-test=factory-tabs]').exists()).toBe(false);
+  expect(w.find('[data-test=factory-console]').exists()).toBe(false);
+  expect(w.get('[data-test=factory-console-button]').attributes('disabled')).toBeUndefined();
+});
+
+test('clicking Console opens the shell and selects the console tab', async () => {
+  const { w, fetchImpl } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=factory-tabs]').exists()).toBe(true);
+  expect(w.get('[data-test=factory-tab-console]').attributes('aria-selected')).toBe('true');
+  expect(w.get('[data-test=factory-console]').isVisible()).toBe(true);
+  expect(w.get('[data-test=factory-user]').isVisible()).toBe(false);
+  expect(w.get('[data-test=factory-reply]').isVisible()).toBe(false);
+  expect(terminalCalls(fetchImpl, 'POST')).toEqual([['POST', '/api/factory/terminals']]);
+});
+
+test('clicking Console again selects the tab without a second console', async () => {
+  const { w, fetchImpl } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await w.get('[data-test=factory-tab-conversation]').trigger('click');
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=factory-tab-console]').attributes('aria-selected')).toBe('true');
+  expect(w.findAll('[data-test=factory-console]')).toHaveLength(1);
+  expect(terminalCalls(fetchImpl, 'POST')).toHaveLength(1);
+});
+
+test('switching back to Conversation keeps the console alive, hidden', async () => {
+  const { w, fetchImpl } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await w.get('[data-test=factory-tab-conversation]').trigger('click');
+  expect(w.get('[data-test=factory-tab-conversation]').attributes('aria-selected')).toBe('true');
+  expect(w.get('[data-test=factory-user]').isVisible()).toBe(true);
+  expect(w.get('[data-test=factory-console]').isVisible()).toBe(false);
+  expect(terminalCalls(fetchImpl, 'DELETE')).toEqual([]);
+});
+
+test('the close button of the tab kills the shell and removes the tabs', async () => {
+  const { w, fetchImpl } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await w.get('[data-test=factory-console-close]').trigger('click');
+  await flushPromises();
+  expect(w.find('[data-test=factory-tabs]').exists()).toBe(false);
+  expect(w.find('[data-test=factory-console]').exists()).toBe(false);
+  expect(w.get('[data-test=factory-user]').isVisible()).toBe(true);
+  expect(terminalCalls(fetchImpl, 'DELETE')).toEqual([['DELETE', `/api/factory/terminals/${TM}`]]);
+});
+
+test('leaving the conversation closes the console', async () => {
+  const { w, router, fetchImpl } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await router.push('/factory/api');
+  await flushPromises();
+  expect(terminalCalls(fetchImpl, 'DELETE')).toHaveLength(1);
+  await router.push(`/factory/api/${THREAD.id}`);
+  await flushPromises();
+  expect(w.find('[data-test=factory-tabs]').exists()).toBe(false);
+});
+
+test('the Console button is disabled with the reason when the server has no console', async () => {
+  const { w } = await threadPage({ status: 200, body: { ...HEALTH, terminal: { available: false, reason: 'disabled' } } });
+  const button = w.get('[data-test=factory-console-button]');
+  expect(button.attributes('disabled')).toBeDefined();
+  expect(button.attributes('aria-label')).toBe('Console unavailable: disabled');
+});
+
+test('the console streams through the injected EventSource', async () => {
+  const { w } = await threadPage();
+  const before = FakeEventSource.count;
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  expect(FakeEventSource.count).toBe(before + 1);
 });

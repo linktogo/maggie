@@ -24,6 +24,12 @@ in `apps/`, shared libraries in `libs/`, the skills library in `skills/`. See
 > manager from the lockfile; adding a `pnpm-lock.yaml` or `yarn.lock` breaks the
 > project graph and the CI build.
 
+> **`node-pty` is native.** The Factory console's pseudo-terminal
+> (`libs/agent-runner`, optional dependency) ships prebuilt binaries for macOS
+> and Windows; on Linux `npm ci` compiles it with node-gyp (Python 3 and a C++
+> toolchain). If that build fails the install still succeeds and the console is
+> reported unavailable.
+
 ## Running things locally
 
 ```bash

@@ -55,3 +55,28 @@ test('names a skill-started request and the provider in the header', () => {
   expect(w.text()).toContain('claude-cli');
   expect(w.get('[data-test=factory-user]').text()).toContain('skill nx/monorepo');
 });
+
+test('the Console button in the header asks for the console', async () => {
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages: [], consoleAvailable: true } });
+  const button = w.get('[data-test=factory-console-button]');
+  expect(button.attributes('disabled')).toBeUndefined();
+  expect(button.text()).toContain('Console');
+  await button.trigger('click');
+  expect(w.emitted('console')).toHaveLength(1);
+});
+
+test('the Console button is disabled with the reason when the console is unavailable', () => {
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages: [], consoleAvailable: false, consoleReason: 'no prebuilt' } });
+  const button = w.get('[data-test=factory-console-button]');
+  expect(button.attributes('disabled')).toBeDefined();
+  expect(button.attributes('aria-label')).toBe('Console unavailable: no prebuilt');
+});
+
+test('the tabs slot sits under the header and the messages can be hidden', () => {
+  const w = mount(FactoryConversation, {
+    props: { thread: THREAD, messages: [msg('user', 'text', 'go')], showMessages: false },
+    slots: { tabs: '<nav data-test="tabs-slot">tabs</nav>' },
+  });
+  expect(w.get('header').element.nextElementSibling.getAttribute('data-test')).toBe('tabs-slot');
+  expect(w.get('[data-test=factory-user]').isVisible()).toBe(false);
+});

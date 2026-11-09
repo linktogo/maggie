@@ -7,7 +7,9 @@ import FactoryThreads from './FactoryThreads.vue';
 import FactoryConversation from './FactoryConversation.vue';
 import FactoryComposer from './FactoryComposer.vue';
 import FactoryNewRequest from './FactoryNewRequest.vue';
+import FactoryConsole from './FactoryConsole.vue';
 import Icon from './Icon.vue';
+import { vTooltip } from './tooltip.js';
 import { useI18n } from './i18n.js';
 
 const { t } = useI18n();
@@ -29,9 +31,14 @@ const archived = ref(false);
 const creating = ref(false);
 const prefill = ref(null);
 const formKey = ref(0);
+// The console tab exists only once the Console button was clicked; its shell dies with it.
+const consoleOpen = ref(false);
+const tab = ref('conversation');
 
 const repos = computed(() => health.value?.repos ?? []);
 const providers = computed(() => health.value?.providers?.available ?? []);
+const consoleAvailable = computed(() => health.value?.terminal?.available === true);
+const consoleReason = computed(() => health.value?.terminal?.reason ?? '');
 const current = computed(() => (thread.value?.id === threadId.value ? thread.value : null));
 const lastOutcome = computed(() => messages.value.findLast((m) => m.kind === 'status')?.content?.outcome ?? null);
 const shownError = computed(() => (available.value ? error.value : null));
@@ -39,13 +46,26 @@ const shownError = computed(() => (available.value ? error.value : null));
 const depth = computed(() => (creating.value || threadId.value ? 3 : repo.value ? 2 : 1));
 const pane = (n, extra = '') => [`${depth.value === n ? 'flex' : 'hidden'} md:flex flex-col gap-3`, extra];
 const PANEL = 'bg-surface border border-line rounded-card shadow-panel p-3';
+const TAB = '-mb-px border-b-2 px-3 py-1';
+const TAB_ON = 'border-accent font-medium text-accent';
+const TAB_OFF = 'border-transparent text-ink-muted hover:text-ink';
 
 // A search spans every project; otherwise the list follows the selected one.
 const reloadThreads = () => factory.loadThreads({ repo: search.value ? undefined : repo.value || undefined, q: search.value, archived: archived.value });
 
 factory.load();
+function closeConsole() {
+  consoleOpen.value = false;
+  tab.value = 'conversation';
+}
+function openConsole() {
+  consoleOpen.value = true;
+  tab.value = 'console';
+}
+
 watch(repo, () => { creating.value = false; if (repo.value) void reloadThreads(); }, { immediate: true });
 watch(threadId, (id) => {
+  closeConsole();
   if (!id) return;
   creating.value = false;
   if (thread.value?.id !== id) void factory.open(id);
@@ -116,9 +136,35 @@ async function archive(id) {
         />
         <template v-else-if="current">
           <div class="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
-            <FactoryConversation :thread="current" :messages="messages" />
+            <FactoryConversation
+              :thread="current" :messages="messages" :show-messages="tab === 'conversation'"
+              :console-available="consoleAvailable" :console-reason="consoleReason" @console="openConsole"
+            >
+              <template v-if="consoleOpen" #tabs>
+                <div role="tablist" data-test="factory-tabs" class="flex items-end gap-1 border-b border-line text-sm">
+                  <button
+                    type="button" role="tab" data-test="factory-tab-conversation" :aria-selected="tab === 'conversation'"
+                    :class="[TAB, tab === 'conversation' ? TAB_ON : TAB_OFF]" @click="tab = 'conversation'"
+                  >{{ t('factory.conversation') }}</button>
+                  <span :class="[TAB, 'inline-flex items-center gap-1', tab === 'console' ? TAB_ON : TAB_OFF]">
+                    <button type="button" role="tab" data-test="factory-tab-console" :aria-selected="tab === 'console'" @click="tab = 'console'">
+                      {{ t('factory.console.tab') }}
+                    </button>
+                    <button
+                      type="button" data-test="factory-console-close" :aria-label="t('factory.console.close')" v-tooltip="t('factory.console.close')"
+                      class="text-ink-faint hover:text-ink" @click="closeConsole"
+                    ><Icon name="close" emoji="✕" /></button>
+                  </span>
+                </div>
+              </template>
+            </FactoryConversation>
           </div>
+          <FactoryConsole
+            v-if="consoleOpen" v-show="tab === 'console'" data-test="factory-console"
+            :repo="current.repo" :fetch-impl="fetchImpl" :EventSourceImpl="EventSourceImpl"
+          />
           <FactoryComposer
+            v-show="tab === 'conversation'"
             :thread="current" :resumable="resumable" :error="shownError" :last-outcome="lastOutcome"
             :busy="busy" :send="factory.reply" @stop="factory.stop" @restart="restart"
           />

@@ -8,6 +8,7 @@ import { AgentError, listSkills } from '@linktogo/maggie-agent-runner';
 // talks to it from its own server, which sends no Origin).
 export const LOOPBACK = '127.0.0.1';
 export const DEFAULT_BODY_LIMIT = 1_000_000;
+export const DEFAULT_HEARTBEAT_MS = 30_000;
 
 const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, 'too-large': 413 };
 const THREAD_PATH = /^\/threads\/(th_[0-9a-f]{16})(\/messages|\/events|\/run)?$/;
@@ -68,7 +69,7 @@ const sse = (event) => (event.type === 'message'
   : `event: status\ndata: ${JSON.stringify({ status: event.status })}\n\n`);
 
 export function createAgentsServer({
-  token, threads, repos, skillsDir, providers, terminals = null, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, log = () => {},
+  token, threads, repos, skillsDir, providers, terminals = null, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, heartbeatMs = DEFAULT_HEARTBEAT_MS, log = () => {},
 }) {
   // Narrates a thread on the server console: its run starts, then each status it reaches.
   function trace(thread) {
@@ -146,12 +147,20 @@ export function createAgentsServer({
       const unsubscribe = terminals.subscribe(id, (event) => emit(event));
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
       res.flushHeaders();
+      // A shell can stay silent for long: without traffic the board's relay (undici's
+      // 300 s body timeout) would drop the stream, and the shell with it.
+      const heartbeat = setInterval(() => res.write(':\n\n'), heartbeatMs);
       emit = (event) => {
         res.write(terminalSse(event));
-        if (event.type === 'exit') res.end();
+        if (event.type !== 'exit') return;
+        clearInterval(heartbeat); // never a write after end
+        res.end();
       };
       pending.forEach(emit);
-      res.on('close', unsubscribe);
+      res.on('close', () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+      });
       return undefined;
     }
     if (id && req.method === 'POST' && sub === '/input') {

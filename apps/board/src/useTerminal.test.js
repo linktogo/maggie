@@ -235,3 +235,22 @@ test('unmounting the component closes the shell and stops listening to pagehide'
   win.dispatchEvent(new Event('pagehide'));
   expect(calls.filter((c) => c.method === 'DELETE')).toHaveLength(1);
 });
+
+test('closing while the shell is opening kills it as soon as it exists, without following it', async () => {
+  FakeEventSource.instances = [];
+  const calls = [];
+  let release;
+  const fetchImpl = vi.fn((url, init = {}) => {
+    calls.push({ url, method: init.method ?? 'GET', keepalive: init.keepalive });
+    if (url !== '/api/factory/terminals') return Promise.resolve({ ok: true, status: 204, json: async () => ({}) });
+    return new Promise((resolve) => { release = () => resolve({ ok: true, status: 201, json: async () => OPENED.body }); });
+  });
+  const terminal = useTerminal({ fetchImpl, EventSourceImpl: FakeEventSource, win: new EventTarget() });
+  const opening = terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.close();
+  release();
+  await opening;
+  expect(calls.at(-1)).toEqual({ url: `/api/factory/terminals/${TM}`, method: 'DELETE', keepalive: true });
+  expect(FakeEventSource.instances).toHaveLength(0);
+  expect(terminal.status.value).toBe('idle');
+});

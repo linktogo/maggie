@@ -69,7 +69,7 @@ A change should fit the existing app/library boundaries, preserve documented CLI
 
 ## How work gets done here
 
-Use Node.js 22 or newer and Git. From a checkout, install dependencies with `npm ci`. The README’s safe sync preview is:
+Use Node.js 24 or newer and Git. From a checkout, install dependencies with `npm ci`. The README’s safe sync preview is:
 
 ```bash
 node apps/sync/bin/sync.js --config repos.example.json --dry-run

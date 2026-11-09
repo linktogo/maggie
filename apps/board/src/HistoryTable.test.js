@@ -1,7 +1,7 @@
 import { test, expect, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import HistoryTable from './HistoryTable.vue';
-import { DEFAULT_LOCALE, locale, setLocale } from './i18n.js';
+import { DEFAULT_LOCALE, locale, setLocale, translate } from './i18n.js';
 
 afterEach(() => { locale.value = DEFAULT_LOCALE; });
 
@@ -82,4 +82,36 @@ test('the sorted column header carries aria-sort and an arrow', async () => {
   expect(w.get('[data-test=sort-total]').element.closest('th').getAttribute('aria-sort')).toBe('ascending');
   expect(w.get('[data-test=sort-total]').text()).toContain('▲');
   expect(ended.element.closest('th').getAttribute('aria-sort')).toBe('none');
+});
+
+test('sorting by total counts an entry without usage as zero, and toggles both ways', async () => {
+  const w = mount(HistoryTable, {
+    props: { entries: [entry({ repo: 'big', sessionId: 'b' }), entry({ repo: 'none', sessionId: 'n', usage: undefined, title: undefined })] },
+  });
+  const repos = () => w.findAll('[data-test=history-row]').map((r) => r.find('td').text());
+  await w.get('[data-test=sort-total]').trigger('click');
+  expect(repos()).toEqual(['none', 'big']);
+  await w.get('[data-test=sort-total]').trigger('click');
+  expect(repos()).toEqual(['big', 'none']);
+  await w.get('[data-test=sort-total]').trigger('click');
+  expect(repos()).toEqual(['none', 'big']);
+  expect(w.findAll('[data-test=history-row]')[0].text()).toContain(translate('session.untitled'));
+});
+
+test('sorting by a column some entries lack puts those first in ascending order', async () => {
+  const w = mount(HistoryTable, {
+    props: { entries: [entry({ repo: 'titled', sessionId: 't' }), entry({ repo: 'bare', sessionId: 'u', title: undefined })] },
+  });
+  await w.get('[data-test=sort-title]').trigger('click');
+  const first = w.findAll('[data-test=history-row]')[0];
+  expect(first.find('td').text()).toBe('bare');
+  expect(first.findAll('td')[1].attributes('title')).toBe('');
+});
+
+test('an ascending sort orders three rows whatever order they arrive in', async () => {
+  const w = mount(HistoryTable, {
+    props: { entries: ['c', 'a', 'b'].map((repo) => entry({ repo, sessionId: repo })) },
+  });
+  await w.get('[data-test=sort-repo]').trigger('click');
+  expect(w.findAll('[data-test=history-row]').map((r) => r.find('td').text())).toEqual(['a', 'b', 'c']);
 });

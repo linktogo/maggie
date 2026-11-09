@@ -122,6 +122,25 @@ test('interacting with the message form does not open the session', async () => 
   expect(w.emitted('open')).toBeUndefined();
 });
 
+test('the message form keeps mousedown, dragstart and keydown from reaching the card', async () => {
+  const outer = vi.fn();
+  const w = mount(SessionRow, { props: { session: session(), now }, attachTo: document.body });
+  document.body.addEventListener('mousedown', outer);
+  document.body.addEventListener('dragstart', outer);
+  document.body.addEventListener('keydown', outer);
+  try {
+    await w.get('[data-test=message-form]').trigger('mousedown');
+    await w.get('[data-test=message-form]').trigger('dragstart');
+    await w.get('[data-test=message-input]').trigger('keydown', { key: 'a' });
+    expect(outer).not.toHaveBeenCalled();
+  } finally {
+    document.body.removeEventListener('mousedown', outer);
+    document.body.removeEventListener('dragstart', outer);
+    document.body.removeEventListener('keydown', outer);
+    w.unmount();
+  }
+});
+
 test('shows a worktree badge with the branch when the session runs in a worktree', () => {
   const w = mount(SessionRow, { props: { session: session({ worktree: 'feat/login' }), now } });
   const badge = w.get('[data-test=worktree-badge]');

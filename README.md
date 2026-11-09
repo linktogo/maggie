@@ -36,6 +36,18 @@ npm install -g @linktogo/maggie
 maggie --config repos.json --dry-run
 ```
 
+The same install also gives you the board UI and the agents server, both
+self-contained (the board's front-end ships pre-built, the skills library is
+bundled):
+
+```bash
+maggie-board                        # board UI on http://localhost:4180 (reads ./wk/.maggie/board.json or ./board.json)
+maggie-agents --repos repos.json    # AI Factory server on http://127.0.0.1:4318
+```
+
+Both answer on the loopback interface only. Without a global install, use
+`npx -p @linktogo/maggie maggie-board` (and likewise for `maggie-agents`).
+
 The installed package bundles the skills library, so the CLI works from any
 directory. A `skills/` folder in the current directory takes precedence, which
 is what you want when working from a clone; `--skills <dir>` overrides both.
@@ -119,8 +131,9 @@ internal `@maggie/*` names, and are never published on their own.
 ## Tests
 
 ```bash
-npm test          # nx run-many -t test: every lib/app, 100% coverage gate each (except board)
+npm test          # nx run-many -t test: every lib/app, 100% coverage gate each
 npm run test:board # apps/board suite only: server (node:test) + front-end (vitest)
+npm run check:coverage # fails if any project no longer enforces 100% coverage
 ```
 
 CI runs `nx run-many -t lint test build`. Because Nx detects the package

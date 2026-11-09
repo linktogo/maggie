@@ -7,7 +7,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node --test .github/actions/ci-status-report/report.test.js"
+        "command": "node --test --experimental-test-coverage --test-coverage-include=\".github/actions/ci-status-report/report.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 .github/actions/ci-status-report/report.test.js"
       }
     }
   }

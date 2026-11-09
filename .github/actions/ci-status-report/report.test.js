@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, readFile, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -147,4 +147,97 @@ test('a run older than the one already reported is skipped', async () => {
 test('report.js imports the libs by relative path so the runner needs no npm install', async () => {
   const source = await readFile(reportPath, 'utf8');
   assert.doesNotMatch(source, /from ['"]@linktogo\//);
+});
+
+// A pre-receive hook on the bare repo that rejects the first `rejections`
+// pushes, as a concurrent deposit winning the race would.
+async function rejectPushes(root, bare, rejections) {
+  const counter = path.join(root, 'rejections');
+  await writeFile(counter, '0');
+  const hook = path.join(bare, 'hooks', 'pre-receive');
+  await writeFile(hook, `#!/bin/sh
+n=$(cat "${counter}")
+if [ "$n" -lt ${rejections} ]; then echo $((n + 1)) > "${counter}"; echo "rejected" >&2; exit 1; fi
+exit 0
+`);
+  await chmod(hook, 0o755);
+}
+
+test('a workflow_run event reports the watched run, its status standing in for a missing conclusion', async () => {
+  const { root, bare } = await makeStatusRepo();
+  const eventPath = path.join(root, 'event.json');
+  await writeFile(eventPath, JSON.stringify({
+    workflow_run: {
+      id: 77, status: 'in_progress', conclusion: null, name: 'E2E', head_branch: 'feat/x', event: 'pull_request',
+      html_url: 'https://github.com/linktogo/lk-myasso/actions/runs/77', run_started_at: '2026-07-01T00:00:00.000Z',
+      actor: { login: 'alice' },
+    },
+  }));
+  const result = await runReport({ ...baseEnv({ statusRepo: bare }), GITHUB_EVENT_NAME: 'workflow_run', GITHUB_EVENT_PATH: eventPath });
+  assert.equal(result.code, 0, result.stderr);
+  const verify = await cloneStatusRepo(root, bare);
+  const update = JSON.parse(await readFile(path.join(verify, 'updates', 'alice', 'lk-myasso.json'), 'utf8'));
+  assert.equal(update.runId, 77);
+  assert.equal(update.conclusion, null);
+  const subject = execFileSync('git', ['-C', verify, 'log', '-1', '--format=%s']).toString().trim();
+  assert.equal(subject, 'chore(ci-status): alice/lk-myasso in_progress');
+});
+
+test('an unreadable event file is ignored and the job itself is reported', async () => {
+  const { root, bare } = await makeStatusRepo();
+  const eventPath = path.join(root, 'event.json');
+  await writeFile(eventPath, '{not json');
+  const result = await runReport({ ...baseEnv({ statusRepo: bare }), GITHUB_EVENT_PATH: eventPath });
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /reported updates\/fabien\/lk-myasso\.json/);
+});
+
+// Pins the child's clock, so two reports of the same run are byte-identical.
+const FROZEN_CLOCK = `--import=data:text/javascript,${encodeURIComponent(
+  'const D = Date; globalThis.Date = class extends D { constructor(...a) { super(...(a.length ? a : [0])); } static now() { return 0; } };',
+)}`;
+
+test('a newer run replaces an older one, and reporting the same run again pushes nothing', async () => {
+  const { root, bare } = await makeStatusRepo();
+  const env = (runId) => ({ ...baseEnv({ statusRepo: bare, runId }), NODE_OPTIONS: FROZEN_CLOCK });
+  assert.equal((await runReport(env('41'))).code, 0);
+  const newer = await runReport(env('42'));
+  assert.equal(newer.code, 0, newer.stderr);
+  const again = await runReport(env('42'));
+  assert.equal(again.code, 0, again.stderr);
+  assert.match(again.stdout, /status unchanged, nothing to push/);
+  const verify = await cloneStatusRepo(root, bare);
+  assert.equal(JSON.parse(await readFile(path.join(verify, 'updates', 'fabien', 'lk-myasso.json'), 'utf8')).runId, 42);
+});
+
+test('a malformed file already on the branch is overwritten', async () => {
+  const { root, bare } = await makeStatusRepo();
+  const seed = await cloneStatusRepo(root, bare);
+  await mkdir(path.join(seed, 'updates', 'fabien'), { recursive: true });
+  await writeFile(path.join(seed, 'updates', 'fabien', 'lk-myasso.json'), '{garbage');
+  execFileSync('git', ['-C', seed, 'add', '.']);
+  execFileSync('git', ['-C', seed, '-c', 'user.email=t@t.dev', '-c', 'user.name=T', 'commit', '-qm', 'garbage']);
+  execFileSync('git', ['-C', seed, 'push', '-q', 'origin', 'ci-status']);
+  const result = await runReport(baseEnv({ statusRepo: bare }));
+  assert.equal(result.code, 0, result.stderr);
+  const verify = await cloneStatusRepo(root, bare);
+  assert.equal(JSON.parse(await readFile(path.join(verify, 'updates', 'fabien', 'lk-myasso.json'), 'utf8')).runId, 42);
+});
+
+test('a rejected push is retried on top of the refreshed branch', async () => {
+  const { root, bare } = await makeStatusRepo();
+  await rejectPushes(root, bare, 1);
+  const result = await runReport(baseEnv({ statusRepo: bare }));
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /push rejected \(attempt 1\/5\), retrying/);
+  assert.match(result.stdout, /reported updates\/fabien\/lk-myasso\.json/);
+});
+
+test('a push rejected on every attempt fails the step', async () => {
+  const { root, bare } = await makeStatusRepo();
+  await rejectPushes(root, bare, 5);
+  const result = await runReport(baseEnv({ statusRepo: bare }));
+  assert.equal(result.code, 1);
+  assert.match(result.stdout, /attempt 4\/5/);
+  assert.doesNotMatch(result.stdout, /attempt 5\/5/);
 });

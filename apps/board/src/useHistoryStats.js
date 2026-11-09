@@ -49,7 +49,8 @@ export function useHistoryStats(entries) {
       addTokenUsage(bucket.tokens, entry.usage);
       addCostByModel(bucket.costByModel, entry.usage);
     }
-    return [...buckets.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    // Keys are unique (they are the Map's keys), so two buckets never compare equal.
+    return [...buckets.values()].sort((a, b) => (a.key < b.key ? -1 : 1));
   }
 
   function totalsByProject() {

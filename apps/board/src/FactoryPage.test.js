@@ -183,3 +183,11 @@ test('the run list and the status lines of the output follow the locale', async 
   expect(w.get('[data-test=factory-output]').text()).toContain('— réussie');
   expect(w.get('[data-test=factory-output]').text()).not.toContain('succeeded');
 });
+
+test('switching back from skill mode to prompt mode hides the skill picker', async () => {
+  const w = await page(fetchWith());
+  await w.get('[data-test=factory-mode-skill]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(true);
+  await w.get('[data-test=factory-mode-prompt]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(false);
+});

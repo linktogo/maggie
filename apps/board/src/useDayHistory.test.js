@@ -101,3 +101,15 @@ test('refetches as soon as refreshOn changes while enabled, and not while disabl
   await vi.advanceTimersByTimeAsync(0);
   expect(fetchImpl).toHaveBeenCalledTimes(2);
 });
+
+test('a truthy enabled value that changes to another truthy value does not start a second poll', async () => {
+  vi.useFakeTimers();
+  const fetchImpl = okFetch([]);
+  const enabled = ref(1);
+  useDayHistory({ fetchImpl, intervalMs: 1000, enabled });
+  await vi.advanceTimersByTimeAsync(0);
+  enabled.value = 2;
+  await nextTick();
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(fetchImpl).toHaveBeenCalledTimes(2); // immediate + one tick, not doubled
+});

@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npx nx run-many -t lint
+      - name: Check every project enforces a 100% coverage gate
+        run: npm run check:coverage
       - name: Test (100% coverage gate per project)
         run: npx nx run-many -t test
       - name: Test release scripts

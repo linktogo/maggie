@@ -7,7 +7,7 @@ import path from 'node:path';
 import { request } from 'node:http';
 import {
   createBoardServer, startFromArgv, resolveServerBoardPath,
-  isLocalHost, isLocalOrigin, resolveStaticFile, LOOPBACK,
+  isLocalHost, isLocalOrigin, resolveStaticFile, serveStatic, LOOPBACK,
 } from './server.js';
 
 function listen(server) {
@@ -751,4 +751,177 @@ test('startFromArgv without agents options targets the default agents server and
   assert.deepEqual(await res.json(), { error: 'unknown factory route' });
   server.close();
   await rm(dir, { recursive: true, force: true });
+});
+
+function fakeResponse() {
+  return {
+    status: null, body: null,
+    writeHead(status) { this.status = status; },
+    end(body) { this.body = body; },
+  };
+}
+
+test('serveStatic refuses a path that escapes the dist directory', async () => {
+  const res = fakeResponse();
+  await serveStatic('/srv/dist', '/../etc/passwd', res);
+  assert.equal(res.status, 403);
+  assert.equal(res.body, 'forbidden');
+});
+
+test('a static file of an unknown type is served as application/octet-stream', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  await writeFile(path.join(dir, 'font.woff2'), 'bytes');
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/font.woff2`);
+  assert.equal(res.headers.get('content-type'), 'application/octet-stream');
+  assert.equal(await res.text(), 'bytes');
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('an unknown path with no index.html to fall back on answers 404', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/history`);
+  assert.equal(res.status, 404);
+  assert.equal(await res.text(), 'not found');
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('a read failure other than a missing file answers 500 with the reason', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  // Directories where files are expected: reading them fails with EISDIR.
+  await mkdir(path.join(dir, 'board.json'));
+  await mkdir(path.join(dir, 'history.jsonl'));
+  await mkdir(path.join(dir, 'assets'));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  for (const route of ['/api/board', '/api/history', '/assets']) {
+    const res = await fetch(`http://127.0.0.1:${port}${route}`);
+    assert.equal(res.status, 500, route);
+    assert.match(await res.text(), /EISDIR/, route);
+  }
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('GET /api/ci asks for every repo when no config is loaded, and skips nameless config entries', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const seen = [];
+  const ciReader = { read: async (names) => { seen.push(names); return { repos: {} }; } };
+  for (const config of [null, {}, { repos: [null, { name: 'api' }, {}] }]) {
+    const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir, config, ciReader });
+    const port = await listen(server);
+    await (await fetch(`http://127.0.0.1:${port}/api/ci`)).json();
+    server.close();
+  }
+  assert.deepEqual(seen, [null, [], ['api']]);
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('a JSON null body is a 400 for both session endpoints', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  for (const route of ['/api/sessions/close', '/api/sessions/message']) {
+    const res = await fetch(`http://127.0.0.1:${port}${route}`, { method: 'POST', body: 'null' });
+    assert.equal(res.status, 400, route);
+  }
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv logs a repo whose hooks cannot be reconciled', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const checkout = path.join(dir, 'checkout');
+  await mkdir(path.join(checkout, '.claude'), { recursive: true });
+  await writeFile(path.join(checkout, '.claude', 'settings.local.json'), '{not json');
+  const configPath = path.join(dir, 'repos.json');
+  await writeFile(configPath, JSON.stringify({
+    repos: [{ name: 'demo', url: 'https://h/demo.git', path: checkout, technologies: ['nestjs'], targets: ['claude'] }],
+  }));
+  const logs = [];
+  const server = await startFromArgv(
+    ['--board', path.join(dir, '.maggie', 'board.json'), '--config', configPath, '--port', '0', '--dist', dir],
+    { log: (m) => logs.push(m) },
+  );
+  await listening(server);
+  assert.ok(logs.some((m) => m.startsWith('  ⚠ demo: ')), logs.join('\n'));
+  assert.ok(!logs.some((m) => m.includes('all up to date')));
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv with a status repo syncs CI on start and on every interval, until the server closes', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const logs = [];
+  const server = await startFromArgv(
+    [
+      '--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir,
+      '--status-repo', path.join(dir, 'no-such-repo'), '--ci-interval', '0.05',
+      '--ci-state', path.join(dir, 'state', 'ci.json'), '--ci-cache', path.join(dir, 'cache', 'ci-status'),
+    ],
+    { log: (m) => logs.push(m) },
+  );
+  await listening(server);
+  assert.ok(logs.some((m) => m.includes('ci status from')));
+  // The clone of a repo that does not exist fails; each failed sync is logged.
+  const deadline = Date.now() + 10_000;
+  while (logs.filter((m) => m.includes('ci: sync failed')).length < 2 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  assert.ok(logs.filter((m) => m.includes('ci: sync failed')).length >= 2, logs.join('\n'));
+  const state = JSON.parse(await readFile(path.join(dir, 'state', 'ci.json'), 'utf8'));
+  assert.ok(state.lastSyncError);
+  await new Promise((resolve) => server.close(resolve));
+  // A sync already in flight when the timer stops may still be writing its state.
+  await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 });
+});
+
+test('startFromArgv defaults the dist directory to the one next to server.js', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = await startFromArgv(['--board', path.join(dir, 'board.json'), '--port', '0'], { log: () => {} });
+  const port = await listening(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/board`);
+  assert.equal(res.status, 200);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv rethrows a listen error that is not a busy port', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = await startFromArgv(['--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir], { log: () => {} });
+  await listening(server);
+  const boom = Object.assign(new Error('boom'), { code: 'EACCES' });
+  assert.throws(() => server.emit('error', boom), /boom/);
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('running server.js directly starts the board from the command line', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, [
+    path.join(import.meta.dirname, 'server.js'), '--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir,
+  ], { stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    const line = await new Promise((resolve, reject) => {
+      let out = '';
+      child.stdout.on('data', (chunk) => {
+        out += chunk;
+        if (out.includes('board on http://localhost:')) resolve(out);
+      });
+      child.on('exit', (code) => reject(new Error(`exited early with ${code}: ${out}`)));
+    });
+    assert.match(line, /board on http:\/\/localhost:\d+/);
+  } finally {
+    // Ctrl-C shuts the board down cleanly: exit code 0, not a signal death.
+    const exited = new Promise((resolve) => child.on('exit', (code, signal) => resolve({ code, signal })));
+    child.kill('SIGINT');
+    assert.deepEqual(await exited, { code: 0, signal: null });
+    await rm(dir, { recursive: true, force: true });
+  }
 });

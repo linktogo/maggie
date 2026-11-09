@@ -105,3 +105,12 @@ test('useI18n exposes the translator, the reactive locale and the language list'
   i18n.setLocale('fr', noDoc);
   expect(i18n.locale.value).toBe('fr');
 });
+
+test('translate falls back to the English catalog when the active locale is unknown', () => {
+  locale.value = 'xx';
+  try {
+    expect(translate('app.docTitle')).toBe(en['app.docTitle']);
+  } finally {
+    locale.value = DEFAULT_LOCALE;
+  }
+});

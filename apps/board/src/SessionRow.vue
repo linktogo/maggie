@@ -36,13 +36,13 @@ const agent = computed(() => agentOf(props.session));
 const usage = computed(() => props.session.usage ?? null);
 const described = computed(() => describeUsage(usage.value));
 const overBudget = computed(() => budget.value.session !== null && described.value !== null && described.value.cost >= budget.value.session);
+// Both are only read by the token badge, which renders only when there is
+// usage — and with usage, `described` is never null.
 const totalTokens = computed(() => {
-  if (!usage.value) return 0;
   const u = usage.value;
   return u.inputTokens + u.outputTokens + u.cacheCreationInputTokens + u.cacheReadInputTokens;
 });
 const usageTooltip = computed(() => {
-  if (!usage.value) return '';
   const u = usage.value;
   const tokens = t('session.usageTooltip', {
     input: u.inputTokens,
@@ -50,7 +50,7 @@ const usageTooltip = computed(() => {
     cacheWrite: u.cacheCreationInputTokens,
     cacheRead: u.cacheReadInputTokens,
   });
-  return described.value ? `${tokens}\n${costTitle(described.value)}` : tokens;
+  return `${tokens}\n${costTitle(described.value)}`;
 });
 
 function open() { emit('open', props.session.sessionId); }

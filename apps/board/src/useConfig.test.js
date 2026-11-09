@@ -16,3 +16,10 @@ test('degrades to empty repos on fetch error', async () => {
   await nextTick(); await Promise.resolve();
   expect(repos.value).toEqual({});
 });
+
+test('treats a payload without repos as empty', async () => {
+  const fetchImpl = vi.fn().mockResolvedValue({ json: async () => ({}) });
+  const { repos } = useConfig({ fetchImpl });
+  await nextTick(); await Promise.resolve();
+  expect(repos.value).toEqual({});
+});

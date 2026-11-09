@@ -84,3 +84,29 @@ test('useRetroDoc keeps the last known jobs when the board goes away', async () 
   expect(error.value).toBe('connection refused');
   stop();
 });
+
+test('useRetroDoc reports a non-Error failure as text', async () => {
+  const fetchImpl = vi.fn().mockRejectedValue('offline');
+  const { error, stop } = useRetroDoc({ fetchImpl });
+  await settle();
+  expect(error.value).toBe('offline');
+  stop();
+});
+
+test('useRetroDoc does not start a second poll for a second job, and returns null when no job is echoed', async () => {
+  vi.useFakeTimers();
+  try {
+    const running = ok({ jobs: [{ id: 'api-1', repo: 'api', status: 'running' }] });
+    const fetchImpl = vi.fn().mockImplementation(async (url, opts) => (opts ? ok({}) : running));
+    const { start, stop } = useRetroDoc({ fetchImpl, intervalMs: 1000 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await start('api', 'claude')).toBeNull();
+    expect(await start('web', 'claude')).toBeNull();
+    const before = fetchImpl.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(fetchImpl.mock.calls.length - before).toBe(1); // one interval, not two
+    stop();
+  } finally {
+    vi.useRealTimers();
+  }
+});

@@ -114,3 +114,13 @@ test('axis labels follow the granularity', async () => {
   await wrapper.setProps({ buckets: [bucket({ key: '2026-08' })], granularity: 'month' });
   expect(chartInstances[0].data.labels).toEqual(['Aug 2026']);
 });
+
+test('in cost mode a bucket that did not use a model plots zero for it', () => {
+  mount(TimeSeriesChart, {
+    props: {
+      buckets: [bucket({ key: '2026-08-01', costByModel: { 'claude-sonnet-5': 0.02 } }), bucket({ key: '2026-08-02', costByModel: {} })],
+      mode: 'cost',
+    },
+  });
+  expect(chartInstances[0].data.datasets[0].data).toEqual([0.02, 0]);
+});

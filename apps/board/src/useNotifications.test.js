@@ -1,6 +1,6 @@
-import { test, expect, vi, afterEach } from 'vitest';
+import { describe, test, expect, vi, afterEach } from 'vitest';
 import { ref, nextTick } from 'vue';
-import { useNotifications } from './useNotifications.js';
+import { useNotifications, defaultPlaySound } from './useNotifications.js';
 import { DEFAULT_LOCALE, locale, setLocale } from './i18n.js';
 
 afterEach(() => { locale.value = DEFAULT_LOCALE; });
@@ -84,4 +84,70 @@ test('notification bodies are written in the selected language', async () => {
   transitions.value = [{ name: 'oc-auth', status: 'done' }];
   await nextTick();
   expect(notifier.instances[1].opts.body).toBe('Trabajo terminado');
+});
+
+describe('defaultPlaySound', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function fakeAudioContext() {
+    const osc = { frequency: { value: 0 }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+    class Ctx { constructor() { this.destination = 'dest'; this.currentTime = 1; } createOscillator() { return osc; } }
+    return { Ctx, osc };
+  }
+
+  test('plays a short 880 Hz beep through AudioContext', () => {
+    const { Ctx, osc } = fakeAudioContext();
+    vi.stubGlobal('AudioContext', Ctx);
+    defaultPlaySound();
+    expect(osc.frequency.value).toBe(880);
+    expect(osc.connect).toHaveBeenCalledWith('dest');
+    expect(osc.start).toHaveBeenCalled();
+    expect(osc.stop).toHaveBeenCalledWith(1.12);
+  });
+
+  test('falls back to webkitAudioContext', () => {
+    const { Ctx, osc } = fakeAudioContext();
+    vi.stubGlobal('AudioContext', undefined);
+    vi.stubGlobal('webkitAudioContext', Ctx);
+    defaultPlaySound();
+    expect(osc.start).toHaveBeenCalled();
+  });
+
+  test('does nothing without any audio API, and swallows audio errors', () => {
+    vi.stubGlobal('AudioContext', undefined);
+    vi.stubGlobal('webkitAudioContext', undefined);
+    expect(() => defaultPlaySound()).not.toThrow();
+    vi.stubGlobal('AudioContext', class { constructor() { throw new Error('blocked'); } });
+    expect(() => defaultPlaySound()).not.toThrow();
+  });
+});
+
+test('without a Notification API: permission is unsupported, requesting is a no-op, sound still plays', async () => {
+  const transitions = ref([]);
+  const playSound = vi.fn();
+  const n = useNotifications(transitions, ref(0), { notifier: null, storage: fakeStorage({ 'maggie:sound': '1' }), doc: null, playSound });
+  expect(n.permission.value).toBe('unsupported');
+  await n.requestPermission();
+  expect(n.permission.value).toBe('unsupported');
+  transitions.value = [{ name: 'a', status: 'done' }];
+  await nextTick();
+  expect(playSound).toHaveBeenCalledTimes(1);
+});
+
+test('permission not granted: no notification is shown', async () => {
+  const transitions = ref([]);
+  const notifier = fakeNotifier('default');
+  useNotifications(transitions, ref(0), { notifier, storage: fakeStorage(), doc: { title: '' }, playSound: vi.fn() });
+  transitions.value = [{ name: 'a', status: 'done' }];
+  await nextTick();
+  expect(notifier.instances).toHaveLength(0);
+});
+
+test('toggling the sound off again persists "0"', () => {
+  const storage = fakeStorage();
+  const n = useNotifications(ref([]), ref(0), { notifier: fakeNotifier(), storage, doc: null, playSound: vi.fn() });
+  n.toggleSound();
+  n.toggleSound();
+  expect(n.soundOn.value).toBe(false);
+  expect(storage.getItem('maggie:sound')).toBe('0');
 });

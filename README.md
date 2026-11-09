@@ -119,8 +119,9 @@ internal `@maggie/*` names, and are never published on their own.
 ## Tests
 
 ```bash
-npm test          # nx run-many -t test: every lib/app, 100% coverage gate each (except board)
+npm test          # nx run-many -t test: every lib/app, 100% coverage gate each
 npm run test:board # apps/board suite only: server (node:test) + front-end (vitest)
+npm run check:coverage # fails if any project no longer enforces 100% coverage
 ```
 
 CI runs `nx run-many -t lint test build`. Because Nx detects the package

@@ -80,3 +80,15 @@ test('the project chart reflects the mode toggle too', async () => {
   await settle();
   expect(wrapper.findComponent(ProjectBarChart).props('mode')).toBe('cost');
 });
+
+test('the period tab and the tokens toggle switch back from project and cost', async () => {
+  const wrapper = mount(HistoryPage, { props: { fetchImpl: fetchImplWith([entry()]) } });
+  await settle();
+  await wrapper.get('[data-test=tab-project]').trigger('click');
+  await wrapper.get('[data-test=mode-cost]').trigger('click');
+  await wrapper.get('[data-test=tab-period]').trigger('click');
+  await wrapper.get('[data-test=mode-tokens]').trigger('click');
+  await settle();
+  expect(wrapper.findComponent(TimeSeriesChart).props('mode')).toBe('tokens');
+  expect(wrapper.findComponent(ProjectBarChart).exists()).toBe(false);
+});

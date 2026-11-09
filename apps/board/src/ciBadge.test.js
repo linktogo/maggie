@@ -77,3 +77,8 @@ test('matchesCiFilter implements the three filter options', () => {
   expect(matchesCiFilter({}, 'unknown')).toBe(true);
   expect(matchesCiFilter(green, 'unknown')).toBe(false);
 });
+
+test('ciAggregate is unknown when there are no users at all', () => {
+  expect(ciAggregate(undefined)).toBe('unknown');
+  expect(ciAggregate(null)).toBe('unknown');
+});

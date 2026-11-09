@@ -179,3 +179,14 @@ test('day: a momentary dip in the total never lowers the level, so the same leve
   await nextTick();
   expect(s.notifier.instances).toHaveLength(1);
 });
+
+test('a repo without sessions is skipped, and an untitled session is named by its id', async () => {
+  setBudget({ session: euro(1) }, memoryStorage());
+  const s = setup({ repos: { empty: {}, a: { sessions: { s1: { usage: usageOf(0.5) } } } } });
+  s.repos.value = { empty: {}, a: { sessions: { s1: { usage: usageOf(1) } } } };
+  await nextTick();
+  expect(s.notifier.instances).toHaveLength(1);
+  expect(s.notifier.instances[0].title).toBe(translate('budget.sessionAlert', {
+    name: 'a', title: 's1', cost: formatChartValue(euro(1), 'cost'), threshold: formatChartValue(euro(1), 'cost'),
+  }));
+});

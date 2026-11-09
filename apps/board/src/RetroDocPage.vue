@@ -14,7 +14,7 @@ const props = defineProps({
   fetchImpl: { type: Function, required: true },
 });
 
-const { jobs, error, available, start, latestFor } = useRetroDoc({ fetchImpl: props.fetchImpl });
+const { error, available, start, latestFor } = useRetroDoc({ fetchImpl: props.fetchImpl });
 
 // One choice of LLM per repository, so a run on one does not change the others.
 const providers = reactive({});
@@ -24,8 +24,9 @@ const rows = computed(() => Object.entries(props.config)
   .map(([name, meta]) => ({ name, meta: meta ?? {} }))
   .sort((a, b) => a.name.localeCompare(b.name)));
 
-// Reading jobs here is what keeps the rows following a running job.
-const jobFor = (repo) => (jobs.value ? latestFor(repo) : null);
+// latestFor() reads jobs.value, so the render tracks it and the rows follow a
+// running job.
+const jobFor = (repo) => latestFor(repo);
 
 // The row shows the head of the last line — "digest 2/5: 5 document(s)" — and
 // leaves the rest (the paths it is chewing on) to the console below it.

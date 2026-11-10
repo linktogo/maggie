@@ -27,6 +27,7 @@ npm start                                                  # the board; open the
 | `--port` | `4318` | loopback port, an integer from 0 to 65535 |
 | `--skills <dir>` | the repository's `skills/` | skills offered by `GET /skills` |
 | `--timeout <s>` | `600` | a run is killed after this long; a number greater than 0 |
+| `--max-runs <n>` | `4` | agent runs allowed at once across all repos; an integer, 1 or more. Beyond it a request is refused with `409` (no queue) |
 | `--allow-origin <origin>` | none | an `Origin` the server accepts (repeatable); none by default |
 | `--token-file <file>` | `~/.maggie/agents.token` | where the token is written |
 | `--db <file>` | `~/.maggie/factory.db` | SQLite file holding the threads, kept `0600` (its directory is created `0700`). The server refuses to start when it cannot be opened (no in-memory fallback) |
@@ -67,10 +68,35 @@ Providers are `claude-cli` (`claude -p --permission-mode acceptEdits`) and `copi
 installed and logged in. A request may override the provider, but only among those two; if its CLI is
 missing the run fails with an explicit message (`Could not run ...`), never with a silent fallback.
 
+## Worktrees
+
+A request may ask for an isolated `git worktree` (`worktree: true`; the board's new-request form ticks the box by
+default). That lets several agents work on the same repository at once without touching its main checkout.
+
+- **Base.** The server runs `git fetch origin`, reads the default branch with
+  `git symbolic-ref --short refs/remotes/origin/HEAD` (when it is missing, the request fails with a `400` naming
+  `git remote set-head origin -a`), and branches from `origin/<default>`. A failing git command is a
+  `502 git-failed` with git's output, and no thread is created.
+- **Branch and location.** The branch is `factory/<threadId>-<slug>` (the slug is the title as `[a-z0-9-]`,
+  40 characters at most, `task` when empty); the worktree lives in `<workspace>/.worktrees/<repo>/<threadId>`.
+  The client never sends a path.
+- **Lifecycle.** The thread's runs (first run, replies) and its console use the worktree as their working
+  directory. If the run is refused after the worktree was created (for instance at the `--max-runs` ceiling), the
+  worktree and its branch are removed again and no thread is left behind. Archiving a thread leaves its worktree
+  alone. `DELETE /threads/:id/worktree` removes it (the thread stays, and later replies resume in the main
+  checkout); `DELETE /threads/:id` removes it too, then the thread. Both are `409` while a run is active and
+  `409 worktree-dirty` when the worktree has uncommitted changes, unless `?force=1` is given (those changes are
+  then lost).
+- **Branch kept.** The branch is deleted with the worktree only when it has no commits beyond its base; a branch
+  with commits ahead is always kept, and the response says so (`branchKept: true`).
+- **Startup.** After recovering interrupted threads, the server forgets the worktree of any thread whose folder
+  no longer exists (`[<id>] worktree missing, cleared`; its replies go back to the main checkout) and logs the
+  folders of `.worktrees/` that no thread knows (`orphan worktree: <path>`). It never deletes anything.
+
 ## Console
 
 A conversation's **Console** button opens an interactive shell (`$SHELL -l`) in the thread's repository
-checkout, in a tab next to the conversation. The shell runs on a pseudo-terminal from
+checkout (or in its worktree, when it has one), in a tab next to the conversation. The shell runs on a pseudo-terminal from
 [node-pty](https://github.com/microsoft/node-pty), in the agents server; the board relays it like the other
 routes. It dies with its tab: closing it, opening another conversation or closing the page kills it (5 s after
 its last reader leaves). At most 4 shells run at once; the last 64 KiB of output are replayed when the tab
@@ -94,7 +120,7 @@ The server executes commands on your machine, so:
 - a request carrying an `Origin` is refused unless allowed with `--allow-origin`;
 - clients send a repository **name**, resolved against the allowlist, never a path; skill ids are
   `<techno>/<name>` and cannot leave the skills directory; the model is validated as an identifier;
-- one active run per repository, a timeout per run (SIGTERM, then SIGKILL after a 5 s grace); live output
+- one active run per checkout or worktree (and `--max-runs` overall), a timeout per run (SIGTERM, then SIGKILL after a 5 s grace); live output
   buffers are bounded (events, characters and number of runs); the history in `factory.db` is a plain `0600`
   file readable by your user, in a `0700` directory, so treat it like your shell history;
 - the console is a shell as your user in an allowlisted checkout: anyone who can drive the board locally can
@@ -126,25 +152,26 @@ use every tool without asking. Review what you point an agent at.
 
 | Route | |
 |---|---|
-| `GET /health` | `{ providers: { available, default }, repos, terminal: { available, reason? } }` |
+| `GET /health` | `{ providers: { available, default }, repos, terminal: { available, reason? }, limits: { maxRuns } }` |
 | `GET /skills` | `{ skills: [{ id, techno, name, description }] }` |
 | `GET /projects` | `{ projects: [{ repo, threads, running, lastActivity }] }` for every allowlisted repo |
 | `GET /threads?repo=&status=&q=&before=` | `{ threads }`, newest first, 50 per page; `q` searches titles and text messages; archived excluded unless `status=archived` |
-| `POST /threads` | `{ repo, provider?, model?, prompt?, skill? }` (a prompt or a skill) -> `202 { thread }`; starts the first run |
-| `GET /threads/:id` | `{ thread, messages }` |
+| `POST /threads` | `{ repo, provider?, model?, prompt?, skill?, worktree? }` (a prompt or a skill; `worktree` defaults to `false`) -> `202 { thread }`; starts the first run, in a new worktree when asked |
+| `GET /threads/:id` | `{ thread, messages }`; `thread.worktree` is `null` or `{ path, branch, base, exists, dirty, ahead }` |
 | `POST /threads/:id/messages` | `{ prompt }` -> `202 { thread }`; resumes the session. `409` thread or repo busy, `400` not resumable |
 | `GET /threads/:id/events?after=` | SSE: `message` events and `status`. With `after=<message id>` (`0` for all), the messages stored past that id are replayed first, then new ones stream live (replay and subscription happen in the same tick, so none is missed); without it, only newly stored messages. Ends when the thread leaves `running`; a thread that is not running gets its backlog, then its status, and the stream ends. A non-integer `after` is a `400` |
 | `DELETE /threads/:id/run` | SIGTERM the active run -> `202`; `404` when none |
 | `PATCH /threads/:id` | `{ status: 'archived' \| 'idle' }`; `409` while running |
-| `DELETE /threads/:id` | permanent delete with its messages; `409` while running |
-| `POST /terminals` | `{ repo, cols, rows }` (cols 1-500, rows 1-200) -> `201 { terminal: { id, repo, cwd } }`; `409` when 4 are open |
+| `DELETE /threads/:id/worktree?force=1` | remove the thread's worktree -> `200 { thread, branchKept }`; `404` without worktree, `409` while running or `worktree-dirty` (unless `force=1`) |
+| `DELETE /threads/:id?force=1` | permanent delete with its messages and its worktree; `409` while running or `worktree-dirty` (unless `force=1`) |
+| `POST /terminals` | `{ repo, cols, rows }` or `{ thread, cols, rows }` (the shell opens in the thread's worktree or checkout; unknown thread `404`) (cols 1-500, rows 1-200) -> `201 { terminal: { id, repo, cwd } }`; `409` when 4 are open |
 | `GET /terminals/:id/events` | SSE: `data` events (pty bytes in base64), then `exit` (`{ code, signal }`) and the stream ends |
 | `POST /terminals/:id/input` | `{ data }` (at most 64 KiB) -> `204` |
 | `POST /terminals/:id/resize` | `{ cols, rows }` -> `204` |
 | `DELETE /terminals/:id` | kill the shell -> `204` |
 
 Errors: `400` invalid input, `401` bad token, `403` Host/Origin, `404` unknown repo/skill/thread, `409` thread
-running or repo busy, `413` body too large, `503 { "error": "terminal-unavailable", "detail" }` console disabled or node-pty missing. The board exposes the same routes (and only those, with their
+running, checkout or worktree busy, or `--max-runs` reached; `409 { "error": "worktree-dirty", "detail" }` uncommitted changes in a worktree to remove (retry with `?force=1`); `413` body too large; `502 { "error": "git-failed", "detail" }` a git command failed; `force` accepts only `1` (anything else is a `400`); `503 { "error": "terminal-unavailable", "detail" }` console disabled or node-pty missing. The board exposes the same routes (and only those, with their
 methods) under `/api/factory/*`; when the agents server or its token file is missing, the relay answers
 `503 { "error": "agents-unavailable", "detail": ... }`.
 
@@ -157,7 +184,8 @@ replace it, and its routes now answer `404`.
   spawn them without a shell; the run then fails with an explicit message.
 - **Shutdown.** SIGINT/SIGTERM stops the server (and removes the token file) and kills open console shells,
   but does not cancel active agent runs.
-- **One active run per repo, no queue.** A second request on a busy repo is refused with `409`.
+- **One active run per checkout or worktree, at most `--max-runs` at once, no queue.** A second request on a
+  busy checkout or worktree, or one beyond the ceiling, is refused with `409`.
 
 ## Not in this version
 

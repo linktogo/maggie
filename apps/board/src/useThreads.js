@@ -163,13 +163,14 @@ export function useThreads({
     }
   }
 
-  async function mutate(path, init, onOk) {
+  // `onRefused(result)` claims a failure it reports itself: `fail` is then skipped.
+  async function mutate(path, init, onOk, onRefused) {
     error.value = null;
     busy.value = true;
     try {
       const result = await api(path, init);
       if (!result.ok) {
-        fail(result);
+        if (!onRefused?.(result)) fail(result);
         return false;
       }
       await onOk(result.data);
@@ -182,8 +183,9 @@ export function useThreads({
     }
   }
 
-  async function create({ repo, provider, model, prompt, skill }) {
+  async function create({ repo, provider, model, prompt, skill, worktree }) {
     const body = { repo };
+    if (worktree) body.worktree = true;
     if (provider) body.provider = provider;
     if (model) body.model = model;
     if (prompt) body.prompt = prompt;
@@ -229,8 +231,24 @@ export function useThreads({
   const archive = (id) => setStatus(id, 'archived');
   const restore = (id) => setStatus(id, 'idle');
 
-  function remove(id) {
-    return mutate(`/threads/${id}`, { method: 'DELETE' }, async () => {
+  // A dirty worktree is not an error: the caller asks the user, then retries with force.
+  async function destroy(path, onOk) {
+    let dirty = false;
+    let data = {};
+    const ok = await mutate(path, { method: 'DELETE' }, async (body) => {
+      data = body;
+      await onOk();
+    }, ({ status, data: body }) => {
+      dirty = status === 409 && body.error === 'worktree-dirty';
+      return dirty;
+    });
+    return ok ? { ok: true, branchKept: data.branchKept } : { ok: false, dirty };
+  }
+
+  const forceQuery = (force) => (force ? '?force=1' : '');
+
+  function remove(id, { force = false } = {}) {
+    return destroy(`/threads/${id}${forceQuery(force)}`, async () => {
       opening += 1;
       if (thread.value?.id === id) {
         close();
@@ -238,6 +256,13 @@ export function useThreads({
         messages.value = [];
       }
       await Promise.all([refreshProjects(), loadThreads(lastQuery)]);
+    });
+  }
+
+  function removeWorktree(id, { force = false } = {}) {
+    return destroy(`/threads/${id}/worktree${forceQuery(force)}`, async () => {
+      if (thread.value?.id === id) await open(id);
+      await loadThreads(lastQuery);
     });
   }
 
@@ -252,6 +277,6 @@ export function useThreads({
 
   return {
     health, skills, projects, threads, thread, messages, error, available, busy, resumable,
-    load, loadThreads, open, create, reply, stop, archive, restore, remove,
+    load, loadThreads, open, create, reply, stop, archive, restore, remove, removeWorktree,
   };
 }

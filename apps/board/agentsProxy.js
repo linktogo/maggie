@@ -10,7 +10,7 @@ export const DEFAULT_AGENTS_URL = 'http://127.0.0.1:4318';
 export const defaultTokenFile = (home = os.homedir()) => path.join(home, '.maggie', 'agents.token');
 
 // The routes of apps/agents, nothing else: the proxy is not a way to reach arbitrary paths.
-const ROUTE = /^\/(health|skills|projects|threads(\/th_[0-9a-f]{16}(\/messages|\/events|\/run)?)?|terminals(\/tm_[0-9a-f]{16}(\/events|\/input|\/resize)?)?)$/;
+const ROUTE = /^\/(health|skills|projects|threads(\/th_[0-9a-f]{16}(\/messages|\/events|\/run|\/worktree)?)?|terminals(\/tm_[0-9a-f]{16}(\/events|\/input|\/resize)?)?)$/;
 const METHODS = new Set(['GET', 'POST', 'PATCH', 'DELETE']);
 const WITH_BODY = new Set(['POST', 'PATCH']);
 

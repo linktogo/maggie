@@ -328,3 +328,43 @@ test('neighbouring terminal paths are refused', async (t) => {
   }
   assert.equal(agents.seen.length, 0);
 });
+
+test('DELETE /threads/:id/worktree is relayed with its query string', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}'); });
+  const { base } = await board(t, { url: agents.url });
+  const res = await fetch(`${base}/api/factory/threads/${TH}/worktree?force=1`, { method: 'DELETE' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(agents.seen.map(({ method, url, authorization }) => [method, url, authorization]), [
+    ['DELETE', `/threads/${TH}/worktree?force=1`, 'Bearer tok-123'],
+  ]);
+});
+
+test('neighbouring worktree paths are refused', async (t) => {
+  const agents = await upstream(t, (req, res) => { res.writeHead(200); res.end('{}'); });
+  const { base } = await board(t, { url: agents.url });
+  for (const route of [`/threads/${TH}/worktrees`, `/threads/${TH}/worktree/x`]) {
+    const res = await fetch(`${base}/api/factory${route}`, { method: 'DELETE' });
+    assert.equal(res.status, 404, route);
+    assert.deepEqual(await res.json(), { error: 'unknown factory route' });
+  }
+  assert.equal(agents.seen.length, 0);
+});
+
+test('worktree refusals from the agents server keep their status and body', async (t) => {
+  const answers = [
+    [502, { error: 'git-failed', detail: 'fatal: boom' }],
+    [409, { error: 'worktree-dirty' }],
+  ];
+  const agents = await upstream(t, (req, res) => {
+    const [status, body] = answers.shift();
+    res.writeHead(status, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(body));
+  });
+  const { base } = await board(t, { url: agents.url });
+  const first = await fetch(`${base}/api/factory/threads/${TH}/worktree`, { method: 'DELETE' });
+  assert.equal(first.status, 502);
+  assert.deepEqual(await first.json(), { error: 'git-failed', detail: 'fatal: boom' });
+  const second = await fetch(`${base}/api/factory/threads/${TH}/worktree`, { method: 'DELETE' });
+  assert.equal(second.status, 409);
+  assert.deepEqual(await second.json(), { error: 'worktree-dirty' });
+});

@@ -17,6 +17,7 @@ const { t } = useI18n();
 const props = defineProps({
   fetchImpl: { type: Function, required: true },
   EventSourceImpl: { type: Function, default: undefined },
+  confirmImpl: { type: Function, default: (message) => window.confirm(message) },
 });
 
 const route = useRoute();
@@ -88,6 +89,13 @@ async function create(body) {
   const created = await factory.create(body);
   if (created) { creating.value = false; await go(`/factory/${created.repo}/${created.id}`); }
 }
+// Two confirmations: removing, then forcing when the worktree holds uncommitted changes.
+async function removeWorktree() {
+  if (!props.confirmImpl(t('factory.worktree.confirm'))) return;
+  const { id } = current.value;
+  const result = await factory.removeWorktree(id);
+  if (result.dirty && props.confirmImpl(t('factory.worktree.confirmForce'))) await factory.removeWorktree(id, { force: true });
+}
 function onSearch(q) { search.value = q; void reloadThreads(); }
 function toggleArchived() { archived.value = !archived.value; void reloadThreads(); }
 async function archive(id) {
@@ -135,38 +143,38 @@ async function archive(id) {
           @submit="create"
         />
         <template v-else-if="current">
-          <div class="flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
-            <FactoryConversation
-              :thread="current" :messages="messages" :show-messages="tab === 'conversation'"
-              :console-available="consoleAvailable" :console-reason="consoleReason" @console="openConsole"
-            >
-              <template v-if="consoleOpen" #tabs>
-                <div role="tablist" data-test="factory-tabs" class="flex items-end gap-1 border-b border-line text-sm">
+          <FactoryConversation
+            :thread="current" :messages="messages" :show-messages="tab === 'conversation'"
+            :console-available="consoleAvailable" :console-reason="consoleReason" @console="openConsole" @remove-worktree="removeWorktree"
+          >
+            <template v-if="consoleOpen" #tabs>
+              <div role="tablist" data-test="factory-tabs" class="flex items-end gap-1 border-b border-line text-sm">
+                <button
+                  type="button" role="tab" data-test="factory-tab-conversation" :aria-selected="tab === 'conversation'"
+                  :class="[TAB, tab === 'conversation' ? TAB_ON : TAB_OFF]" @click="tab = 'conversation'"
+                >{{ t('factory.conversation') }}</button>
+                <span :class="[TAB, 'inline-flex items-center gap-1', tab === 'console' ? TAB_ON : TAB_OFF]">
+                  <button type="button" role="tab" data-test="factory-tab-console" :aria-selected="tab === 'console'" @click="tab = 'console'">
+                    {{ t('factory.console.tab') }}
+                  </button>
                   <button
-                    type="button" role="tab" data-test="factory-tab-conversation" :aria-selected="tab === 'conversation'"
-                    :class="[TAB, tab === 'conversation' ? TAB_ON : TAB_OFF]" @click="tab = 'conversation'"
-                  >{{ t('factory.conversation') }}</button>
-                  <span :class="[TAB, 'inline-flex items-center gap-1', tab === 'console' ? TAB_ON : TAB_OFF]">
-                    <button type="button" role="tab" data-test="factory-tab-console" :aria-selected="tab === 'console'" @click="tab = 'console'">
-                      {{ t('factory.console.tab') }}
-                    </button>
-                    <button
-                      type="button" data-test="factory-console-close" :aria-label="t('factory.console.close')" v-tooltip="t('factory.console.close')"
-                      class="text-ink-faint hover:text-ink" @click="closeConsole"
-                    ><Icon name="close" emoji="✕" /></button>
-                  </span>
-                </div>
-              </template>
-            </FactoryConversation>
-          </div>
+                    type="button" data-test="factory-console-close" :aria-label="t('factory.console.close')" v-tooltip="t('factory.console.close')"
+                    class="text-ink-faint hover:text-ink" @click="closeConsole"
+                  ><Icon name="close" emoji="✕" /></button>
+                </span>
+              </div>
+            </template>
+            <template #composer>
+              <FactoryComposer
+                v-show="tab === 'conversation'"
+                :thread="current" :resumable="resumable" :error="shownError" :last-outcome="lastOutcome"
+                :busy="busy" :send="factory.reply" @stop="factory.stop" @restart="restart"
+              />
+            </template>
+          </FactoryConversation>
           <FactoryConsole
             v-if="consoleOpen" v-show="tab === 'console'" data-test="factory-console"
-            :repo="current.repo" :fetch-impl="fetchImpl" :EventSourceImpl="EventSourceImpl"
-          />
-          <FactoryComposer
-            v-show="tab === 'conversation'"
-            :thread="current" :resumable="resumable" :error="shownError" :last-outcome="lastOutcome"
-            :busy="busy" :send="factory.reply" @stop="factory.stop" @restart="restart"
+            :thread="current.id" :fetch-impl="fetchImpl" :EventSourceImpl="EventSourceImpl"
           />
         </template>
         <p v-else data-test="factory-pick-thread" class="text-xs text-ink-faint">{{ t('factory.pickThread') }}</p>

@@ -44,7 +44,8 @@ export function useTerminal({
     source = null;
   }
 
-  async function open(repo, { cols, rows }, onData) {
+  // `target` is `{ thread }` (the server resolves its cwd) or `{ repo }`.
+  async function open(target, { cols, rows }, onData) {
     if (status.value === 'opening' || status.value === 'open') return;
     const ticket = ++generation;
     status.value = 'opening';
@@ -53,7 +54,7 @@ export function useTerminal({
     let res;
     let data;
     try {
-      res = await fetchImpl('/api/factory/terminals', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ repo, cols, rows }) });
+      res = await fetchImpl('/api/factory/terminals', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ ...target, cols, rows }) });
       data = await res.json().catch(() => ({}));
     } catch (err) {
       if (ticket !== generation) return;

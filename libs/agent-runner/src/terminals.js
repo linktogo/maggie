@@ -117,11 +117,12 @@ export function createTerminalManager({
     }
   }
 
-  async function open({ repo, cols, rows }) {
+  async function open({ repo, cwd: given, cols, rows }) {
     const pty = await load();
     if (!pty.ok) throw new AgentError('unavailable', pty.reason);
     checkSize(cols, rows);
-    const cwd = repos.resolve(repo);
+    // A `cwd` (a thread's worktree) comes from the server, never from the client.
+    const cwd = typeof given === 'string' && given !== '' ? given : repos.resolve(repo);
     if (live().length >= maxTerminals) throw new AgentError('busy', `at most ${maxTerminals} consoles can be open at once`);
 
     const id = `tm_${randomId()}`;

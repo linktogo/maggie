@@ -37,6 +37,12 @@ test('every locale defines the same keys as the English catalog', () => {
   for (const catalog of [fr, de, es]) expect(Object.keys(catalog).sort()).toEqual(expected);
 });
 
+test('every locale has the worktree strings', () => {
+  for (const key of ['option', 'badge', 'dirty', 'tooltip', 'remove', 'confirm', 'confirmForce', 'missing']) {
+    for (const catalog of [en, fr, de, es]) expect(catalog[`factory.worktree.${key}`]).toBeTruthy();
+  }
+});
+
 test('translates into the active locale', () => {
   setLocale('fr', noDoc);
   expect(translate('nav.history')).toBe('Historique');

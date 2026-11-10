@@ -40,7 +40,16 @@ test('submitting emits the chosen repo, provider, model and prompt', async () =>
   await w.get('[data-test=factory-model]').setValue(' sonnet ');
   await w.get('[data-test=factory-prompt]').setValue(' fix it ');
   await w.get('form').trigger('submit');
-  expect(w.emitted('submit')).toEqual([[{ repo: 'web', provider: 'claude-cli', model: 'sonnet', prompt: 'fix it', skill: '' }]]);
+  expect(w.emitted('submit')).toEqual([[{ repo: 'web', provider: 'claude-cli', model: 'sonnet', prompt: 'fix it', skill: '', worktree: true }]]);
+});
+
+test('the isolated worktree box is checked by default and can be cleared', async () => {
+  const w = form();
+  expect(w.get('[data-test=factory-worktree]').element.checked).toBe(true);
+  await w.get('[data-test=factory-worktree]').setValue(false);
+  await w.get('[data-test=factory-prompt]').setValue('fix it');
+  await w.get('form').trigger('submit');
+  expect(w.emitted('submit')[0][0].worktree).toBe(false);
 });
 
 test('Enter in the prompt submits, Shift+Enter does not', async () => {
@@ -50,7 +59,7 @@ test('Enter in the prompt submits, Shift+Enter does not', async () => {
   await prompt.trigger('keydown', { key: 'Enter', shiftKey: true });
   expect(w.emitted('submit')).toBeUndefined();
   await prompt.trigger('keydown', { key: 'Enter' });
-  expect(w.emitted('submit')).toEqual([[{ repo: 'api', provider: 'copilot', model: '', prompt: 'fix it', skill: '' }]]);
+  expect(w.emitted('submit')).toEqual([[{ repo: 'api', provider: 'copilot', model: '', prompt: 'fix it', skill: '', worktree: true }]]);
 });
 
 test('Enter does not submit an incomplete request', async () => {

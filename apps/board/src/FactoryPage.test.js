@@ -48,10 +48,10 @@ function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ s
 const mounted = [];
 afterEach(() => { setLocale('en'); while (mounted.length) mounted.pop().unmount(); });
 
-async function page(fetchImpl, path = '/factory') {
+async function page(fetchImpl, path = '/factory', extra = {}) {
   const router = createBoardRouter(createMemoryHistory());
   await router.push(path);
-  const w = mount(FactoryPage, { props: { fetchImpl, EventSourceImpl: FakeEventSource }, global: { plugins: [router] }, attachTo: document.body });
+  const w = mount(FactoryPage, { props: { fetchImpl, EventSourceImpl: FakeEventSource, ...extra }, global: { plugins: [router] }, attachTo: document.body });
   mounted.push(w);
   await flushPromises();
   return { w, router };
@@ -87,7 +87,7 @@ test('creating a request opens its thread', async () => {
   await w.get('[data-test=factory-prompt]').setValue('fix the flaky test');
   await w.get('form').trigger('submit');
   await flushPromises();
-  expect(posted).toEqual([{ repo: 'api', provider: 'claude-cli', prompt: 'fix the flaky test' }]);
+  expect(posted).toEqual([{ repo: 'api', provider: 'claude-cli', prompt: 'fix the flaky test', worktree: true }]);
   expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}`);
   expect(w.find('[data-test=factory-run]').exists()).toBe(false);
   expect(w.get('[data-test=factory-user]').exists()).toBe(true);
@@ -232,6 +232,105 @@ test('the Console button is disabled with the reason when the server has no cons
   const button = w.get('[data-test=factory-console-button]');
   expect(button.attributes('disabled')).toBeDefined();
   expect(button.attributes('aria-label')).toBe('Console unavailable: disabled');
+});
+
+test('the console is opened for the thread, not the repo', async () => {
+  const bodies = [];
+  vi.stubGlobal('ResizeObserver', NoResize);
+  const fetchImpl = fetchWith({ health: CONSOLE_HEALTH });
+  const base = fetchImpl.getMockImplementation();
+  fetchImpl.mockImplementation(async (url, init = {}) => {
+    if (url === '/api/factory/terminals') bodies.push(JSON.parse(init.body));
+    return base(url, init);
+  });
+  const { w } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  expect(bodies).toEqual([{ thread: THREAD.id, cols: 80, rows: 24 }]);
+});
+
+const WT_THREAD = { ...THREAD, worktree: { path: '/wk/.worktrees/api/x', branch: 'factory/x', base: 'origin/main', exists: true, dirty: true, ahead: 0 } };
+
+// A thread with a worktree whose DELETE answers come from `answers` in order; afterwards the worktree is gone.
+async function worktreePage(answers, confirms) {
+  const confirmImpl = vi.fn(() => confirms.shift());
+  const fetchImpl = fetchWith();
+  const base = fetchImpl.getMockImplementation();
+  let removed = false;
+  fetchImpl.mockImplementation(async (url, init = {}) => {
+    if (init.method === 'DELETE' && url.startsWith(`/api/factory/threads/${THREAD.id}/worktree`)) {
+      fetchImpl.calls.push(['DELETE', url]);
+      const status = answers.shift();
+      if (status === 200) removed = true;
+      return { ok: status < 400, status, json: async () => (status === 409 ? { error: 'worktree-dirty' } : { thread: THREAD, branchKept: false }) };
+    }
+    if (url === `/api/factory/threads/${THREAD.id}`) {
+      fetchImpl.calls.push(['GET', url]);
+      return { ok: true, status: 200, json: async () => ({ thread: removed ? THREAD : WT_THREAD, messages: MESSAGES }) };
+    }
+    return base(url, init);
+  });
+  const result = await page(fetchImpl, `/factory/api/${THREAD.id}`, { confirmImpl });
+  return { ...result, fetchImpl, confirmImpl };
+}
+
+const deletes = (fetchImpl) => fetchImpl.calls.filter(([m]) => m === 'DELETE').map(([, url]) => url);
+
+test('refusing the first confirmation removes nothing', async () => {
+  const { w, fetchImpl, confirmImpl } = await worktreePage([], [false]);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(confirmImpl).toHaveBeenCalledTimes(1);
+  expect(confirmImpl.mock.calls[0][0]).toContain('Remove this worktree');
+  expect(deletes(fetchImpl)).toEqual([]);
+});
+
+test('a clean worktree is removed after one confirmation and the badge disappears', async () => {
+  const { w, fetchImpl, confirmImpl } = await worktreePage([200], [true]);
+  expect(w.get('[data-test=factory-worktree-badge]').exists()).toBe(true);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(confirmImpl).toHaveBeenCalledTimes(1);
+  expect(deletes(fetchImpl)).toEqual([`/api/factory/threads/${THREAD.id}/worktree`]);
+  expect(w.find('[data-test=factory-worktree-badge]').exists()).toBe(false);
+});
+
+test('a dirty worktree asks a second time, then forces', async () => {
+  const { w, fetchImpl, confirmImpl } = await worktreePage([409, 200], [true, true]);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(confirmImpl).toHaveBeenCalledTimes(2);
+  expect(confirmImpl.mock.calls[1][0]).toContain('Uncommitted changes will be lost');
+  expect(deletes(fetchImpl)).toEqual([`/api/factory/threads/${THREAD.id}/worktree`, `/api/factory/threads/${THREAD.id}/worktree?force=1`]);
+  expect(w.find('[data-test=factory-worktree-badge]').exists()).toBe(false);
+});
+
+test('refusing the forced removal keeps the worktree', async () => {
+  const { w, fetchImpl } = await worktreePage([409], [true, false]);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(deletes(fetchImpl)).toEqual([`/api/factory/threads/${THREAD.id}/worktree`]);
+  expect(w.get('[data-test=factory-worktree-badge]').exists()).toBe(true);
+});
+
+test('a failed removal that is not dirty does not ask to force', async () => {
+  const { w, confirmImpl } = await worktreePage([502], [true]);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(confirmImpl).toHaveBeenCalledTimes(1);
+});
+
+test('the default confirmation is window.confirm', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const fetchImpl = fetchWith();
+  const base = fetchImpl.getMockImplementation();
+  fetchImpl.mockImplementation(async (url, init) => (url === `/api/factory/threads/${THREAD.id}`
+    ? { ok: true, status: 200, json: async () => ({ thread: WT_THREAD, messages: MESSAGES }) }
+    : base(url, init)));
+  const { w } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  expect(confirm).toHaveBeenCalledTimes(1);
+  confirm.mockRestore();
 });
 
 test('the console streams through the injected EventSource', async () => {

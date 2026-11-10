@@ -1,6 +1,8 @@
 // Message-center service: connects the run manager to the thread store through the stream parser.
+import { existsSync } from 'node:fs';
 import { AgentError } from './errors.js';
-import { resolveProvider } from './providers.js';
+import { buildPrompt } from './prompt.js';
+import { resolveProvider, validateModel } from './providers.js';
 import { loadSkill } from './skills.js';
 import { createStreamParser } from './stream.js';
 import { TERMINAL } from './run.js';
@@ -10,7 +12,9 @@ const TITLE_CHARS = 80;
 const LOST_NOTICE = 'some output could not be saved';
 
 /** Threads of an organization's repositories: start, reply, stop, archive, and follow them live. */
-export function createThreadService({ store, manager, repos, skillsDir, defaultProvider, log = () => {} }) {
+export function createThreadService({
+  store, manager, repos, skillsDir, defaultProvider, worktrees = null, log = () => {}, exists = existsSync, onWorktreeCreated = null,
+}) {
   const active = new Map(); // thread id -> run id
   const listeners = new Map(); // thread id -> Set of listeners
   const lost = new Set(); // thread ids with a failed write not reported yet
@@ -106,21 +110,72 @@ export function createThreadService({ store, manager, repos, skillsDir, defaultP
     return thread;
   }
 
+  const removing = new Set(); // thread ids whose worktree or record is being deleted
+
   const settled = (thread) => {
     if (thread.status === 'running') throw new AgentError('busy', 'this thread is running');
+    if (removing.has(thread.id)) throw new AgentError('busy', 'this thread is being removed');
     return thread;
   };
 
-  function start(body) {
+  /** Where a thread's runs live: its worktree, else the main checkout. A deleted worktree is never swapped for the checkout. */
+  function cwdOf(id) {
+    const thread = existing(id);
+    if (!thread.worktree) return repos.resolve(thread.repo);
+    if (!exists(thread.worktree.path)) {
+      throw new AgentError('invalid', 'the worktree of this thread was deleted; remove it from the thread, then restart the request');
+    }
+    return thread.worktree.path;
+  }
+
+  function dropWorktree(thread, force) {
+    if (!worktrees) throw new AgentError('invalid', 'worktrees are not available');
+    const { path, branch, base } = thread.worktree;
+    return worktrees.remove({ repoDir: repos.resolve(thread.repo), path, branch, base, force });
+  }
+
+  async function start(body) {
     if (typeof body?.repo !== 'string') throw new AgentError('invalid', 'repo is required');
+    if (body.worktree !== undefined && typeof body.worktree !== 'boolean') throw new AgentError('invalid', 'worktree must be a boolean');
+    if (body.worktree && !worktrees) throw new AgentError('invalid', 'worktrees are not available');
     const provider = resolveProvider({ requested: body.provider, fallback: defaultProvider });
-    const cwd = repos.resolve(body.repo);
+    const repoDir = repos.resolve(body.repo);
     const skill = body.skill === undefined || body.skill === null ? null : loadSkill(skillsDir, body.skill);
     const task = typeof body.prompt === 'string' ? body.prompt.trim() : '';
     if (task.length > MAX_MESSAGE_CHARS) throw new AgentError('invalid', `prompt is too long (max ${MAX_MESSAGE_CHARS} characters)`);
-    // The run starts first: a busy repository leaves no thread behind.
-    const run = manager.start({ repo: body.repo, cwd, provider, model: body.model, prompt: body.prompt, skill });
-    const thread = store.createThread({ repo: body.repo, provider, model: run.model, skill: run.skill, title: task.slice(0, TITLE_CHARS) || skill.id });
+    // What the run would refuse is refused here too, before any git call.
+    buildPrompt({ prompt: body.prompt, skill });
+    validateModel(body.model);
+    const title = task.slice(0, TITLE_CHARS) || skill.id;
+    const options = { repo: body.repo, provider, model: body.model, prompt: body.prompt, skill };
+    // The run starts before the thread is stored: a refused run leaves no thread behind.
+    let run;
+    let id;
+    let worktree = null;
+    if (body.worktree) {
+      id = store.newThreadId();
+      worktree = await worktrees.create({ repo: body.repo, repoDir, threadId: id, title });
+      if (onWorktreeCreated) {
+        try {
+          await onWorktreeCreated(worktree.path);
+        } catch (err) {
+          log(`thread ${id}: worktree hook failed: ${err.message}`);
+        }
+      }
+      try {
+        run = manager.start({ ...options, cwd: worktree.path });
+      } catch (err) {
+        try {
+          await worktrees.remove({ repoDir, path: worktree.path, branch: worktree.branch, base: worktree.base, force: true });
+        } catch (cleanup) {
+          log(`thread ${id}: worktree cleanup failed: ${cleanup.message}`);
+        }
+        throw err;
+      }
+    } else {
+      run = manager.start({ ...options, cwd: repoDir });
+    }
+    const thread = store.createThread({ id, repo: body.repo, provider, model: run.model, skill: run.skill, title, worktree });
     const head = skill ? `skill ${skill.id}` : '';
     save(thread.id, { role: 'user', kind: 'text', content: head && task ? `${head}\n\n${task}` : head || task, runId: run.id });
     track(thread, run);
@@ -134,7 +189,7 @@ export function createThreadService({ store, manager, repos, skillsDir, defaultP
     if (thread.provider !== 'claude-cli' || !thread.sessionId) throw new AgentError('invalid', 'this thread cannot be resumed');
     if (typeof prompt !== 'string' || prompt.trim() === '') throw new AgentError('invalid', 'prompt is required');
     if (prompt.length > MAX_MESSAGE_CHARS) throw new AgentError('invalid', `prompt is too long (max ${MAX_MESSAGE_CHARS} characters)`);
-    const cwd = repos.resolve(thread.repo);
+    const cwd = cwdOf(id);
     const run = manager.start({ repo: thread.repo, cwd, provider: thread.provider, model: thread.model, prompt, resume: thread.sessionId });
     save(id, { role: 'user', kind: 'text', content: prompt, runId: run.id });
     store.updateThread(id, { status: 'running' });
@@ -160,15 +215,54 @@ export function createThreadService({ store, manager, repos, skillsDir, defaultP
       return store.updateThread(id, { status });
     },
 
-    remove(id) {
-      settled(existing(id));
-      store.deleteThread(id);
-      listeners.delete(id);
+    cwdOf,
+
+    async remove(id, { force = false } = {}) {
+      const thread = settled(existing(id));
+      removing.add(id);
+      try {
+        if (thread.worktree) await dropWorktree(thread, force);
+        store.deleteThread(id);
+        listeners.delete(id);
+      } finally {
+        removing.delete(id);
+      }
+    },
+
+    async removeWorktree(id, { force = false } = {}) {
+      const thread = settled(existing(id));
+      if (!thread.worktree) throw new AgentError('not-found', 'this thread has no worktree');
+      removing.add(id);
+      try {
+        const { branchKept } = await dropWorktree(thread, force);
+        // Clears the session too: it cannot be resumed outside its worktree, nor in the main checkout.
+        store.updateThread(id, { worktree: null });
+        return { thread: store.getThread(id), branchKept };
+      } finally {
+        removing.delete(id);
+      }
     },
 
     get(id) {
       const thread = store.getThread(id);
       return thread ? { thread, messages: store.listMessages(id) } : null;
+    },
+
+    /** Like `get`, with the live state of the worktree (it may be gone, dirty or ahead). */
+    async describe(id) {
+      const thread = store.getThread(id);
+      if (!thread) return null;
+      const messages = store.listMessages(id);
+      if (!thread.worktree) return { thread, messages };
+      const { path, base } = thread.worktree;
+      let state;
+      try {
+        state = await worktrees.status({ path, base });
+      } catch (err) {
+        log(`thread ${id}: worktree status failed: ${err.message}`);
+        state = { exists: true, dirty: null, ahead: null };
+      }
+      return { thread: { ...thread, worktree: { ...thread.worktree, ...state } }, messages };
     },
 
     list: (query) => store.listThreads(query),

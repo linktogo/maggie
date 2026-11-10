@@ -9,7 +9,7 @@ import { useI18n } from './i18n.js';
 const { t } = useI18n();
 
 const props = defineProps({
-  repo: { type: String, required: true },
+  thread: { type: String, required: true },
   fetchImpl: { type: Function, default: undefined },
   EventSourceImpl: { type: Function, default: undefined },
   terminalFactory: { type: Function, default: createXterm },
@@ -43,7 +43,7 @@ const ended = computed(() => ['exited', 'disconnected', 'error'].includes(status
 
 function start() {
   term.fit();
-  return shell.open(props.repo, { cols: term.cols, rows: term.rows }, (bytes) => term.write(bytes));
+  return shell.open({ thread: props.thread }, { cols: term.cols, rows: term.rows }, (bytes) => term.write(bytes));
 }
 
 async function reopen() {

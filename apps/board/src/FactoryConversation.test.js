@@ -7,6 +7,33 @@ let n = 0;
 const msg = (role, kind, content, runId = 'r1') => ({ id: `m${n += 1}`, threadId: 'th_1', role, kind, content, runId, createdAt: '2026-11-07T10:00:00.000Z' });
 const step = (tool) => msg('agent', 'step', { tool, summary: `${tool} x`, input: {} });
 
+const WT = { path: '/wk/.worktrees/api/th_1', branch: 'factory/th_1-fix-it', base: 'origin/main', exists: true, dirty: false, ahead: 2 };
+const withWt = (worktree, status = 'idle') => mount(FactoryConversation, { props: { thread: { ...THREAD, status, worktree }, messages: [] } });
+
+test('shows the worktree branch in a badge, only for worktree threads', () => {
+  const w = withWt(WT);
+  expect(w.get('[data-test=factory-worktree-badge]').text()).toContain('factory/th_1-fix-it');
+  expect(w.find('[data-test=factory-worktree-dirty]').exists()).toBe(false);
+  expect(w.get('[data-test=factory-worktree-badge]').text()).not.toContain('worktree removed');
+  expect(mount(FactoryConversation, { props: { thread: THREAD, messages: [] } }).find('[data-test=factory-worktree-badge]').exists()).toBe(false);
+});
+
+test('flags a modified worktree and a missing one, and tolerates unknown git status', () => {
+  expect(withWt({ ...WT, dirty: true }).get('[data-test=factory-worktree-dirty]').text()).toBe('modified');
+  expect(withWt({ ...WT, exists: false }).get('[data-test=factory-worktree-badge]').text()).toContain('worktree removed');
+  const unknown = withWt({ ...WT, dirty: null, ahead: null });
+  expect(unknown.find('[data-test=factory-worktree-dirty]').exists()).toBe(false);
+  const bare = withWt({ path: WT.path, branch: WT.branch, base: WT.base });
+  expect(bare.find('[data-test=factory-worktree-dirty]').exists()).toBe(false);
+});
+
+test('the remove button emits remove-worktree and is disabled while running', async () => {
+  const w = withWt(WT);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  expect(w.emitted('remove-worktree')).toHaveLength(1);
+  expect(withWt(WT, 'running').get('[data-test=factory-worktree-remove]').element.disabled).toBe(true);
+});
+
 test('collapses the steps of a turn with a tool tally', () => {
   const messages = [
     msg('user', 'text', 'go'),
@@ -24,7 +51,7 @@ test('uses the singular for a single step and splits groups by run', () => {
   const messages = [step('Read'), msg('agent', 'text', 'mid'), step('Edit'), step('Edit')];
   const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
   const groups = w.findAll('[data-test=factory-steps] summary');
-  expect(groups.map((g) => g.text())).toEqual(['1 step (Read)', '2 steps (Edit ×2)']);
+  expect(groups.map((g) => g.text())).toEqual(['2 steps (Edit ×2)', '1 step (Read)']);
 });
 
 test('renders agent markdown and user text as plain text', () => {
@@ -79,4 +106,31 @@ test('the tabs slot sits under the header and the messages can be hidden', () =>
   });
   expect(w.get('header').element.nextElementSibling.getAttribute('data-test')).toBe('tabs-slot');
   expect(w.get('[data-test=factory-user]').isVisible()).toBe(false);
+});
+
+test('lists the newest message first, keeping the steps of a turn in order', () => {
+  const messages = [msg('user', 'text', 'first'), step('Read'), step('Edit'), msg('agent', 'text', 'second')];
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
+  const order = w.get('[data-test=factory-messages]').element.children;
+  expect([...order].map((el) => el.getAttribute('data-test'))).toEqual(['factory-agent', 'factory-steps', 'factory-user']);
+  expect(w.findAll('[data-test=factory-steps] li').map((li) => li.text())).toEqual(['Read Read x', 'Edit Edit x']);
+});
+
+test('the composer slot sits above the messages', () => {
+  const w = mount(FactoryConversation, {
+    props: { thread: THREAD, messages: [msg('user', 'text', 'go')] },
+    slots: { composer: '<form data-test="composer-slot" />' },
+  });
+  expect(w.get('[data-test=composer-slot]').element.nextElementSibling.getAttribute('data-test')).toBe('factory-messages');
+});
+
+test('highlights an agent reply that ends on a question', () => {
+  const messages = [msg('agent', 'text', 'Done.'), msg('agent', 'text', 'Two options:\n\n- A\n- B\n\n**Which one do you want?**')];
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
+  const [question, plain] = w.findAll('[data-test=factory-agent]');
+  expect(question.attributes('data-question')).toBeDefined();
+  expect(question.text()).toContain('Question for you');
+  expect(question.get('.markdown strong').text()).toBe('Which one do you want?');
+  expect(plain.attributes('data-question')).toBeUndefined();
+  expect(plain.classes()).toContain('markdown');
 });

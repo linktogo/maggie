@@ -14,7 +14,12 @@ const props = defineProps({
   consoleReason: { type: String, default: '' },
   showMessages: { type: Boolean, default: true },
 });
-const emit = defineEmits(['console']);
+const emit = defineEmits(['console', 'remove-worktree']);
+
+const worktree = computed(() => props.thread.worktree ?? null);
+const worktreeTooltip = computed(() => (worktree.value
+  ? t('factory.worktree.tooltip', { path: worktree.value.path, base: worktree.value.base, ahead: worktree.value.ahead ?? '?' })
+  : ''));
 
 const consoleLabel = computed(() => (props.consoleAvailable
   ? t('factory.console.open')
@@ -32,8 +37,15 @@ const items = computed(() => {
       out.push({ type: 'message', id: message.id, message });
     }
   }
-  return out;
+  // Newest first: the composer sits above, so the latest exchange is what the eye lands on.
+  return out.reverse();
 });
+
+// An agent turn that ends on a question is waiting for the user: it gets the question colours.
+function asksQuestion(text) {
+  const lastLine = String(text ?? '').trim().split('\n').at(-1) ?? '';
+  return /\?[\s*_`)"»]*$/.test(lastLine);
+}
 
 function stepsLabel(steps) {
   const counts = new Map();
@@ -54,7 +66,7 @@ function outcomeLabel({ outcome, durationMs, costUsd }) {
   return parts.join(' · ');
 }
 
-const BUBBLE = 'max-w-[85%] rounded-card border border-line px-3 py-2 text-sm';
+const BUBBLE = 'rounded-card border px-3 py-2 text-sm';
 </script>
 
 <template>
@@ -63,6 +75,19 @@ const BUBBLE = 'max-w-[85%] rounded-card border border-line px-3 py-2 text-sm';
       <h3 class="truncate font-semibold text-ink-strong">{{ thread.title }}</h3>
       <span class="flex items-center gap-2">
         <span class="whitespace-nowrap text-xs text-ink-faint">{{ [thread.provider, thread.model].filter(Boolean).join(' · ') }}</span>
+        <span v-if="worktree" v-tooltip="worktreeTooltip" data-test="factory-worktree-badge" class="inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-soft">
+          <Icon name="branch" emoji="⎇" :size="14" /> {{ worktree.branch }}
+          <span v-if="worktree.exists === false" class="text-question-on-soft">{{ t('factory.worktree.missing') }}</span>
+          <span v-if="worktree.dirty === true" data-test="factory-worktree-dirty" class="rounded-control border border-line px-1 text-ink-muted">{{ t('factory.worktree.dirty') }}</span>
+          <!-- A disabled button gets no pointer events: the tooltip sits on its wrapper. -->
+          <span v-tooltip="t('factory.worktree.remove')">
+            <button
+              type="button" data-test="factory-worktree-remove" :disabled="thread.status === 'running'" :aria-label="t('factory.worktree.remove')"
+              class="inline-flex items-center rounded-control p-0.5 text-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+              @click="emit('remove-worktree')"
+            ><Icon name="close" emoji="✕" :size="14" /></button>
+          </span>
+        </span>
         <!-- A disabled button gets no pointer events: the tooltip sits on its wrapper. -->
         <span v-tooltip="consoleLabel">
           <button
@@ -74,7 +99,8 @@ const BUBBLE = 'max-w-[85%] rounded-card border border-line px-3 py-2 text-sm';
       </span>
     </header>
     <slot name="tabs" />
-    <div v-show="showMessages" class="flex flex-col gap-3">
+    <slot name="composer" />
+    <div v-show="showMessages" data-test="factory-messages" class="flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-1">
       <template v-for="item in items" :key="item.id">
         <details v-if="item.type === 'steps'" data-test="factory-steps" class="text-xs text-ink-muted">
           <summary class="cursor-pointer">{{ stepsLabel(item.steps) }}</summary>
@@ -82,11 +108,19 @@ const BUBBLE = 'max-w-[85%] rounded-card border border-line px-3 py-2 text-sm';
             <li v-for="s in item.steps" :key="s.id"><span class="font-medium text-ink-soft">{{ s.content.tool }}</span> {{ s.content.summary }}</li>
           </ul>
         </details>
-        <div v-else-if="item.message.kind === 'status'" data-test="factory-outcome" class="border-t border-line pt-1 text-center text-xs text-ink-faint">{{ outcomeLabel(item.message.content) }}</div>
+        <div v-else-if="item.message.kind === 'status'" data-test="factory-outcome" class="flex items-center gap-2 text-xs text-ink-faint before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">{{ outcomeLabel(item.message.content) }}</div>
         <p v-else-if="item.message.kind === 'error'" data-test="factory-error-message" class="text-xs text-question-on-soft">{{ item.message.content }}</p>
-        <div v-else-if="item.message.role === 'user'" data-test="factory-user" :class="[BUBBLE, 'self-end whitespace-pre-wrap bg-surface-muted text-ink']">{{ item.message.content }}</div>
+        <div v-else-if="item.message.role === 'user'" data-test="factory-user" :class="[BUBBLE, 'max-w-[85%] self-end whitespace-pre-wrap border-line bg-surface-muted text-ink']">{{ item.message.content }}</div>
+        <div
+          v-else-if="asksQuestion(item.message.content)" data-test="factory-agent" data-question
+          :class="[BUBBLE, 'border-question-ring bg-question-soft text-ink']"
+        >
+          <p class="mb-1 flex items-center gap-1 text-xs font-semibold text-question-on-soft"><Icon name="reply" emoji="❓" /> {{ t('factory.question') }}</p>
+          <!-- eslint-disable-next-line vue/no-v-html -- sanitised by DOMPurify in renderMarkdown -->
+          <div class="markdown break-words" v-html="renderMarkdown(item.message.content)" />
+        </div>
         <!-- eslint-disable-next-line vue/no-v-html -- sanitised by DOMPurify in renderMarkdown -->
-        <div v-else data-test="factory-agent" :class="[BUBBLE, 'self-start bg-surface text-ink-soft break-words']" v-html="renderMarkdown(item.message.content)" />
+        <div v-else data-test="factory-agent" :class="[BUBBLE, 'markdown border-line bg-surface text-ink break-words']" v-html="renderMarkdown(item.message.content)" />
       </template>
     </div>
   </div>

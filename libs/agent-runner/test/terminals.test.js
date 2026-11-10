@@ -63,6 +63,18 @@ test('open spawns the shell in the repo with a login flag and xterm-256color', a
   assert.equal(manager.size(), 1);
 });
 
+test('open with a server-provided cwd spawns there without resolving the repo', async () => {
+  const resolved = [];
+  const repos = { resolve: (name) => { resolved.push(name); return `/ws/${name}`; } };
+  const { manager, spawned } = harness({ repos });
+  const terminal = await manager.open({ ...OPEN, cwd: '/ws/.worktrees/api/th_1' });
+  assert.equal(spawned[0].opts.cwd, '/ws/.worktrees/api/th_1');
+  assert.deepEqual(terminal, { id: 'tm_0000000000000000', repo: 'api', cwd: '/ws/.worktrees/api/th_1' });
+  assert.deepEqual(resolved, []);
+  await manager.open({ ...OPEN, cwd: '' });
+  assert.equal(spawned[1].opts.cwd, '/ws/api');
+});
+
 test('shell falls back to /bin/sh, and to ComSpec without -l on win32', async () => {
   const posix = harness({ env: {} });
   await posix.manager.open(OPEN);

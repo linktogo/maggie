@@ -27,6 +27,7 @@ const form = reactive({
   mode: props.prefill?.skill ? 'skill' : 'prompt',
   skill: props.prefill?.skill ?? '',
   prompt: props.prefill?.prompt ?? '',
+  worktree: true,
 });
 
 // Until the user picks, the form shows the selected project (or the first repo) and the server's default provider.
@@ -48,6 +49,7 @@ function submit() {
     model: form.model.trim(),
     prompt: form.prompt.trim(),
     skill: form.mode === 'skill' ? form.skill : '',
+    worktree: form.worktree,
   });
 }
 
@@ -90,6 +92,10 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
 
     <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ form.mode === 'skill' ? t('factory.extraPrompt') : t('factory.prompt') }}
       <textarea v-model="form.prompt" data-test="factory-prompt" rows="4" :class="FIELD" :disabled="!available" @keydown.enter.exact.prevent="submit" />
+    </label>
+
+    <label class="flex items-center gap-1 text-sm text-ink-soft">
+      <input v-model="form.worktree" data-test="factory-worktree" type="checkbox" :disabled="!available"> {{ t('factory.worktree.option') }}
     </label>
 
     <p v-if="error" data-test="factory-error" class="text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ error }}</p>

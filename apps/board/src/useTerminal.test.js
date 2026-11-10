@@ -50,10 +50,17 @@ const stream = () => FakeEventSource.instances.at(-1);
 beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); });
 
+test('open can target a thread instead of a repo', async () => {
+  const { terminal, calls } = setup();
+  await terminal.open({ thread: 'th_1' }, { cols: 80, rows: 24 }, () => {});
+  expect(calls[0]).toMatchObject({ method: 'POST', body: { thread: 'th_1', cols: 80, rows: 24 } });
+  expect(calls[0].body.repo).toBeUndefined();
+});
+
 test('open posts the size, then follows the events of the new shell', async () => {
   const { terminal, calls } = setup();
   expect(terminal.status.value).toBe('idle');
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(calls[0]).toMatchObject({ url: '/api/factory/terminals', method: 'POST', body: { repo: 'api', cols: 80, rows: 24 } });
   expect(stream().url).toBe(`/api/factory/terminals/${TM}/events`);
   expect(terminal.status.value).toBe('open');
@@ -63,14 +70,14 @@ test('open posts the size, then follows the events of the new shell', async () =
 test('data events are decoded from base64 to bytes', async () => {
   const { terminal } = setup();
   const chunks = [];
-  await terminal.open('api', { cols: 80, rows: 24 }, (bytes) => chunks.push(bytes));
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, (bytes) => chunks.push(bytes));
   stream().emit('data', 'w6k=');
   expect(chunks).toEqual([new Uint8Array([0xc3, 0xa9])]);
 });
 
 test('keystrokes within 10 ms are sent in one POST', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write('l');
   terminal.write('s');
   terminal.write('\r');
@@ -80,7 +87,7 @@ test('keystrokes within 10 ms are sent in one POST', async () => {
 
 test('input sent while a POST is in flight follows it, in order, one request at a time', async () => {
   const { terminal, calls, resolvers } = setup({ input: () => 'manual' });
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write('a');
   await vi.advanceTimersByTimeAsync(10);
   terminal.write('b');
@@ -94,7 +101,7 @@ test('input sent while a POST is in flight follows it, in order, one request at 
 
 test('a paste longer than the chunk size is split into ordered chunks', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write('x'.repeat(INPUT_CHUNK_CHARS * 2 + 5));
   await vi.advanceTimersByTimeAsync(10);
   await flush();
@@ -104,7 +111,7 @@ test('a paste longer than the chunk size is split into ordered chunks', async ()
 
 test('a chunk never ends between the two halves of a surrogate pair', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write(`${'x'.repeat(INPUT_CHUNK_CHARS - 1)}😀`);
   await vi.advanceTimersByTimeAsync(10);
   await flush();
@@ -113,7 +120,7 @@ test('a chunk never ends between the two halves of a surrogate pair', async () =
 
 test('resize is debounced to the last size', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.resize(100, 30);
   terminal.resize(120, 40);
   await vi.advanceTimersByTimeAsync(100);
@@ -130,17 +137,17 @@ test('input and resize before the shell is open are dropped', async () => {
 
 test('a second open while opening or open is ignored', async () => {
   const { terminal, calls } = setup();
-  const first = terminal.open('api', { cols: 80, rows: 24 }, () => {});
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  const first = terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   await first;
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
   expect(FakeEventSource.instances).toHaveLength(1);
 });
 
 test('exit sets exited with its code and closes the stream', async () => {
   const { terminal } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   stream().emit('exit', '{"code":127,"signal":null}');
   expect(terminal.status.value).toBe('exited');
   expect(terminal.exitCode.value).toBe(127);
@@ -149,7 +156,7 @@ test('exit sets exited with its code and closes the stream', async () => {
 
 test('a stream error sets disconnected without reconnecting', async () => {
   const { terminal } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   stream().onerror();
   expect(terminal.status.value).toBe('disconnected');
   expect(stream().closed).toBe(true);
@@ -158,30 +165,30 @@ test('a stream error sets disconnected without reconnecting', async () => {
 
 test('a refused open sets error with the server message, or the detail of a 503', async () => {
   const refused = setup({ open: () => ({ status: 404, body: { error: 'unknown repository: x' } }) });
-  await refused.terminal.open('x', { cols: 80, rows: 24 }, () => {});
+  await refused.terminal.open({ repo: 'x' }, { cols: 80, rows: 24 }, () => {});
   expect(refused.terminal.status.value).toBe('error');
   expect(refused.terminal.error.value).toBe('unknown repository: x');
   expect(FakeEventSource.instances).toHaveLength(0);
 
   const unavailable = setup({ open: () => ({ status: 503, body: { error: 'terminal-unavailable', detail: 'no prebuilt' } }) });
-  await unavailable.terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await unavailable.terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(unavailable.terminal.error.value).toBe('no prebuilt');
 
   const bare = setup({ open: () => ({ status: 500 }) });
-  await bare.terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await bare.terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(bare.terminal.error.value).toBe('HTTP 500');
 });
 
 test('an unreachable board sets error with the network message', async () => {
   const { terminal } = setup({ open: () => new Error('Failed to fetch') });
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(terminal.status.value).toBe('error');
   expect(terminal.error.value).toBe('Failed to fetch');
 });
 
 test('a failed input POST sets error and keeps the shell open', async () => {
   const { terminal } = setup({ input: () => new Error('Failed to fetch') });
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write('ls');
   await vi.advanceTimersByTimeAsync(10);
   await flush();
@@ -191,7 +198,7 @@ test('a failed input POST sets error and keeps the shell open', async () => {
 
 test('close sends DELETE with keepalive and stops the stream', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   terminal.write('ls');
   terminal.resize(100, 30);
   await terminal.close();
@@ -205,7 +212,7 @@ test('close sends DELETE with keepalive and stops the stream', async () => {
 
 test('close survives a failed DELETE', async () => {
   const { terminal, calls } = setup({ remove: () => new Error('Failed to fetch') });
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   await expect(terminal.close()).resolves.toBeUndefined();
   expect(calls.at(-1).method).toBe('DELETE');
   expect(terminal.status.value).toBe('idle');
@@ -213,23 +220,23 @@ test('close survives a failed DELETE', async () => {
 
 test('an exited shell can be opened again', async () => {
   const { terminal, calls } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   stream().emit('exit', '{"code":0,"signal":null}');
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   expect(calls.filter((c) => c.method === 'POST')).toHaveLength(2);
   expect(terminal.status.value).toBe('open');
 });
 
 test('pagehide closes the shell', async () => {
   const { terminal, calls, win } = setup();
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   win.dispatchEvent(new Event('pagehide'));
   expect(calls.at(-1)).toMatchObject({ method: 'DELETE', keepalive: true });
 });
 
 test('unmounting the component closes the shell and stops listening to pagehide', async () => {
   const { terminal, calls, win, wrapper } = setup({ mounted: true });
-  await terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   wrapper.unmount();
   expect(calls.at(-1)).toMatchObject({ method: 'DELETE', keepalive: true });
   win.dispatchEvent(new Event('pagehide'));
@@ -246,7 +253,7 @@ test('closing while the shell is opening kills it as soon as it exists, without 
     return new Promise((resolve) => { release = () => resolve({ ok: true, status: 201, json: async () => OPENED.body }); });
   });
   const terminal = useTerminal({ fetchImpl, EventSourceImpl: FakeEventSource, win: new EventTarget() });
-  const opening = terminal.open('api', { cols: 80, rows: 24 }, () => {});
+  const opening = terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
   await terminal.close();
   release();
   await opening;

@@ -22,6 +22,13 @@ test('shows status badges and relative times', () => {
   expect(w.get('[data-test=factory-thread-th_3]').text()).toContain('failed');
 });
 
+test('marks the requests that run in a worktree', () => {
+  const threads = [{ ...THREADS[0], worktree: { path: '/wk/.worktrees/api/th_1', branch: 'factory/th_1-x', base: 'origin/main' } }, THREADS[1]];
+  const w = mount(FactoryThreads, { props: { threads, selected: '', archived: false } });
+  expect(w.find('[data-test=factory-thread-worktree-th_1]').exists()).toBe(true);
+  expect(w.find('[data-test=factory-thread-worktree-th_2]').exists()).toBe(false);
+});
+
 test('shows the archived badge and a restore action when browsing archives', () => {
   const w = mount(FactoryThreads, { props: { threads: [{ ...THREADS[0], status: 'archived' }], selected: '', archived: true } });
   expect(w.get('[data-test=factory-thread-th_1]').text()).toContain('archived');

@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { useI18n } from './i18n.js';
 import { relativeTime, useNow } from './useRelativeTime.js';
 
@@ -44,7 +45,10 @@ const LINK = 'text-xs text-accent hover:underline';
           :class="['flex min-w-0 flex-1 flex-col rounded-control px-2 py-1 text-left text-sm', selected === thread.id ? 'bg-surface-muted' : 'hover:bg-surface-hover']"
           @click="emit('select', thread.id)"
         >
-          <span class="truncate font-medium text-ink">{{ thread.title }}</span>
+          <span class="flex items-center gap-1 font-medium text-ink">
+            <span v-if="thread.worktree" :data-test="`factory-thread-worktree-${thread.id}`" class="text-ink-faint"><Icon name="branch" emoji="⎇" :size="14" /></span>
+            <span class="truncate">{{ thread.title }}</span>
+          </span>
           <span class="text-xs text-ink-faint">
             <span :class="BADGE[thread.status]">{{ t(`factory.thread.${thread.status}`) }}</span>
             · {{ relativeTime(thread.updatedAt, now) }}

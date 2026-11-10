@@ -493,3 +493,73 @@ test('a create resolving after another thread was opened leaves that thread curr
   expect((await pending).id).toBe('t1');
   expect(f.thread.value.id).toBe('t2');
 });
+
+test('create sends the worktree flag only when asked', async () => {
+  const posted = [];
+  const f = setup({
+    'POST /api/factory/threads': (init) => { posted.push(JSON.parse(init.body)); return { status: 202, body: { thread: idle } }; },
+    'GET /api/factory/threads/t1': () => ({ body: { thread: idle, messages: [] } }),
+  });
+  await f.create({ repo: 'api', worktree: true });
+  await f.create({ repo: 'api', worktree: false });
+  expect(posted).toEqual([{ repo: 'api', worktree: true }, { repo: 'api' }]);
+});
+
+test('removeWorktree deletes, reloads the open thread and the list, then reports branchKept', async () => {
+  const withWt = { ...idle, worktree: { path: '/p', branch: 'b', base: 'origin/main' } };
+  let removed = false;
+  const f = setup({
+    'GET /api/factory/threads/t1': () => ({ body: { thread: removed ? idle : withWt, messages: [] } }),
+    'DELETE /api/factory/threads/t1/worktree': () => { removed = true; return { body: { thread: idle, branchKept: true } }; },
+  });
+  await f.open('t1');
+  expect(f.thread.value.worktree).toBeTruthy();
+  expect(await f.removeWorktree('t1')).toEqual({ ok: true, branchKept: true });
+  expect(f.thread.value.worktree).toBeUndefined();
+  expect(calls(f, 'DELETE /api/factory/threads/t1/worktree')[0][0]).toBe('/api/factory/threads/t1/worktree');
+});
+
+test('removeWorktree on a thread that is not open only refreshes the list', async () => {
+  const f = setup({ 'DELETE /api/factory/threads/t9/worktree': () => ({ body: { thread: idle, branchKept: false } }) });
+  expect(await f.removeWorktree('t9')).toEqual({ ok: true, branchKept: false });
+  expect(calls(f, 'GET /api/factory/threads/t9')).toHaveLength(0);
+});
+
+test('a dirty worktree answers dirty without an error, and force retries with ?force=1', async () => {
+  let dirty = true;
+  const f = setup({
+    'DELETE /api/factory/threads/t1/worktree': () => (dirty
+      ? { status: 409, body: { error: 'worktree-dirty', detail: 'M a.js' } }
+      : { body: { thread: idle, branchKept: false } }),
+  });
+  expect(await f.removeWorktree('t1')).toEqual({ ok: false, dirty: true });
+  expect(f.error.value).toBeNull();
+  dirty = false;
+  expect(await f.removeWorktree('t1', { force: true })).toEqual({ ok: true, branchKept: false });
+  expect(calls(f, 'DELETE /api/factory/threads/t1/worktree').map(([url]) => url)).toEqual([
+    '/api/factory/threads/t1/worktree',
+    '/api/factory/threads/t1/worktree?force=1',
+  ]);
+});
+
+test('other worktree removal failures set the error and are not dirty', async () => {
+  const f = setup({
+    'DELETE /api/factory/threads/t1/worktree': () => ({ status: 409, body: { error: 'a run is active' } }),
+    'DELETE /api/factory/threads/t2/worktree': () => ({ status: 502, body: { error: 'git-failed' } }),
+  });
+  expect(await f.removeWorktree('t1')).toEqual({ ok: false, dirty: false });
+  expect(f.error.value).toBe('a run is active');
+  expect(await f.removeWorktree('t2')).toEqual({ ok: false, dirty: false });
+  expect(f.error.value).toBe('git-failed');
+});
+
+test('remove reports dirty on a dirty worktree and passes force', async () => {
+  let dirty = true;
+  const f = setup({
+    'DELETE /api/factory/threads/t1': () => (dirty ? { status: 409, body: { error: 'worktree-dirty' } } : { status: 204 }),
+  });
+  expect(await f.remove('t1')).toEqual({ ok: false, dirty: true });
+  dirty = false;
+  expect(await f.remove('t1', { force: true })).toEqual({ ok: true, branchKept: undefined });
+  expect(calls(f, 'DELETE /api/factory/threads/t1').at(-1)[0]).toBe('/api/factory/threads/t1?force=1');
+});

@@ -57,7 +57,7 @@ function setup({ open = () => ({ status: 201, body: { terminal: { id: TM, repo: 
   });
   const terminalFactory = vi.fn((el, theme) => { term = fakeTerm(); term.el = el; term.initialTheme = theme; return term; });
   return mount(FactoryConsole, {
-    props: { repo: 'api', fetchImpl, EventSourceImpl: FakeEventSource, terminalFactory, ResizeObserverImpl: FakeResizeObserver },
+    props: { thread: 'th_1', fetchImpl, EventSourceImpl: FakeEventSource, terminalFactory, ResizeObserverImpl: FakeResizeObserver },
     attachTo: document.body,
   });
 }
@@ -74,7 +74,7 @@ test('mounting opens a shell sized from the fitted terminal', async () => {
   await flushPromises();
   expect(term.el).toBe(wrapper.find('[data-test="factory-console-screen"]').element);
   expect(term.fits).toBe(1);
-  expect(calls[0]).toMatchObject({ url: '/api/factory/terminals', method: 'POST', body: { repo: 'api', cols: 80, rows: 24 } });
+  expect(calls[0]).toMatchObject({ url: '/api/factory/terminals', method: 'POST', body: { thread: 'th_1', cols: 80, rows: 24 } });
   expect(FakeEventSource.instances[0].url).toBe(`/api/factory/terminals/${TM}/events`);
   wrapper.unmount();
 });
@@ -181,7 +181,7 @@ test('without an injected ResizeObserver it observes with the global one', async
   FakeResizeObserver.instances = [];
   vi.stubGlobal('ResizeObserver', FakeResizeObserver);
   const fetchImpl = vi.fn(async () => ({ ok: true, status: 201, json: async () => ({ terminal: { id: TM, repo: 'api', cwd: '/ws/api' } }) }));
-  const wrapper = mount(FactoryConsole, { props: { repo: 'api', fetchImpl, EventSourceImpl: FakeEventSource, terminalFactory: () => { term = fakeTerm(); return term; } } });
+  const wrapper = mount(FactoryConsole, { props: { thread: 'th_1', fetchImpl, EventSourceImpl: FakeEventSource, terminalFactory: () => { term = fakeTerm(); return term; } } });
   await flushPromises();
   expect(FakeResizeObserver.instances).toHaveLength(1);
   wrapper.unmount();

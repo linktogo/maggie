@@ -101,13 +101,14 @@ test('a request carrying an Origin is refused unless that origin is allowed', as
 });
 
 test('GET /health reports the providers found, the default one and the allowed repositories', async (t) => {
-  const { call } = await boot(t);
+  const { call } = await boot(t, { server: { maxRuns: 4 } });
   const res = await call('/health');
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), {
     providers: { available: ['claude-cli'], default: 'claude-cli' },
     repos: ['api', 'web'],
     terminal: { available: false, reason: 'disabled' },
+    limits: { maxRuns: 4 },
   });
 });
 
@@ -631,4 +632,110 @@ test('an idle terminal stream gets a heartbeat comment', async (t) => {
   await new Promise((resolve) => setTimeout(resolve, 60));
   terminals.subscribers[0]({ type: 'exit', code: 0, signal: null });
   assert.match(await res.text(), /^:\n\n/);
+});
+
+const TH = 'th_0123456789abcdef';
+
+// Records the worktree-related calls; `fail` makes a method throw (or reject) the given error.
+function fakeThreads({ fail = {}, missing = false } = {}) {
+  const fake = { calls: [] };
+  const thread = { id: TH, repo: 'api', provider: 'claude-cli', worktree: { path: '/ws/.worktrees/api/th', branch: 'factory/th-x', base: 'origin/main' } };
+  const record = async (name, ...args) => {
+    fake.calls.push([name, ...args]);
+    if (fail[name]) throw fail[name];
+  };
+  fake.subscribe = () => () => {};
+  fake.start = async (body) => { await record('start', body); return thread; };
+  fake.describe = async (id) => { await record('describe', id); return missing ? null : { thread, messages: [] }; };
+  fake.get = (id) => { fake.calls.push(['get', id]); return missing ? null : { thread, messages: [] }; };
+  fake.cwdOf = (id) => { fake.calls.push(['cwdOf', id]); return thread.worktree.path; };
+  fake.remove = (id, opts) => record('remove', id, opts);
+  fake.removeWorktree = async (id, opts) => { await record('removeWorktree', id, opts); return { thread: { ...thread, worktree: null }, branchKept: true }; };
+  return fake;
+}
+
+test('POST /threads awaits the start and forwards the worktree flag', async (t) => {
+  const threads = fakeThreads();
+  const { call } = await boot(t, { threads });
+  const res = await call('/threads', post({ repo: 'api', prompt: 'x', worktree: true }));
+  assert.equal(res.status, 202);
+  assert.equal((await res.json()).thread.id, TH);
+  assert.deepEqual(threads.calls, [['start', { repo: 'api', prompt: 'x', worktree: true }]]);
+});
+
+test('GET /threads/:id answers with the description, an unknown id is a 404', async (t) => {
+  const { call } = await boot(t, { threads: fakeThreads() });
+  const res = await call(`/threads/${TH}`);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).thread.worktree.branch, 'factory/th-x');
+  const none = await boot(t, { threads: fakeThreads({ missing: true }) });
+  assert.equal((await none.call(`/threads/${TH}`)).status, 404);
+});
+
+test('DELETE /threads/:id/worktree answers 200 with the thread and branchKept, force is passed along', async (t) => {
+  const threads = fakeThreads();
+  const { call } = await boot(t, { threads });
+  const res = await call(`/threads/${TH}/worktree`, { method: 'DELETE' });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.branchKept, true);
+  assert.equal(body.thread.worktree, null);
+  assert.equal((await call(`/threads/${TH}/worktree?force=1`, { method: 'DELETE' })).status, 200);
+  assert.deepEqual(threads.calls, [['removeWorktree', TH, { force: false }], ['removeWorktree', TH, { force: true }]]);
+});
+
+test('DELETE routes accept force=1 only', async (t) => {
+  const threads = fakeThreads();
+  const { call } = await boot(t, { threads });
+  for (const route of [`/threads/${TH}/worktree?force=2`, `/threads/${TH}?force=true`, `/threads/${TH}?force=`]) {
+    const res = await call(route, { method: 'DELETE' });
+    assert.equal(res.status, 400, route);
+    assert.deepEqual(await res.json(), { error: 'force must be 1' });
+  }
+  assert.deepEqual(threads.calls, []);
+});
+
+test('DELETE /threads/:id removes with or without force', async (t) => {
+  const threads = fakeThreads();
+  const { call } = await boot(t, { threads });
+  assert.equal((await call(`/threads/${TH}`, { method: 'DELETE' })).status, 204);
+  assert.equal((await call(`/threads/${TH}?force=1`, { method: 'DELETE' })).status, 204);
+  assert.deepEqual(threads.calls, [['remove', TH, { force: false }], ['remove', TH, { force: true }]]);
+});
+
+test('worktree errors: no worktree 404, running 409, dirty 409 worktree-dirty, git 502 git-failed', async (t) => {
+  const cases = [
+    [new AgentError('not-found', 'thread has no worktree'), 404, { error: 'thread has no worktree' }],
+    [new AgentError('busy', 'thread is running'), 409, { error: 'thread is running' }],
+    [new AgentError('dirty', 'the worktree has uncommitted changes'), 409, { error: 'worktree-dirty', detail: 'the worktree has uncommitted changes' }],
+    [new AgentError('git', 'git fetch failed: offline'), 502, { error: 'git-failed', detail: 'git fetch failed: offline' }],
+  ];
+  for (const [error, status, body] of cases) {
+    const { call } = await boot(t, { threads: fakeThreads({ fail: { removeWorktree: error, start: error } }) });
+    const res = await call(`/threads/${TH}/worktree`, { method: 'DELETE' });
+    assert.equal(res.status, status);
+    assert.deepEqual(await res.json(), body);
+    assert.equal((await call('/threads', post({ repo: 'api', prompt: 'x', worktree: true }))).status, status);
+  }
+});
+
+test('POST /terminals with a thread opens the shell in its cwd', async (t) => {
+  const terminals = fakeTerminals();
+  const threads = fakeThreads();
+  const { call } = await boot(t, { threads, server: { terminals } });
+  const res = await call('/terminals', post({ thread: TH, cols: 80, rows: 24 }));
+  assert.equal(res.status, 201);
+  assert.deepEqual(terminals.calls, [['open', { repo: 'api', cwd: '/ws/.worktrees/api/th', cols: 80, rows: 24 }]]);
+  assert.deepEqual(threads.calls, [['get', TH], ['cwdOf', TH]]);
+});
+
+test('POST /terminals with a bad thread id is a 400, an unknown thread a 404', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { threads: fakeThreads(), server: { terminals } });
+  for (const thread of ['nope', 42, 'th_ABC', '../etc']) {
+    assert.equal((await call('/terminals', post({ thread, cols: 80, rows: 24 }))).status, 400, String(thread));
+  }
+  const none = await boot(t, { threads: fakeThreads({ missing: true }), server: { terminals } });
+  assert.equal((await none.call('/terminals', post({ thread: TH, cols: 80, rows: 24 }))).status, 404);
+  assert.deepEqual(terminals.calls, []);
 });

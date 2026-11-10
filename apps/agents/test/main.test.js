@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { chmod, mkdtemp, mkdir, readFile, stat, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createThreadStore } from '@linktogo/maggie-agent-runner';
+import { AgentError, createThreadStore } from '@linktogo/maggie-agent-runner';
 import { defaultDbFile, defaultTokenFile, main, onProcessSignal } from '../src/main.js';
 import { installSqliteWarningFilter } from '../src/warnings.js';
 
@@ -51,7 +51,7 @@ test('main starts the server, writes a private token and serves /health with it'
   await waitFor(() => lines.some((line) => /^GET \/health 200 \d+ms$/.test(line)));
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 401);
   const health = await (await fetch(`http://127.0.0.1:${port}/health`, { headers: { authorization: `Bearer ${token}` } })).json();
-  assert.deepEqual(health, { providers: { available: ['copilot'], default: 'claude-cli' }, repos: ['api'], terminal: { available: true } });
+  assert.deepEqual(health, { providers: { available: ['copilot'], default: 'claude-cli' }, repos: ['api'], terminal: { available: true }, limits: { maxRuns: 4 } });
 });
 
 test('main says so when no agent CLI is installed', async (t) => {
@@ -159,7 +159,71 @@ test('invalid --port and --timeout are refused before any token is written', asy
   const refuse = (flag, value, message) => assert.rejects(main(withOpt(flag, value), { log: quiet, onSignal: noSignals, env: {} }), message);
   for (const value of ['abc', '', '-1', '65536', '1.5']) await refuse('--port', value, new RegExp(`Invalid --port: ${value}`));
   for (const value of ['abc', '0', '-5', 'Infinity', '0.0']) await refuse('--timeout', value, new RegExp(`Invalid --timeout: ${value} \\(seconds, > 0\\)`));
+  for (const value of ['abc', '0', '-1', '1.5', '']) await refuse('--max-runs', value, new RegExp(`Invalid --max-runs: ${value} \\(integer, >= 1\\)`));
   assert.equal(existsSync(tokenFile), false);
+});
+
+test('--max-runs caps the run manager and is reported by /health, 4 by default', async (t) => {
+  const { args, tokenFile } = await workspace(t);
+  const boot = async (extra) => {
+    const server = await main([...args, ...extra], { log: quiet, detect: () => [], env: {}, onSignal: noSignals });
+    t.after(() => { server.closeAllConnections(); server.close(); });
+    return (await health(server, tokenFile)).limits;
+  };
+  assert.deepEqual(await boot([]), { maxRuns: 4 });
+  assert.deepEqual(await boot(['--max-runs', '6']), { maxRuns: 6 });
+});
+
+test('the worktree manager is created for the resolved workspace and given to the thread service', async (t) => {
+  const { args, dir, tokenFile } = await workspace(t);
+  const seen = [];
+  // Failing on purpose: no agent CLI must start, and a 502 proves the injected manager was reached.
+  const created = { async create(request) { seen.push(request); throw new AgentError('git', 'boom'); } };
+  const createWorktrees = (options) => { seen.push(options); return created; };
+  await mkdir(path.join(dir, 'api'));
+  const server = await main(args, { log: quiet, detect: () => [], env: {}, onSignal: noSignals, createWorktrees });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.deepEqual(seen, [{ workspace: path.resolve(dir) }]);
+  const { headers, base } = await bearer(server, tokenFile);
+  const res = await fetch(`${base}/threads`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ repo: 'api', prompt: 'x', worktree: true }) });
+  assert.equal(res.status, 502);
+  assert.deepEqual(await res.json(), { error: 'git-failed', detail: 'boom' });
+  assert.equal(seen.length, 2);
+});
+
+test('startup clears the worktree of a thread whose folder is gone, and reports orphan folders without deleting them', async (t) => {
+  const { args, dir, dbFile } = await workspace(t);
+  await mkdir(path.dirname(dbFile), { recursive: true });
+  const kept = path.join(dir, '.worktrees', 'api', 'th_1111111111111111');
+  const gone = path.join(dir, '.worktrees', 'api', 'th_2222222222222222');
+  const orphan = path.join(dir, '.worktrees', 'api', 'th_3333333333333333');
+  await mkdir(kept, { recursive: true });
+  await mkdir(orphan, { recursive: true });
+  await writeFile(path.join(dir, '.worktrees', 'stray.txt'), 'not a repo folder');
+  await writeFile(path.join(dir, '.worktrees', 'api', 'stray.txt'), 'not a worktree');
+  const seed = createThreadStore({ path: dbFile });
+  seed.createThread({ id: 'th_1111111111111111', repo: 'api', provider: 'claude-cli', title: 'kept', worktree: { path: kept, branch: 'factory/a', base: 'origin/main' } });
+  seed.createThread({ id: 'th_2222222222222222', repo: 'api', provider: 'claude-cli', title: 'gone', worktree: { path: gone, branch: 'factory/b', base: 'origin/main' } });
+  seed.close();
+  const lines = [];
+  const server = await main(args, { log: (line) => lines.push(line), detect: () => [], env: {}, onSignal: noSignals });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.ok(lines.includes('  [th_2222222222222222] worktree missing, cleared'));
+  assert.ok(lines.includes(`  orphan worktree: ${orphan}`));
+  assert.equal(lines.filter((line) => line.includes('orphan worktree')).length, 1);
+  assert.equal(lines.filter((line) => line.includes('worktree missing')).length, 1);
+  assert.ok(existsSync(orphan) && existsSync(kept), 'nothing is deleted');
+  const check = createThreadStore({ path: dbFile });
+  t.after(() => check.close());
+  assert.deepEqual(check.listWorktrees().map((entry) => entry.id), ['th_1111111111111111']);
+});
+
+test('without a .worktrees folder startup logs nothing about worktrees', async (t) => {
+  const { args } = await workspace(t);
+  const lines = [];
+  const server = await main(args, { log: (line) => lines.push(line), detect: () => [], env: {}, onSignal: noSignals });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  assert.equal(lines.filter((line) => /worktree/.test(line)).length, 0);
 });
 
 test('onProcessSignal registers the handler once per signal', () => {

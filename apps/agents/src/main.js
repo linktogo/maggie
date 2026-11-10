@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { chmod, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +9,7 @@ import {
   loadConfig as defaultLoadConfig, loadConfigFromRepo as defaultLoadConfigFromRepo, resolveConfigSource,
 } from '@linktogo/maggie-config';
 import {
-  DEFAULT_AGENT_PROVIDER, createRepoResolver, createRunManager, createTerminalManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
+  DEFAULT_AGENT_PROVIDER, DEFAULT_MAX_ACTIVE, createRepoResolver, createRunManager, createTerminalManager, createWorktreeManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
 } from '@linktogo/maggie-agent-runner';
 import { LOOPBACK, createAgentsServer } from './server.js';
 
@@ -42,6 +42,36 @@ function parseNumber(text, { integer = false, min, max = Infinity }) {
   return value;
 }
 
+/** Subdirectories of `dir`; a missing (or unreadable) directory has none. */
+function subdirs(dir) {
+  try {
+    return readdirSync(dir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Reconcile the stored worktrees with the disk. A worktree removed by hand is forgotten
+ * (the thread resumes in the main checkout); a folder no thread knows is only reported.
+ * Nothing is ever deleted.
+ */
+function reconcileWorktrees({ store, workspace, log }) {
+  for (const { id, worktree } of store.listWorktrees()) {
+    if (existsSync(worktree.path)) continue;
+    store.updateThread(id, { worktree: null });
+    log(`  [${id}] worktree missing, cleared`);
+  }
+  const known = new Set(store.listWorktrees().map(({ worktree }) => worktree.path));
+  const root = path.join(workspace, '.worktrees');
+  for (const repo of subdirs(root)) {
+    for (const name of subdirs(path.join(root, repo))) {
+      const dir = path.join(root, repo, name);
+      if (!known.has(dir)) log(`  orphan worktree: ${dir}`);
+    }
+  }
+}
+
 export async function main(argv, {
   log = console.log,
   loadConfig = defaultLoadConfig,
@@ -52,6 +82,7 @@ export async function main(argv, {
   onSignal = onProcessSignal,
   openStore = createThreadStore,
   createTerminals = createTerminalManager,
+  createWorktrees = createWorktreeManager,
 } = {}) {
   const { values } = parseArgs({
     args: argv,
@@ -67,6 +98,7 @@ export async function main(argv, {
       'token-file': { type: 'string' },
       db: { type: 'string' },
       timeout: { type: 'string', default: '600' },
+      'max-runs': { type: 'string', default: String(DEFAULT_MAX_ACTIVE) },
       'trust-repos': { type: 'boolean', default: false },
       'no-terminal': { type: 'boolean', default: false },
     },
@@ -75,6 +107,8 @@ export async function main(argv, {
   if (port === null) throw new Error(`Invalid --port: ${values.port}`);
   const timeoutSeconds = parseNumber(values.timeout, { min: Number.MIN_VALUE });
   if (timeoutSeconds === null) throw new Error(`Invalid --timeout: ${values.timeout} (seconds, > 0)`);
+  const maxRuns = parseNumber(values['max-runs'], { integer: true, min: 1 });
+  if (maxRuns === null) throw new Error(`Invalid --max-runs: ${values['max-runs']} (integer, >= 1)`);
   if (!values.repos && !values['config-repo']) throw new Error('Missing required --repos <repos.json> or --config-repo <url>');
   const defaultProvider = resolveProvider({
     requested: values.provider ?? env.MAGGIE_AGENT_PROVIDER,
@@ -88,8 +122,9 @@ export async function main(argv, {
     { config: values.repos ? path.resolve(values.repos) : null, configRepo: values['config-repo'], configFile: values['config-file'] },
     { loadConfig, loadConfigFromRepo },
   );
-  const repos = createRepoResolver({ repos: config.repos, workspace: path.resolve(values.workspace) });
-  log(`  ${config.repos.length} repositories, workspace ${path.resolve(values.workspace)}, skills ${skillsDir}`);
+  const workspace = path.resolve(values.workspace);
+  const repos = createRepoResolver({ repos: config.repos, workspace });
+  log(`  ${config.repos.length} repositories, workspace ${workspace}, skills ${skillsDir}`);
   if (values['trust-repos']) {
     const checkedOut = [];
     for (const name of repos.names()) {
@@ -102,7 +137,7 @@ export async function main(argv, {
     const trusted = await trustDirectories(checkedOut, { file: claudeStateFile(home) });
     for (const dir of trusted) log(`  trusted for Claude Code: ${dir}`);
   }
-  const manager = createRunManager({ timeoutMs: timeoutSeconds * 1000 });
+  const manager = createRunManager({ timeoutMs: timeoutSeconds * 1000, maxActive: maxRuns });
   const terminals = values['no-terminal'] ? null : createTerminals({ repos, log });
   if (!terminals) log('  console disabled (--no-terminal)');
 
@@ -118,7 +153,8 @@ export async function main(argv, {
   } catch (err) {
     throw new Error(`Could not open the factory database ${dbFile}: ${err.message}`, { cause: err });
   }
-  const threads = createThreadService({ store, manager, repos, skillsDir, defaultProvider, log });
+  const worktrees = createWorktrees({ workspace });
+  const threads = createThreadService({ store, manager, repos, skillsDir, defaultProvider, worktrees, log });
 
   const token = randomBytes(32).toString('hex');
   const tokenFile = path.resolve(values['token-file'] ?? defaultTokenFile(home));
@@ -130,6 +166,7 @@ export async function main(argv, {
     skillsDir,
     providers: { detect, defaultProvider },
     terminals,
+    maxRuns,
     allowedOrigins: values['allow-origin'],
     log,
   });
@@ -154,6 +191,7 @@ export async function main(argv, {
   // so the board cannot reach this server before the recovery is done.
   const recovered = store.recoverInterrupted();
   if (recovered > 0) log(`  recovered ${recovered} interrupted thread(s)`);
+  reconcileWorktrees({ store, workspace, log });
 
   // The token never reaches a log or a command line: it lives in a 0600 file the
   // board reads, and goes away with the server.

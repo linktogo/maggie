@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createThreadStore } from '../src/store.js';
+import { DatabaseSync } from 'node:sqlite';
+import { createThreadStore, MIGRATIONS } from '../src/store.js';
 
 function fixture() {
   let tick = 0;
@@ -25,9 +26,60 @@ test('migrates a fresh database to version 1 and does not re-run on reopen', asy
   second.close();
   const { DatabaseSync } = await import('node:sqlite');
   const db = new DatabaseSync(file);
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 1);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, MIGRATIONS.length);
   db.close();
   await rm(dir, { recursive: true, force: true });
+});
+
+test('migrates a version 1 database, existing threads get no worktree', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'agent-store-'));
+  const file = path.join(dir, 'threads.db');
+  const old = new DatabaseSync(file);
+  old.exec(MIGRATIONS[0]);
+  old.exec('PRAGMA user_version = 1');
+  old.prepare(`INSERT INTO threads (id, repo, provider, title, status, created_at, updated_at)
+    VALUES ('th_0123456789abcdef', 'api', 'claude', 'old', 'idle', 'x', 'x')`).run();
+  old.close();
+  const migrated = createThreadStore({ path: file });
+  assert.equal(migrated.getThread('th_0123456789abcdef').worktree, null);
+  migrated.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('newThreadId uses the injected generator', () => {
+  const { store } = fixture();
+  assert.equal(store.newThreadId(), 'th_id0');
+  assert.equal(store.createThread({ repo: 'api', provider: 'claude', title: 't' }).id, 'th_id1');
+});
+
+test('creates a thread with a given id and worktree, rejecting a malformed id', () => {
+  const { store, make } = fixture();
+  const worktree = { path: '/w/.worktrees/api/th_0123456789abcdef', branch: 'factory/th_0123456789abcdef-fix', base: 'origin/main' };
+  const thread = make({ id: 'th_0123456789abcdef', worktree });
+  assert.equal(thread.id, 'th_0123456789abcdef');
+  assert.deepEqual(thread.worktree, worktree);
+  assert.deepEqual(store.getThread(thread.id).worktree, worktree);
+  for (const id of ['th_short', 'x_0123456789abcdef', 'th_0123456789ABCDEF', '']) {
+    assert.throws(() => make({ id }), (error) => error.code === 'invalid');
+  }
+});
+
+test('clears a worktree only when asked to, and lists threads with one', () => {
+  const { store, make } = fixture();
+  const worktree = { path: '/w/a', branch: 'b', base: 'origin/main' };
+  const withTree = make({ worktree });
+  make();
+  assert.deepEqual(store.updateThread(withTree.id, { status: 'idle' }).worktree, worktree);
+  assert.deepEqual(store.listWorktrees(), [{ id: withTree.id, repo: 'api', worktree }]);
+  store.updateThread(withTree.id, { status: 'archived' });
+  assert.equal(store.listWorktrees().length, 1);
+  assert.equal(store.updateThread(withTree.id, { sessionId: 'sess-1' }).sessionId, 'sess-1');
+  const cleared = store.updateThread(withTree.id, { worktree: null });
+  assert.equal(cleared.worktree, null);
+  // the Claude session lived in the worktree: it is forgotten with it
+  assert.equal(cleared.sessionId, null);
+  assert.equal(cleared.status, 'archived');
+  assert.deepEqual(store.listWorktrees(), []);
 });
 
 test('creates, reads and updates a thread', () => {
@@ -35,7 +87,7 @@ test('creates, reads and updates a thread', () => {
   const thread = make({ model: 'opus', skill: 'review', title: 'hello' });
   assert.deepEqual(thread, {
     id: 'th_id0', repo: 'api', provider: 'claude', model: 'opus', skill: 'review', title: 'hello',
-    sessionId: null, status: 'running', createdAt: thread.createdAt, updatedAt: thread.createdAt,
+    sessionId: null, status: 'running', createdAt: thread.createdAt, updatedAt: thread.createdAt, worktree: null,
   });
   assert.deepEqual(store.getThread(thread.id), thread);
   assert.equal(store.getThread('nope'), null);

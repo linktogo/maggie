@@ -10,8 +10,9 @@ export const LOOPBACK = '127.0.0.1';
 export const DEFAULT_BODY_LIMIT = 1_000_000;
 export const DEFAULT_HEARTBEAT_MS = 30_000;
 
-const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, 'too-large': 413 };
-const THREAD_PATH = /^\/threads\/(th_[0-9a-f]{16})(\/messages|\/events|\/run)?$/;
+const STATUS_BY_CODE = { invalid: 400, 'not-found': 404, busy: 409, dirty: 409, 'too-large': 413 };
+const THREAD_ID = /^th_[0-9a-f]{16}$/;
+const THREAD_PATH = /^\/threads\/(th_[0-9a-f]{16})(\/messages|\/events|\/run|\/worktree)?$/;
 const TERMINAL_PATH = /^\/terminals(?:\/(tm_[0-9a-f]{16})(\/events|\/input|\/resize)?)?$/;
 const QUERY_PARAMS = ['repo', 'status', 'q', 'before'];
 const DISABLED = 'the console is disabled (--no-terminal)';
@@ -69,7 +70,7 @@ const sse = (event) => (event.type === 'message'
   : `event: status\ndata: ${JSON.stringify({ status: event.status })}\n\n`);
 
 export function createAgentsServer({
-  token, threads, repos, skillsDir, providers, terminals = null, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, heartbeatMs = DEFAULT_HEARTBEAT_MS, log = () => {},
+  token, threads, repos, skillsDir, providers, terminals = null, allowedOrigins = [], bodyLimit = DEFAULT_BODY_LIMIT, heartbeatMs = DEFAULT_HEARTBEAT_MS, maxRuns, log = () => {},
 }) {
   // Narrates a thread on the server console: its run starts, then each status it reaches.
   function trace(thread) {
@@ -104,6 +105,13 @@ export function createAgentsServer({
     return Number(text);
   }
 
+  function parseForce(url) {
+    const { searchParams } = new URL(url, 'http://localhost');
+    if (!searchParams.has('force')) return false;
+    if (searchParams.get('force') !== '1') throw new AgentError('invalid', 'force must be 1');
+    return true;
+  }
+
   async function threadRoute(req, res, id, sub) {
     if (req.method === 'GET' && sub === '/events') {
       const after = parseAfter(req.url);
@@ -111,7 +119,7 @@ export function createAgentsServer({
       return follow(res, id, after);
     }
     if (req.method === 'GET' && !sub) {
-      const found = threads.get(id);
+      const found = await threads.describe(id);
       if (!found) throw new AgentError('not-found', `unknown thread: ${id}`);
       return send(res, 200, found);
     }
@@ -125,8 +133,11 @@ export function createAgentsServer({
       if (keys.length !== 1 || keys[0] !== 'status') throw new AgentError('invalid', 'body must be { status }');
       return send(res, 200, { thread: threads.setStatus(id, body.status) });
     }
+    if (req.method === 'DELETE' && sub === '/worktree') {
+      return send(res, 200, await threads.removeWorktree(id, { force: parseForce(req.url) }));
+    }
     if (req.method === 'DELETE' && !sub) {
-      threads.remove(id);
+      await threads.remove(id, { force: parseForce(req.url) });
       res.writeHead(204);
       return res.end();
     }
@@ -136,8 +147,12 @@ export function createAgentsServer({
   async function terminalRoute(req, res, id, sub) {
     if (!terminals) throw new AgentError('unavailable', DISABLED);
     if (!id && req.method === 'POST') {
-      const { repo, cols, rows } = await readObject(req, bodyLimit, '{ repo, cols, rows }');
-      return send(res, 201, { terminal: await terminals.open({ repo, cols, rows }) });
+      const { repo, thread, cols, rows } = await readObject(req, bodyLimit, '{ repo, cols, rows } or { thread, cols, rows }');
+      if (thread === undefined) return send(res, 201, { terminal: await terminals.open({ repo, cols, rows }) });
+      if (typeof thread !== 'string' || !THREAD_ID.test(thread)) throw new AgentError('invalid', 'thread must be a thread id');
+      const found = threads.get(thread);
+      if (!found) throw new AgentError('not-found', `unknown thread: ${thread}`);
+      return send(res, 201, { terminal: await terminals.open({ repo: found.thread.repo, cwd: threads.cwdOf(thread), cols, rows }) });
     }
     if (id && req.method === 'GET' && sub === '/events') {
       // Subscribe before the headers, so an unknown id is still a plain 404; what
@@ -204,6 +219,7 @@ export function createAgentsServer({
           providers: { available: providers.detect(), default: providers.defaultProvider },
           repos: repos.names(),
           terminal: await terminalHealth(),
+          limits: { maxRuns },
         });
       }
       if (req.method === 'GET' && pathname === '/skills') return send(res, 200, { skills: listSkills(skillsDir) });
@@ -214,7 +230,7 @@ export function createAgentsServer({
         return send(res, 200, { threads: threads.list(query) });
       }
       if (pathname === '/threads' && req.method === 'POST') {
-        return send(res, 202, { thread: trace(threads.start(await readJson(req, bodyLimit))) });
+        return send(res, 202, { thread: trace(await threads.start(await readJson(req, bodyLimit))) });
       }
 
       const terminal = TERMINAL_PATH.exec(pathname);
@@ -224,6 +240,8 @@ export function createAgentsServer({
       return send(res, 404, { error: 'not found' });
     } catch (err) {
       if (err instanceof AgentError && err.code === 'unavailable') return send(res, 503, { error: 'terminal-unavailable', detail: err.message });
+      if (err instanceof AgentError && err.code === 'dirty') return send(res, 409, { error: 'worktree-dirty', detail: err.message });
+      if (err instanceof AgentError && err.code === 'git') return send(res, 502, { error: 'git-failed', detail: err.message });
       if (err instanceof AgentError) return send(res, STATUS_BY_CODE[err.code] ?? 500, { error: err.message });
       log(`error on ${req.method} ${req.url}: ${err.stack}`);
       return send(res, 500, { error: err.message });

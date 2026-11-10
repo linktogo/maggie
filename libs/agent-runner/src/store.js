@@ -1,11 +1,14 @@
 // SQLite-backed store of agent threads and their messages (node:sqlite).
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
+import { AgentError } from './errors.js';
 
 const MAX_STEP_INPUT_CHARS = 4096;
 const DEFAULT_PAGE = 50;
 
-const MIGRATIONS = [
+const THREAD_ID = /^th_[0-9a-f]{16}$/;
+
+export const MIGRATIONS = [
   `CREATE TABLE threads (
     id TEXT PRIMARY KEY,
     repo TEXT NOT NULL,
@@ -29,11 +32,19 @@ const MIGRATIONS = [
   );
   CREATE INDEX messages_thread ON messages(thread_id, id);
   CREATE INDEX threads_repo ON threads(repo, updated_at DESC);`,
+  `ALTER TABLE threads ADD COLUMN worktree_path TEXT;
+  ALTER TABLE threads ADD COLUMN worktree_branch TEXT;
+  ALTER TABLE threads ADD COLUMN worktree_base TEXT;`,
 ];
+
+const toWorktree = (row) => (row.worktree_path === null
+  ? null
+  : { path: row.worktree_path, branch: row.worktree_branch, base: row.worktree_base });
 
 const toThread = (row) => ({
   id: row.id, repo: row.repo, provider: row.provider, model: row.model, skill: row.skill, title: row.title,
   sessionId: row.session_id, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at,
+  worktree: toWorktree(row),
 });
 
 const toMessage = (row) => ({
@@ -68,8 +79,13 @@ export function createThreadStore({ path = ':memory:', now = () => new Date(), r
   migrate(db);
 
   const stamp = () => now().toISOString();
-  const insertThread = db.prepare(`INSERT INTO threads (id, repo, provider, model, skill, title, session_id, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, NULL, 'running', ?, ?)`);
+  const insertThread = db.prepare(`INSERT INTO threads (id, repo, provider, model, skill, title, session_id, status, created_at, updated_at,
+    worktree_path, worktree_branch, worktree_base) VALUES (?, ?, ?, ?, ?, ?, NULL, 'running', ?, ?, ?, ?, ?)`);
+  // A Claude session belongs to its working directory: once the worktree is gone the
+  // session cannot be resumed anywhere else, so it is forgotten with the worktree.
+  const clearWorktree = db.prepare(`UPDATE threads SET worktree_path = NULL, worktree_branch = NULL, worktree_base = NULL,
+    session_id = NULL WHERE id = ?`);
+  const selectWorktrees = db.prepare('SELECT * FROM threads WHERE worktree_path IS NOT NULL ORDER BY rowid');
   const selectThread = db.prepare('SELECT * FROM threads WHERE id = ?');
   const patchThread = db.prepare('UPDATE threads SET status = COALESCE(?, status), session_id = COALESCE(?, session_id), updated_at = ? WHERE id = ?');
   const removeThread = db.prepare('DELETE FROM threads WHERE id = ?');
@@ -87,7 +103,10 @@ export function createThreadStore({ path = ':memory:', now = () => new Date(), r
     return row ? toThread(row) : null;
   };
 
-  const updateThread = (id, { status, sessionId } = {}) => {
+  const newThreadId = () => `th_${randomId()}`;
+
+  const updateThread = (id, { status, sessionId, worktree } = {}) => {
+    if (worktree === null) clearWorktree.run(id);
     patchThread.run(status ?? null, sessionId ?? null, stamp(), id);
     return getThread(id);
   };
@@ -99,11 +118,18 @@ export function createThreadStore({ path = ':memory:', now = () => new Date(), r
   };
 
   return {
-    createThread({ repo, provider, model = null, skill = null, title }) {
-      const id = `th_${randomId()}`;
+    newThreadId,
+
+    createThread({ id, repo, provider, model = null, skill = null, title, worktree = null }) {
+      if (id === undefined) id = newThreadId();
+      else if (!THREAD_ID.test(id)) throw new AgentError('invalid', 'invalid thread id');
       const at = stamp();
-      insertThread.run(id, repo, provider, model, skill, title, at, at);
+      insertThread.run(id, repo, provider, model, skill, title, at, at, worktree?.path ?? null, worktree?.branch ?? null, worktree?.base ?? null);
       return getThread(id);
+    },
+
+    listWorktrees() {
+      return selectWorktrees.all().map((row) => ({ id: row.id, repo: row.repo, worktree: toWorktree(row) }));
     },
 
     getThread,

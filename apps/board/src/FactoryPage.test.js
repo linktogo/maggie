@@ -392,3 +392,11 @@ test('the console streams through the injected EventSource', async () => {
   await flushPromises();
   expect(FakeEventSource.count).toBe(before + 1);
 });
+
+test('switching back from skill mode to prompt mode hides the skill picker', async () => {
+  const w = await page(fetchWith());
+  await w.get('[data-test=factory-mode-skill]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(true);
+  await w.get('[data-test=factory-mode-prompt]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(false);
+});

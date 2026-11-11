@@ -16,7 +16,7 @@ export async function trustDirectories(dirs, { file = claudeStateFile() } = {}) 
   try {
     state = JSON.parse(await readFile(file, 'utf8'));
   } catch (err) {
-    if (err.code !== 'ENOENT') throw new Error(`Cannot trust repositories: ${file} is not readable JSON (${err.message})`);
+    if (err.code !== 'ENOENT') throw new Error(`Cannot trust repositories: ${file} is not readable JSON (${err.message})`, { cause: err });
   }
   const projects = state.projects ?? {};
   const added = [];

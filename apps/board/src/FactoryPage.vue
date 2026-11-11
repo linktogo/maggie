@@ -35,6 +35,8 @@ const formKey = ref(0);
 // The console tab exists only once the Console button was clicked; its shell dies with it.
 const consoleOpen = ref(false);
 const tab = ref('conversation');
+const removingWorktree = ref(false);
+const worktreeNotice = ref('');
 
 const repos = computed(() => health.value?.repos ?? []);
 const providers = computed(() => health.value?.providers?.available ?? []);
@@ -67,6 +69,7 @@ function openConsole() {
 watch(repo, () => { creating.value = false; if (repo.value) void reloadThreads(); }, { immediate: true });
 watch(threadId, (id) => {
   closeConsole();
+  worktreeNotice.value = '';
   if (!id) return;
   creating.value = false;
   if (thread.value?.id !== id) void factory.open(id);
@@ -91,10 +94,20 @@ async function create(body) {
 }
 // Two confirmations: removing, then forcing when the worktree holds uncommitted changes.
 async function removeWorktree() {
-  if (!props.confirmImpl(t('factory.worktree.confirm'))) return;
-  const { id } = current.value;
-  const result = await factory.removeWorktree(id);
-  if (result.dirty && props.confirmImpl(t('factory.worktree.confirmForce'))) await factory.removeWorktree(id, { force: true });
+  if (removingWorktree.value || !props.confirmImpl(t('factory.worktree.confirm'))) return;
+  const { id, worktree: { branch } } = current.value;
+  removingWorktree.value = true;
+  worktreeNotice.value = '';
+  try {
+    let result = await factory.removeWorktree(id);
+    if (result.dirty && props.confirmImpl(t('factory.worktree.confirmForce'))) result = await factory.removeWorktree(id, { force: true });
+    if (!result.ok) return;
+    // The console's shell lived in the removed folder.
+    if (threadId.value === id) closeConsole();
+    if (result.branchKept) worktreeNotice.value = t('factory.worktree.branchKept', { branch });
+  } finally {
+    removingWorktree.value = false;
+  }
 }
 function onSearch(q) { search.value = q; void reloadThreads(); }
 function toggleArchived() { archived.value = !archived.value; void reloadThreads(); }
@@ -143,8 +156,9 @@ async function archive(id) {
           @submit="create"
         />
         <template v-else-if="current">
+          <p v-if="worktreeNotice" role="status" data-test="factory-worktree-notice" class="text-xs text-ink-muted">{{ worktreeNotice }}</p>
           <FactoryConversation
-            :thread="current" :messages="messages" :show-messages="tab === 'conversation'"
+            :thread="current" :messages="messages" :show-messages="tab === 'conversation'" :removing-worktree="removingWorktree"
             :console-available="consoleAvailable" :console-reason="consoleReason" @console="openConsole" @remove-worktree="removeWorktree"
           >
             <template v-if="consoleOpen" #tabs>

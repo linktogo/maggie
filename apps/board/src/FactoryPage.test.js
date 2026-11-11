@@ -252,21 +252,25 @@ test('the console is opened for the thread, not the repo', async () => {
 const WT_THREAD = { ...THREAD, worktree: { path: '/wk/.worktrees/api/x', branch: 'factory/x', base: 'origin/main', exists: true, dirty: true, ahead: 0 } };
 
 // A thread with a worktree whose DELETE answers come from `answers` in order; afterwards the worktree is gone.
-async function worktreePage(answers, confirms) {
+// `branchKept` is what a successful DELETE answers; `gate`, when given, is awaited before the DELETE answers.
+async function worktreePage(answers, confirms, { branchKept = false, gate = null } = {}) {
+  vi.stubGlobal('ResizeObserver', NoResize);
   const confirmImpl = vi.fn(() => confirms.shift());
-  const fetchImpl = fetchWith();
+  const fetchImpl = fetchWith({ health: CONSOLE_HEALTH });
   const base = fetchImpl.getMockImplementation();
   let removed = false;
   fetchImpl.mockImplementation(async (url, init = {}) => {
     if (init.method === 'DELETE' && url.startsWith(`/api/factory/threads/${THREAD.id}/worktree`)) {
       fetchImpl.calls.push(['DELETE', url]);
+      if (gate) await gate;
       const status = answers.shift();
       if (status === 200) removed = true;
-      return { ok: status < 400, status, json: async () => (status === 409 ? { error: 'worktree-dirty' } : { thread: THREAD, branchKept: false }) };
+      return { ok: status < 400, status, json: async () => (status === 409 ? { error: 'worktree-dirty' } : { thread: THREAD, branchKept }) };
     }
     if (url === `/api/factory/threads/${THREAD.id}`) {
       fetchImpl.calls.push(['GET', url]);
-      return { ok: true, status: 200, json: async () => ({ thread: removed ? THREAD : WT_THREAD, messages: MESSAGES }) };
+      // Removing the worktree forgets the Claude session with it.
+      return { ok: true, status: 200, json: async () => ({ thread: removed ? { ...THREAD, sessionId: null } : WT_THREAD, messages: MESSAGES }) };
     }
     return base(url, init);
   });
@@ -293,6 +297,10 @@ test('a clean worktree is removed after one confirmation and the badge disappear
   expect(confirmImpl).toHaveBeenCalledTimes(1);
   expect(deletes(fetchImpl)).toEqual([`/api/factory/threads/${THREAD.id}/worktree`]);
   expect(w.find('[data-test=factory-worktree-badge]').exists()).toBe(false);
+  // no session left: the reply box is disabled and a restart is offered instead
+  expect(w.find('[data-test=factory-cannot-resume]').exists()).toBe(true);
+  expect(w.get('[data-test=factory-reply]').element.disabled).toBe(true);
+  expect(w.find('[data-test=factory-restart]').exists()).toBe(true);
 });
 
 test('a dirty worktree asks a second time, then forces', async () => {
@@ -318,6 +326,50 @@ test('a failed removal that is not dirty does not ask to force', async () => {
   await w.get('[data-test=factory-worktree-remove]').trigger('click');
   await flushPromises();
   expect(confirmImpl).toHaveBeenCalledTimes(1);
+  expect(w.find('[data-test=factory-worktree-notice]').exists()).toBe(false);
+});
+
+test('a removal that keeps the branch says so, a deleted branch says nothing', async () => {
+  const kept = await worktreePage([200], [true], { branchKept: true });
+  await kept.w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(kept.w.get('[data-test=factory-worktree-notice]').text()).toBe('Branch factory/x kept (it has commits)');
+  const deleted = await worktreePage([200], [true]);
+  await deleted.w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(deleted.w.find('[data-test=factory-worktree-notice]').exists()).toBe(false);
+});
+
+test('a successful worktree removal closes the open console', async () => {
+  const { w } = await worktreePage([200], [true]);
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  expect(w.find('[data-test=factory-console]').exists()).toBe(true);
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(w.find('[data-test=factory-console]').exists()).toBe(false);
+});
+
+test('a failed worktree removal leaves the console open', async () => {
+  const { w } = await worktreePage([502], [true]);
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(w.find('[data-test=factory-console]').exists()).toBe(true);
+});
+
+test('the remove button is disabled while a removal is in flight', async () => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const { w, fetchImpl } = await worktreePage([200], [true], { gate });
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=factory-worktree-remove]').element.disabled).toBe(true);
+  release();
+  await flushPromises();
+  expect(deletes(fetchImpl)).toHaveLength(1);
+  expect(w.find('[data-test=factory-worktree-badge]').exists()).toBe(false);
 });
 
 test('the default confirmation is window.confirm', async () => {

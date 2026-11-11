@@ -183,7 +183,7 @@ test('the worktree manager is created for the resolved workspace and given to th
   await mkdir(path.join(dir, 'api'));
   const server = await main(args, { log: quiet, detect: () => [], env: {}, onSignal: noSignals, createWorktrees });
   t.after(() => { server.closeAllConnections(); server.close(); });
-  assert.deepEqual(seen, [{ workspace: path.resolve(dir) }]);
+  assert.deepEqual(seen, [{ workspace: path.resolve(dir), log: quiet }]);
   const { headers, base } = await bearer(server, tokenFile);
   const res = await fetch(`${base}/threads`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ repo: 'api', prompt: 'x', worktree: true }) });
   assert.equal(res.status, 502);
@@ -204,6 +204,7 @@ test('startup clears the worktree of a thread whose folder is gone, and reports 
   const seed = createThreadStore({ path: dbFile });
   seed.createThread({ id: 'th_1111111111111111', repo: 'api', provider: 'claude-cli', title: 'kept', worktree: { path: kept, branch: 'factory/a', base: 'origin/main' } });
   seed.createThread({ id: 'th_2222222222222222', repo: 'api', provider: 'claude-cli', title: 'gone', worktree: { path: gone, branch: 'factory/b', base: 'origin/main' } });
+  seed.updateThread('th_2222222222222222', { sessionId: 'sess-gone' });
   seed.close();
   const lines = [];
   const server = await main(args, { log: (line) => lines.push(line), detect: () => [], env: {}, onSignal: noSignals });
@@ -216,6 +217,8 @@ test('startup clears the worktree of a thread whose folder is gone, and reports 
   const check = createThreadStore({ path: dbFile });
   t.after(() => check.close());
   assert.deepEqual(check.listWorktrees().map((entry) => entry.id), ['th_1111111111111111']);
+  // the Claude session lived in the deleted worktree: the thread is no longer resumable
+  assert.equal(check.getThread('th_2222222222222222').sessionId, null);
 });
 
 test('without a .worktrees folder startup logs nothing about worktrees', async (t) => {
@@ -252,6 +255,40 @@ test('--trust-repos marks the checked-out repositories as trusted for Claude Cod
   const state = JSON.parse(await readFile(path.join(home, '.claude.json'), 'utf8'));
   assert.deepEqual(state, { projects: { [path.join(dir, 'api')]: { hasTrustDialogAccepted: true } } });
   assert.ok(lines.includes(`  trusted for Claude Code: ${path.join(dir, 'api')}`));
+});
+
+async function startInWorktree(t, { dir, args, tokenFile }, extra, lines) {
+  const home = path.join(dir, 'home');
+  await mkdir(home, { recursive: true });
+  await mkdir(path.join(dir, 'api'), { recursive: true });
+  // A folder that does not exist: the agent CLI can never start in it.
+  const wtPath = path.join(dir, 'no-such-worktree');
+  const createWorktrees = () => ({
+    create: async () => ({ path: wtPath, branch: 'factory/x', base: 'origin/main' }),
+    remove: async () => ({ branchKept: false }),
+    status: async () => ({ exists: false, dirty: false, ahead: 0 }),
+  });
+  const server = await main([...args, ...extra], { log: (line) => lines.push(line), detect: () => [], env: {}, onSignal: noSignals, home, createWorktrees });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const { headers, base } = await bearer(server, tokenFile);
+  const res = await fetch(`${base}/threads`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ repo: 'api', prompt: 'x', worktree: true }) });
+  assert.equal(res.status, 202);
+  return { home, wtPath };
+}
+
+test('--trust-repos also trusts each new worktree for Claude Code', async (t) => {
+  const ws = await workspace(t);
+  const lines = [];
+  const { home, wtPath } = await startInWorktree(t, ws, ['--trust-repos'], lines);
+  const state = JSON.parse(await readFile(path.join(home, '.claude.json'), 'utf8'));
+  assert.equal(state.projects[wtPath].hasTrustDialogAccepted, true);
+  assert.ok(lines.includes(`  trusted for Claude Code: ${wtPath}`));
+});
+
+test('without --trust-repos a new worktree is not trusted', async (t) => {
+  const ws = await workspace(t);
+  const { home } = await startInWorktree(t, ws, [], []);
+  assert.equal(existsSync(path.join(home, '.claude.json')), false);
 });
 
 test('without --trust-repos the Claude Code state is never touched', async (t) => {

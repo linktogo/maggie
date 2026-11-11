@@ -648,7 +648,11 @@ function fakeThreads({ fail = {}, missing = false } = {}) {
   fake.start = async (body) => { await record('start', body); return thread; };
   fake.describe = async (id) => { await record('describe', id); return missing ? null : { thread, messages: [] }; };
   fake.get = (id) => { fake.calls.push(['get', id]); return missing ? null : { thread, messages: [] }; };
-  fake.cwdOf = (id) => { fake.calls.push(['cwdOf', id]); return thread.worktree.path; };
+  fake.cwdOf = (id) => {
+    fake.calls.push(['cwdOf', id]);
+    if (fail.cwdOf) throw fail.cwdOf;
+    return thread.worktree.path;
+  };
   fake.remove = (id, opts) => record('remove', id, opts);
   fake.removeWorktree = async (id, opts) => { await record('removeWorktree', id, opts); return { thread: { ...thread, worktree: null }, branchKept: true }; };
   return fake;
@@ -738,4 +742,23 @@ test('POST /terminals with a bad thread id is a 400, an unknown thread a 404', a
   const none = await boot(t, { threads: fakeThreads({ missing: true }), server: { terminals } });
   assert.equal((await none.call('/terminals', post({ thread: TH, cols: 80, rows: 24 }))).status, 404);
   assert.deepEqual(terminals.calls, []);
+});
+
+test('POST /terminals with a thread whose worktree was deleted is a 400, no shell is opened', async (t) => {
+  const terminals = fakeTerminals();
+  const message = 'the worktree of this thread was deleted; remove it from the thread, then restart the request';
+  const threads = fakeThreads({ fail: { cwdOf: new AgentError('invalid', message) } });
+  const { call } = await boot(t, { threads, server: { terminals } });
+  const res = await call('/terminals', post({ thread: TH, cols: 80, rows: 24 }));
+  assert.equal(res.status, 400);
+  assert.deepEqual(await res.json(), { error: message });
+  assert.deepEqual(terminals.calls, []);
+});
+
+test('POST /terminals never forwards a cwd from the body', async (t) => {
+  const terminals = fakeTerminals();
+  const { call } = await boot(t, { server: { terminals } });
+  const res = await call('/terminals', post({ repo: 'api', cwd: '/etc', cols: 80, rows: 24 }));
+  assert.equal(res.status, 201);
+  assert.deepEqual(terminals.calls, [['open', { repo: 'api', cols: 80, rows: 24 }]]);
 });

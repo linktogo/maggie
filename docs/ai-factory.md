@@ -80,18 +80,27 @@ default). That lets several agents work on the same repository at once without t
 - **Branch and location.** The branch is `factory/<threadId>-<slug>` (the slug is the title as `[a-z0-9-]`,
   40 characters at most, `task` when empty); the worktree lives in `<workspace>/.worktrees/<repo>/<threadId>`.
   The client never sends a path.
+- **Fresh checkout.** A new worktree holds only what git tracks: no `node_modules`, no build output, and no
+  untracked files such as `.env`. The agent may need to install the dependencies (or be told where the
+  configuration lives) before it can build or test. With `--trust-repos`, each new worktree is also marked as
+  trusted for Claude Code.
 - **Lifecycle.** The thread's runs (first run, replies) and its console use the worktree as their working
   directory. If the run is refused after the worktree was created (for instance at the `--max-runs` ceiling), the
   worktree and its branch are removed again and no thread is left behind. Archiving a thread leaves its worktree
-  alone. `DELETE /threads/:id/worktree` removes it (the thread stays, and later replies resume in the main
-  checkout); `DELETE /threads/:id` removes it too, then the thread. Both are `409` while a run is active and
-  `409 worktree-dirty` when the worktree has uncommitted changes, unless `?force=1` is given (those changes are
-  then lost).
+  alone. `DELETE /threads/:id/worktree` removes it; `DELETE /threads/:id` removes it too, then the thread. Both
+  are `409` while a run is active and `409 worktree-dirty` when the worktree has uncommitted changes, unless
+  `?force=1` is given (those changes are then lost).
+- **No resume after removal.** A Claude session belongs to its working directory: after its worktree is removed,
+  a thread can no longer be resumed (its session is forgotten); restart it as a new request. The thread and its
+  history stay. A worktree folder deleted by hand while the server runs is never swapped for the main checkout:
+  replies and the console are refused with a `400` until the worktree is removed from the thread.
 - **Branch kept.** The branch is deleted with the worktree only when it has no commits beyond its base; a branch
-  with commits ahead is always kept, and the response says so (`branchKept: true`).
-- **Startup.** After recovering interrupted threads, the server forgets the worktree of any thread whose folder
-  no longer exists (`[<id>] worktree missing, cleared`; its replies go back to the main checkout) and logs the
-  folders of `.worktrees/` that no thread knows (`orphan worktree: <path>`). It never deletes anything.
+  with commits ahead is always kept, and the response says so (`branchKept: true`). Once the worktree itself is
+  gone, a branch that git fails to count or delete is kept as well (logged, never an error).
+- **Startup.** After recovering interrupted threads, the server forgets the worktree (and the Claude session) of
+  any thread whose folder no longer exists (`[<id>] worktree missing, cleared`; the thread can no longer be
+  resumed) and logs the folders of `.worktrees/` that no thread knows (`orphan worktree: <path>`). It never
+  deletes anything.
 
 ## Console
 

@@ -53,7 +53,7 @@ function subdirs(dir) {
 
 /**
  * Reconcile the stored worktrees with the disk. A worktree removed by hand is forgotten
- * (the thread resumes in the main checkout); a folder no thread knows is only reported.
+ * with its Claude session (the thread can no longer be resumed); a folder no thread knows is only reported.
  * Nothing is ever deleted.
  */
 function reconcileWorktrees({ store, workspace, log }) {
@@ -153,8 +153,15 @@ export async function main(argv, {
   } catch (err) {
     throw new Error(`Could not open the factory database ${dbFile}: ${err.message}`, { cause: err });
   }
-  const worktrees = createWorktrees({ workspace });
-  const threads = createThreadService({ store, manager, repos, skillsDir, defaultProvider, worktrees, log });
+  const worktrees = createWorktrees({ workspace, log });
+  // A new worktree is a new folder for Claude Code: trusted like the checkouts when asked to.
+  const onWorktreeCreated = values['trust-repos']
+    ? async (dir) => {
+      await trustDirectories([dir], { file: claudeStateFile(home) });
+      log(`  trusted for Claude Code: ${dir}`);
+    }
+    : null;
+  const threads = createThreadService({ store, manager, repos, skillsDir, defaultProvider, worktrees, log, onWorktreeCreated });
 
   const token = randomBytes(32).toString('hex');
   const tokenFile = path.resolve(values['token-file'] ?? defaultTokenFile(home));

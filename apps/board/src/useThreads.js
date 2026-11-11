@@ -38,7 +38,9 @@ export function useThreads({
   }
 
   function fail({ status, data }) {
-    error.value = data.error ?? `HTTP ${status}`;
+    const reason = data.error ?? `HTTP ${status}`;
+    // e.g. "git-failed: git fetch failed: …": the code alone does not say what went wrong.
+    error.value = data.detail ? `${reason}: ${data.detail}` : reason;
   }
 
   async function refreshProjects() {

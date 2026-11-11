@@ -59,7 +59,11 @@ const routeProps = computed(() => {
   <main class="min-h-screen p-4 sm:p-6">
     <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
       <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap">maggie · {{ t('app.subtitle') }}</h1>
+        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap flex items-center gap-2">
+          <img data-test="logo" class="logo-light size-7" src="/maggie-mark-light.svg" alt="" />
+          <img data-test="logo-dark" class="logo-dark size-7" src="/maggie-mark-dark.svg" alt="" />
+          <span>maggie · {{ t('app.subtitle') }}</span>
+        </h1>
         <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"

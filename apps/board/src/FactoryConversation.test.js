@@ -32,6 +32,16 @@ test('the remove button emits remove-worktree and is disabled while running', as
   await w.get('[data-test=factory-worktree-remove]').trigger('click');
   expect(w.emitted('remove-worktree')).toHaveLength(1);
   expect(withWt(WT, 'running').get('[data-test=factory-worktree-remove]').element.disabled).toBe(true);
+  expect(w.get('[data-test=factory-worktree-remove]').element.disabled).toBe(false);
+});
+
+test('the remove button is disabled while a removal is in flight', () => {
+  const w = mount(FactoryConversation, { props: { thread: { ...THREAD, worktree: WT }, messages: [], removingWorktree: true } });
+  expect(w.get('[data-test=factory-worktree-remove]').element.disabled).toBe(true);
+});
+
+test('the worktree badge is labelled with its branch', () => {
+  expect(withWt(WT).get('[data-test=factory-worktree-badge]').attributes('aria-label')).toBe('Worktree factory/th_1-fix-it');
 });
 
 test('collapses the steps of a turn with a tool tally', () => {

@@ -70,6 +70,16 @@ async function mountApp(fetchImpl, { path = '/' } = {}) {
   return { wrapper, router };
 }
 
+test('App header shows the light and dark logo marks', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  const light = wrapper.get('[data-test="logo"]').attributes('src');
+  const dark = wrapper.get('[data-test="logo-dark"]').attributes('src');
+  // Vite inlines the small public SVGs, so assert on the content, not a path.
+  expect(light).toContain('image/svg+xml');
+  expect(dark).toContain('image/svg+xml');
+  expect(light).not.toBe(dark);
+});
+
 test('App groups repos into the four columns', async () => {
   const { wrapper } = await mountApp(routedFetch());
   const columns = wrapper.findAll('section');

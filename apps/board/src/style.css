@@ -170,3 +170,8 @@
   .markdown th, .markdown td { padding: 0.25em 0.5em; border: 1px solid var(--color-line); text-align: left; }
   .markdown th { background: var(--color-surface-muted); font-weight: 600; }
 }
+
+/* Header logo: the dark-mode mark is swapped in by the data-mode stamp. */
+.logo-dark { display: none; }
+[data-mode='dark'] .logo-light { display: none; }
+[data-mode='dark'] .logo-dark { display: block; }

@@ -505,6 +505,14 @@ test('create sends the worktree flag only when asked', async () => {
   expect(posted).toEqual([{ repo: 'api', worktree: true }, { repo: 'api' }]);
 });
 
+test('a failure with a detail shows the error code and the detail', async () => {
+  const f = setup({
+    'POST /api/factory/threads': () => ({ status: 502, body: { error: 'git-failed', detail: 'git fetch failed: offline' } }),
+  });
+  expect(await f.create({ repo: 'api', worktree: true })).toBeNull();
+  expect(f.error.value).toBe('git-failed: git fetch failed: offline');
+});
+
 test('removeWorktree deletes, reloads the open thread and the list, then reports branchKept', async () => {
   const withWt = { ...idle, worktree: { path: '/p', branch: 'b', base: 'origin/main' } };
   let removed = false;

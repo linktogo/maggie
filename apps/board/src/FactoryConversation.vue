@@ -13,6 +13,8 @@ const props = defineProps({
   consoleAvailable: { type: Boolean, default: false },
   consoleReason: { type: String, default: '' },
   showMessages: { type: Boolean, default: true },
+  // A worktree removal in flight: its button stays disabled until it settles.
+  removingWorktree: { type: Boolean, default: false },
 });
 const emit = defineEmits(['console', 'remove-worktree']);
 
@@ -75,14 +77,14 @@ const BUBBLE = 'rounded-card border px-3 py-2 text-sm';
       <h3 class="truncate font-semibold text-ink-strong">{{ thread.title }}</h3>
       <span class="flex items-center gap-2">
         <span class="whitespace-nowrap text-xs text-ink-faint">{{ [thread.provider, thread.model].filter(Boolean).join(' · ') }}</span>
-        <span v-if="worktree" v-tooltip="worktreeTooltip" data-test="factory-worktree-badge" class="inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-soft">
+        <span v-if="worktree" v-tooltip="worktreeTooltip" data-test="factory-worktree-badge" :aria-label="`${t('factory.worktree.badge')} ${worktree.branch}`" class="inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-soft">
           <Icon name="branch" emoji="⎇" :size="14" /> {{ worktree.branch }}
           <span v-if="worktree.exists === false" class="text-question-on-soft">{{ t('factory.worktree.missing') }}</span>
           <span v-if="worktree.dirty === true" data-test="factory-worktree-dirty" class="rounded-control border border-line px-1 text-ink-muted">{{ t('factory.worktree.dirty') }}</span>
           <!-- A disabled button gets no pointer events: the tooltip sits on its wrapper. -->
           <span v-tooltip="t('factory.worktree.remove')">
             <button
-              type="button" data-test="factory-worktree-remove" :disabled="thread.status === 'running'" :aria-label="t('factory.worktree.remove')"
+              type="button" data-test="factory-worktree-remove" :disabled="thread.status === 'running' || removingWorktree" :aria-label="t('factory.worktree.remove')"
               class="inline-flex items-center rounded-control p-0.5 text-ink-faint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               @click="emit('remove-worktree')"
             ><Icon name="close" emoji="✕" :size="14" /></button>

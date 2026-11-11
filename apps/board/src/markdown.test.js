@@ -41,3 +41,7 @@ test('still renders links, tables and code blocks', () => {
   expect(html).toContain('<table>');
   expect(html).toContain('<pre><code>');
 });
+
+test('renders nothing for a missing text', () => {
+  expect(renderMarkdown(undefined)).toBe('');
+});

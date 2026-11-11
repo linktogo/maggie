@@ -187,3 +187,16 @@ test('without an injected ResizeObserver it observes with the global one', async
   wrapper.unmount();
   vi.unstubAllGlobals();
 });
+
+test('without injected fetch and EventSource, the console uses the globals', async () => {
+  const fetchImpl = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
+  vi.stubGlobal('fetch', fetchImpl);
+  const wrapper = mount(FactoryConsole, {
+    props: { thread: 'th_1', terminalFactory: () => { term = fakeTerm(); return term; }, ResizeObserverImpl: FakeResizeObserver },
+    attachTo: document.body,
+  });
+  await flushPromises();
+  expect(fetchImpl).toHaveBeenCalledWith('/api/factory/terminals', expect.objectContaining({ method: 'POST' }));
+  wrapper.unmount();
+  vi.unstubAllGlobals();
+});

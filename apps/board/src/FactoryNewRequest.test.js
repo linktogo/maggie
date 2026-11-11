@@ -92,6 +92,12 @@ test('the form is disabled when the agents server is unavailable, has no provide
   expect(form({ repos: [] }).get('[data-test=factory-run]').element.disabled).toBe(true);
 });
 
+test('a restart of a skill request prefills skill mode', () => {
+  const w = form({ prefill: { repo: 'api', provider: 'claude-cli', skill: 'nx/monorepo', prompt: '' } });
+  expect(w.get('[data-test=factory-mode-skill]').element.checked).toBe(true);
+  expect(w.get('[data-test=factory-skill]').element.value).toBe('nx/monorepo');
+});
+
 test('prefills from a restart', () => {
   const w = form({ prefill: { repo: 'web', provider: 'claude-cli', model: 'opus', prompt: 'try again' } });
   expect(w.get('[data-test=factory-repo]').element.value).toBe('web');

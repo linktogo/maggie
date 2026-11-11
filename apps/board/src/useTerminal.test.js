@@ -261,3 +261,46 @@ test('closing while the shell is opening kills it as soon as it exists, without 
   expect(FakeEventSource.instances).toHaveLength(0);
   expect(terminal.status.value).toBe('idle');
 });
+
+test('an answer without a JSON body falls back to the HTTP status', async () => {
+  const fetchImpl = vi.fn(async () => ({ ok: false, status: 502, json: async () => { throw new SyntaxError('not json'); } }));
+  const terminal = useTerminal({ fetchImpl, EventSourceImpl: FakeEventSource, win: new EventTarget() });
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
+  expect(terminal.error.value).toBe('HTTP 502');
+});
+
+test('a failed resize POST is ignored', async () => {
+  const fetchImpl = vi.fn((url) => (url === '/api/factory/terminals'
+    ? Promise.resolve({ ok: true, status: 201, json: async () => OPENED.body })
+    : Promise.reject(new Error('Failed to fetch'))));
+  const terminal = useTerminal({ fetchImpl, EventSourceImpl: FakeEventSource, win: new EventTarget() });
+  await terminal.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
+  terminal.resize(100, 30);
+  await vi.advanceTimersByTimeAsync(100);
+  expect(fetchImpl).toHaveBeenCalledWith(`/api/factory/terminals/${TM}/resize`, expect.objectContaining({ method: 'POST' }));
+  expect(terminal.status.value).toBe('open');
+  expect(terminal.error.value).toBeNull();
+});
+
+test('closing while the open is in flight drops its failure, and a refused shell is not killed', async () => {
+  let reject;
+  const failing = useTerminal({ fetchImpl: () => new Promise((_, r) => { reject = r; }), EventSourceImpl: FakeEventSource, win: new EventTarget() });
+  const opening = failing.open({ repo: 'api' }, { cols: 80, rows: 24 }, () => {});
+  await failing.close();
+  reject(new Error('Failed to fetch'));
+  await opening;
+  expect(failing.status.value).toBe('idle');
+  expect(failing.error.value).toBeNull();
+
+  let release;
+  const fetchImpl = vi.fn((url) => (url === '/api/factory/terminals'
+    ? new Promise((resolve) => { release = () => resolve({ ok: false, status: 404, json: async () => ({ error: 'unknown repository' }) }); })
+    : Promise.resolve({ ok: true, status: 204, json: async () => ({}) })));
+  const refused = useTerminal({ fetchImpl, EventSourceImpl: FakeEventSource, win: new EventTarget() });
+  const pending = refused.open({ repo: 'x' }, { cols: 80, rows: 24 }, () => {});
+  await refused.close();
+  release();
+  await pending;
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+  expect(refused.status.value).toBe('idle');
+});

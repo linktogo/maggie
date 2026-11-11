@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FactoryConversation from './FactoryConversation.vue';
 
@@ -143,4 +143,19 @@ test('highlights an agent reply that ends on a question', () => {
   expect(question.get('.markdown strong').text()).toBe('Which one do you want?');
   expect(plain.attributes('data-question')).toBeUndefined();
   expect(plain.classes()).toContain('markdown');
+});
+
+test('the worktree tooltip shows ? when the commits ahead are unknown', async () => {
+  vi.useFakeTimers();
+  const w = mount(FactoryConversation, { props: { thread: { ...THREAD, worktree: { ...WT, ahead: undefined } }, messages: [] }, attachTo: document.body });
+  await w.get('[data-test=factory-worktree-badge]').trigger('mouseenter');
+  vi.advanceTimersByTime(2000);
+  expect(document.querySelector('[data-test=tooltip]').textContent).toContain('?');
+  w.unmount();
+  vi.useRealTimers();
+});
+
+test('an agent message without content is not a question', () => {
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages: [msg('agent', 'text', null)] } });
+  expect(w.get('[data-test=factory-agent]').attributes('data-question')).toBeUndefined();
 });

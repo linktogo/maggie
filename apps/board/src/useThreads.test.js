@@ -571,3 +571,148 @@ test('remove reports dirty on a dirty worktree and passes force', async () => {
   expect(await f.remove('t1', { force: true })).toEqual({ ok: true, branchKept: undefined });
   expect(calls(f, 'DELETE /api/factory/threads/t1').at(-1)[0]).toBe('/api/factory/threads/t1?force=1');
 });
+
+test('lists missing from a response fall back to empty, and a refused list keeps the previous one', async () => {
+  const f = setup({
+    'GET /api/factory/skills': () => ({ body: {} }),
+    'GET /api/factory/projects': () => ({ body: {} }),
+    'GET /api/factory/threads': () => ({ body: {} }),
+  });
+  await f.load();
+  expect(f.skills.value).toEqual([]);
+  expect(f.projects.value).toEqual([]);
+  await f.loadThreads();
+  expect(f.threads.value).toEqual([]);
+  f.threads.value = [idle];
+  f.projects.value = [{ repo: 'api' }];
+  routes['GET /api/factory/threads'] = () => ({ status: 500 });
+  routes['GET /api/factory/projects'] = () => ({ status: 500 });
+  await f.loadThreads();
+  await f.load();
+  expect(f.threads.value).toEqual([idle]);
+  expect(f.projects.value).toEqual([{ repo: 'api' }]);
+});
+
+test('a load failing with a non-Error reports it as a string', async () => {
+  const f = setup({ 'GET /api/factory/health': () => { throw 'boom'; } });
+  await f.load();
+  expect(f.available.value).toBe(false);
+  expect(f.error.value).toBe('boom');
+});
+
+test('an open without messages, failing, or failing with a non-Error', async () => {
+  const f = setup({ 'GET /api/factory/threads/t1': () => ({ body: { thread: idle } }) });
+  await f.open('t1');
+  expect(f.messages.value).toEqual([]);
+  routes['GET /api/factory/threads/t1'] = () => { throw new Error('network down'); };
+  await f.open('t1');
+  expect(f.error.value).toBe('network down');
+  routes['GET /api/factory/threads/t1'] = () => { throw 'boom'; };
+  await f.open('t1');
+  expect(f.error.value).toBe('boom');
+});
+
+test('an open failing after another one started does not report its error', async () => {
+  let reject;
+  const f = setup({
+    'GET /api/factory/threads/t1': () => new Promise((_, r) => { reject = r; }),
+    'GET /api/factory/threads/t2': () => ({ body: { thread: { ...idle, id: 't2' }, messages: [] } }),
+  });
+  const first = f.open('t1');
+  await f.open('t2');
+  reject(new Error('late'));
+  await first;
+  expect(f.error.value).toBeNull();
+  expect(f.thread.value.id).toBe('t2');
+});
+
+test('a mutation that cannot reach the board reports the error, a non-Error as a string', async () => {
+  const f = setup({ 'POST /api/factory/threads': () => { throw new Error('network down'); } });
+  expect(await f.create({ repo: 'api' })).toBeNull();
+  expect(f.error.value).toBe('network down');
+  expect(f.busy.value).toBe(false);
+  routes['POST /api/factory/threads'] = () => { throw 'boom'; };
+  await f.create({ repo: 'api' });
+  expect(f.error.value).toBe('boom');
+});
+
+test('create sends the model and the skill when given', async () => {
+  let body;
+  const f = setup({
+    'POST /api/factory/threads': (init) => { body = JSON.parse(init.body); return { status: 201, body: { thread: idle } }; },
+    'GET /api/factory/threads/t1': () => ({ body: { thread: idle, messages: [] } }),
+  });
+  await f.create({ repo: 'api', model: 'opus', skill: 'nx/monorepo' });
+  expect(body).toEqual({ repo: 'api', model: 'opus', skill: 'nx/monorepo' });
+});
+
+test('reply and stop do nothing without an open thread', async () => {
+  const f = setup();
+  expect(await f.reply('hi')).toBe(false);
+  await f.stop();
+  expect(f.fetchImpl).not.toHaveBeenCalled();
+});
+
+test('a stop answered without a thread keeps the current one', async () => {
+  const f = setup({
+    'GET /api/factory/threads/t1': () => ({ body: { thread: running, messages: [] } }),
+    'DELETE /api/factory/threads/t1/run': () => ({ status: 202, body: {} }),
+  });
+  await f.open('t1');
+  await f.stop();
+  expect(f.thread.value).toEqual(running);
+});
+
+test('archiving a thread that is not open only refreshes the lists', async () => {
+  const f = setup({
+    'GET /api/factory/threads/t1': () => ({ body: { thread: idle, messages: [] } }),
+    'PATCH /api/factory/threads/t2': () => ({ body: { thread: { ...idle, id: 't2', status: 'archived' } } }),
+  });
+  await f.open('t1');
+  expect(await f.archive('t2')).toBe(true);
+  expect(f.thread.value).toEqual(idle);
+});
+
+test('a stale stream status or error, once another thread is followed, leaves the new stream alone', async () => {
+  const f = setup({
+    'GET /api/factory/threads/t1': () => ({ body: { thread: running, messages: [] } }),
+    'GET /api/factory/threads/t2': () => ({ body: { thread: { ...running, id: 't2' }, messages: [] } }),
+  });
+  await f.open('t1');
+  const [stale] = FakeEventSource.instances;
+  await f.open('t2');
+  const fresh = FakeEventSource.instances[1];
+  stale.onerror();
+  stale.emit('status', { status: 'idle' });
+  await settle();
+  expect(fresh.closed).toBe(false);
+  // The refresh for t1 does not replace the open t2.
+  expect(f.thread.value.id).toBe('t2');
+});
+
+test('the refresh after a run keeps the thread when the reload fails or has no messages', async () => {
+  let reload = () => ({ status: 500 });
+  const f = setup({ 'GET /api/factory/threads/t1': () => reload() });
+  reload = () => ({ body: { thread: running, messages: [msg('m1')] } });
+  await f.open('t1');
+  reload = () => ({ status: 500 });
+  FakeEventSource.instances[0].emit('status', { status: 'idle' });
+  await settle();
+  expect(f.thread.value).toEqual(running);
+  reload = () => ({ body: { thread: running, messages: [msg('m1')] } });
+  await f.open('t1');
+  reload = () => ({ body: { thread: idle } });
+  FakeEventSource.instances[1].emit('status', { status: 'idle' });
+  await settle();
+  expect(f.thread.value).toEqual(idle);
+  expect(f.messages.value).toEqual([]);
+});
+
+test('an answer without a JSON body falls back to the HTTP status', async () => {
+  const fetchImpl = vi.fn(async () => ({ ok: false, status: 502, json: async () => { throw new SyntaxError('not json'); } }));
+  let composable;
+  const wrapper = mount(defineComponent({ setup() { composable = useThreads({ fetchImpl, EventSourceImpl: FakeEventSource }); return () => null; } }));
+  await composable.load();
+  expect(composable.error.value).toBe('HTTP 502');
+  wrapper.unmount();
+});

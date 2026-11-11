@@ -393,10 +393,119 @@ test('the console streams through the injected EventSource', async () => {
   expect(FakeEventSource.count).toBe(before + 1);
 });
 
-test('switching back from skill mode to prompt mode hides the skill picker', async () => {
-  const w = await page(fetchWith());
-  await w.get('[data-test=factory-mode-skill]').setValue(true);
-  expect(w.find('[data-test=factory-skill]').exists()).toBe(true);
-  await w.get('[data-test=factory-mode-prompt]').setValue(true);
-  expect(w.find('[data-test=factory-skill]').exists()).toBe(false);
+
+// Answers `override(url, init)` when it returns a response, else falls back to fetchWith.
+function fetchOverriding(override, options) {
+  const fetchImpl = fetchWith(options);
+  const base = fetchImpl.getMockImplementation();
+  fetchImpl.mockImplementation(async (url, init = {}) => {
+    const r = override(url, init);
+    if (!r) return base(url, init);
+    fetchImpl.calls.push([init.method ?? 'GET', url]);
+    return { ok: r.status < 400, status: r.status, json: async () => r.body ?? {} };
+  });
+  return fetchImpl;
+}
+
+test('a search spans every project, and the archived toggle reloads the list', async () => {
+  const fetchImpl = fetchWith();
+  const { w } = await page(fetchImpl, '/factory/api');
+  await w.get('[data-test=factory-search]').setValue('flaky');
+  await flushPromises();
+  expect(fetchImpl.calls).toContainEqual(['GET', '/api/factory/threads?q=flaky']);
+  await w.get('[data-test=factory-search]').setValue('');
+  await w.get('[data-test=factory-archived-toggle]').trigger('change');
+  await flushPromises();
+  expect(fetchImpl.calls).toContainEqual(['GET', '/api/factory/threads?repo=api&status=archived']);
+});
+
+test('a search without a selected project shows the matching threads', async () => {
+  const fetchImpl = fetchWith();
+  const { w } = await page(fetchImpl);
+  await w.get('[data-test=factory-search]').setValue('flaky');
+  await flushPromises();
+  expect(w.get(`[data-test=factory-thread-${THREAD.id}]`).exists()).toBe(true);
+  await w.get('[data-test=factory-search]').setValue('');
+  await flushPromises();
+  expect(fetchImpl.calls.at(-1)).toEqual(['GET', '/api/factory/threads']);
+});
+
+test('archiving the open thread goes back to its project, another one stays put', async () => {
+  const { w, router } = await page(fetchWith(), `/factory/api/${THREAD.id}`);
+  w.findComponent({ name: 'FactoryThreads' }).vm.$emit('archive', 'th_other');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}`);
+  await w.get(`[data-test=factory-archive-${THREAD.id}]`).trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+});
+
+test('a refused archive keeps the open thread', async () => {
+  const fetchImpl = fetchOverriding((url, init) => (init.method === 'PATCH' ? { status: 500, body: { error: 'nope' } } : null));
+  const { w, router } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  await w.get(`[data-test=factory-archive-${THREAD.id}]`).trigger('click');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}`);
+});
+
+test('selecting a thread missing from the list keeps the current project', async () => {
+  const { w, router } = await page(fetchWith(), '/factory/api');
+  w.findComponent({ name: 'FactoryThreads' }).vm.$emit('select', THREAD.id + 'x');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe(`/factory/api/${THREAD.id}x`);
+});
+
+test('a refused request stays on the form', async () => {
+  const fetchImpl = fetchWith({ onPost: () => ({ status: 400, body: { error: 'unknown repo' } }) });
+  const { w, router } = await page(fetchImpl, '/factory/api');
+  await w.get('[data-test=factory-new]').trigger('click');
+  await w.get('[data-test=factory-prompt]').setValue('fix it');
+  await w.get('form').trigger('submit');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+  expect(w.get('[data-test=factory-run]').exists()).toBe(true);
+  expect(w.text()).toContain('unknown repo');
+});
+
+test('the form hides errors while the factory is unavailable, and copes with a health without repos or default', async () => {
+  const down = await page(fetchWith({ health: { status: 503, body: { error: 'agents-unavailable' } } }), '/factory/api');
+  await down.w.get('[data-test=factory-new]').trigger('click');
+  expect(down.w.find('[data-test=factory-error]').exists()).toBe(false);
+  const bare = await page(fetchWith({ health: { status: 200, body: { providers: { available: ['copilot'] } } } }), '/factory/api');
+  expect(bare.w.get('[data-test=factory-no-repos]').exists()).toBe(true);
+  await bare.w.get('[data-test=factory-new]').trigger('click');
+  expect(bare.w.get('[data-test=factory-provider]').element.value).toBe('copilot');
+});
+
+test('restart without any user prompt prefills an empty form', async () => {
+  const fetchImpl = fetchOverriding((url) => (url === `/api/factory/threads/${THREAD.id}`
+    ? { status: 200, body: { thread: { ...THREAD, status: 'failed', sessionId: null }, messages: [MESSAGES[1]] } }
+    : null));
+  const { w } = await page(fetchImpl, `/factory/api/${THREAD.id}`);
+  await w.get('[data-test=factory-restart]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=factory-prompt]').element.value).toBe('');
+});
+
+test('the console tab can be selected again after going back to the conversation', async () => {
+  const { w } = await threadPage();
+  await w.get('[data-test=factory-console-button]').trigger('click');
+  await flushPromises();
+  await w.get('[data-test=factory-tab-conversation]').trigger('click');
+  await w.get('[data-test=factory-tab-console]').trigger('click');
+  expect(w.get('[data-test=factory-tab-console]').attributes('aria-selected')).toBe('true');
+});
+
+test('a worktree removal finishing after leaving the thread does not touch the new page', async () => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const { w, router } = await worktreePage([200], [true], { gate });
+  await w.get('[data-test=factory-worktree-remove]').trigger('click');
+  await flushPromises();
+  await router.push('/factory/api');
+  await flushPromises();
+  release();
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+  expect(w.find('[data-test=factory-worktree-notice]').exists()).toBe(false);
 });

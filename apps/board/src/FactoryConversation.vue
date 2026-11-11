@@ -19,9 +19,8 @@ const props = defineProps({
 const emit = defineEmits(['console', 'remove-worktree']);
 
 const worktree = computed(() => props.thread.worktree ?? null);
-const worktreeTooltip = computed(() => (worktree.value
-  ? t('factory.worktree.tooltip', { path: worktree.value.path, base: worktree.value.base, ahead: worktree.value.ahead ?? '?' })
-  : ''));
+// Only read under v-if="worktree".
+const worktreeTooltip = computed(() => t('factory.worktree.tooltip', { path: worktree.value.path, base: worktree.value.base, ahead: worktree.value.ahead ?? '?' }));
 
 const consoleLabel = computed(() => (props.consoleAvailable
   ? t('factory.console.open')
@@ -45,7 +44,7 @@ const items = computed(() => {
 
 // An agent turn that ends on a question is waiting for the user: it gets the question colours.
 function asksQuestion(text) {
-  const lastLine = String(text ?? '').trim().split('\n').at(-1) ?? '';
+  const lastLine = String(text ?? '').trim().split('\n').at(-1);
   return /\?[\s*_`)"»]*$/.test(lastLine);
 }
 

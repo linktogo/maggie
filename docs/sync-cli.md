@@ -3,7 +3,7 @@
 Renders the [skills library](skills-library.md) into every configured repo and
 pushes the result on a branch.
 
-Examples call the CLI through its source entry (`node apps/sync/bin/sync.js`).
+Examples call the CLI through its source entry (`node apps/board/bin/maggie.js sync`).
 Once the package is installed the same commands are available as `maggie`.
 
 ## What a run does
@@ -70,22 +70,22 @@ at your own library to render guidance this project does not ship.
 
 ```bash
 # Local config file
-node apps/sync/bin/sync.js --config repos.example.json
+node apps/board/bin/maggie.js sync --config repos.example.json
 
 # Shared config repo
-node apps/sync/bin/sync.js --config-repo https://github.com/example-org/ai-config.git
+node apps/board/bin/maggie.js sync --config-repo https://github.com/example-org/ai-config.git
 
 # Preview only — no clone, no git
-node apps/sync/bin/sync.js --config-repo <url> --dry-run
+node apps/board/bin/maggie.js sync --config-repo <url> --dry-run
 
 # One repo, and open a PR
-node apps/sync/bin/sync.js --config-repo <url> --repo example-api --pr
+node apps/board/bin/maggie.js sync --config-repo <url> --repo example-api --pr
 
 # CI guard: fail if a technology has no skills
-node apps/sync/bin/sync.js --config-repo <url> --strict
+node apps/board/bin/maggie.js sync --config-repo <url> --strict
 
 # Render from a different skills library
-node apps/sync/bin/sync.js --config <path> --skills ../my-skills
+node apps/board/bin/maggie.js sync --config <path> --skills ../my-skills
 ```
 
 ## Exit behaviour

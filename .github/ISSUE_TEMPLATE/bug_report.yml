@@ -15,7 +15,7 @@ body:
       description: Which part of the project is affected?
       options:
         - maggie CLI (skill push)
-        - maggie-workspace CLI (bootstrap / status)
+        - maggie workspace CLI (bootstrap / status)
         - Board dashboard or server
         - Skills library (skills/)
         - Renderers (claude / copilot / cursor / windsurf)
@@ -29,7 +29,7 @@ body:
       label: What happened
       description: What you observed, including the full command and any error output.
       placeholder: |
-        $ node apps/sync/bin/sync.js --config repos.example.json --dry-run
+        $ node apps/board/bin/maggie.js sync --config repos.example.json --dry-run
         …
     validations:
       required: true

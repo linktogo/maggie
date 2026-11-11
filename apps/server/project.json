@@ -1,0 +1,14 @@
+{
+  "name": "server",
+  "sourceRoot": "apps/server/src",
+  "projectType": "application",
+  "tags": ["scope:server", "type:app"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test --experimental-test-coverage --test-coverage-include=\"apps/server/src/**/*.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"apps/server/test/**/*.test.js\""
+      }
+    }
+  }
+}

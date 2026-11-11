@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { main } from '../src/main.js';
-import { resolveHistoryPath } from '@linktogo/maggie-workspace-bootstrap';
+import { resolveHistoryPath } from '@lk/maggie-workspace-bootstrap';
 
 function silentLogger() {
   return { log() {}, warn() {}, error() {} };

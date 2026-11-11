@@ -11,9 +11,9 @@ Skills are authored once under `skills/<techno>/<name>/SKILL.md` and translated
 into each target platform's format (Claude Code, GitHub Copilot, Cursor,
 Windsurf).
 
-It ships two CLIs — `maggie` (push skills to repos) and `maggie-workspace`
-(bootstrap a local workspace + status board) — plus a kanban dashboard and the
-`maggie-agents` server that launches local agents from it ([AI Factory](docs/ai-factory.md)), as an
+It ships the `maggie` command (render skills into repos, bootstrap a local
+workspace, run the board and the agents server) — a kanban dashboard and the
+server that launches local agents from it ([AI Factory](docs/ai-factory.md)), as an
 [Nx](https://nx.dev) monorepo on pnpm workspaces. The board tracks local agent
 sessions for both Claude Code and GitHub Copilot CLI.
 
@@ -30,25 +30,34 @@ pull requests.
 Requires **Node.js >= 22** and `git` on your PATH.
 
 ```bash
-npm install -g @linktogo/maggie
+npm install -g @lk/maggie-board
 
 # See what would be pushed to the repos in your config — no side effects
-maggie --config repos.json --dry-run
+maggie sync --config repos.json --dry-run
 ```
 
-The same install also gives you the board UI and the agents server, both
-self-contained (the board's front-end ships pre-built, the skills library is
-bundled):
+The same install gives you the board and the server (via `@lk/maggie-server`), both
+self-contained (the board's front-end ships pre-built, the skills library is bundled):
 
 ```bash
-maggie-board                        # board UI on http://localhost:4180 (reads ./wk/.maggie/board.json or ./board.json)
-maggie-agents --repos repos.json    # AI Factory server on http://127.0.0.1:4318
+maggie                              # the board (http://localhost:4180) and the server (http://127.0.0.1:4318)
+maggie --board                      # the board only (reads ./wk/.maggie/board.json or ./board.json)
+maggie --server --repos repos.json  # the server only
+maggie --repos repos.json --port 5000 --server-port 5100   # options go to the part they belong to
+maggie sync --config repos.json     # render the skills into the repos
+maggie workspace --config repos.json --workspace wk   # bootstrap a local workspace
 ```
 
-Both answer on the loopback interface only. Without a global install, use
-`npx -p @linktogo/maggie maggie-board` (and likewise for `maggie-agents`).
+Options are added after the mode and go to whichever part takes them (see
+[the board](docs/board-dashboard.md) and [the server](docs/ai-factory.md)); with both
+running, `--port` is the board's and `--server-port` the server's, and the board is
+pointed at it. `--config-repo` / `--config-file` go to both. `--board <file>` (with a
+value) still names the board file; a bare `--board` picks the mode.
 
-The installed package bundles the skills library, so the CLI works from any
+Both answer on the loopback interface only. Without a global install, use
+`npx -p @lk/maggie-board maggie` (the server alone: `npx @lk/maggie-server`).
+
+The installed packages bundle the skills library, so the commands work from any
 directory. A `skills/` folder in the current directory takes precedence, which
 is what you want when working from a clone; `--skills <dir>` overrides both.
 
@@ -58,7 +67,7 @@ To hack on the project itself, work from a checkout:
 git clone https://github.com/linktogo/maggie.git
 cd maggie
 pnpm install
-node apps/sync/bin/sync.js --config repos.example.json --dry-run
+node apps/board/bin/maggie.js sync --config repos.example.json --dry-run
 ```
 
 Then copy `repos.example.json`, point it at your own repositories, and drop the
@@ -72,7 +81,7 @@ pnpm start      # serve the board (auto-detects wk/.maggie/board.json)
 `pnpm run wk` wires Claude Code hooks by default; add `-- --agent copilot` to
 wire GitHub Copilot CLI instead. Sessions from both show up on the same board,
 each card labelled with the agent behind it — see
-[`maggie-workspace` CLI](docs/workspace-cli.md#status-tracking).
+[`maggie workspace` CLI](docs/workspace-cli.md#status-tracking).
 
 New here? Read [Configuration](docs/configuration.md) next, then
 [Adding a skill](CONTRIBUTING.md#adding-a-skill).
@@ -86,7 +95,7 @@ Full reference lives in [`docs/`](docs/README.md):
 | [Configuration](docs/configuration.md) | The `repos.json` schema, and the two ways both CLIs resolve it |
 | [Skills library](docs/skills-library.md) | Authoring skills, how they map to each target platform |
 | [`maggie` CLI](docs/sync-cli.md) | Rendering skills into repos and pushing them |
-| [`maggie-workspace` CLI](docs/workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
+| [`maggie workspace` CLI](docs/workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
 | [Board dashboard](docs/board-dashboard.md) | The kanban dashboard, its server and endpoints |
 | [CI status](docs/ci-status.md) | Per-contributor CI badges on the board, and how to enable them |
 | [Retro-documentation](docs/retro-doc.md) | Folding a repository's specs and plans into one document an agent can read |
@@ -109,24 +118,25 @@ repo whose `technologies` include `<techno>` picks it up on the next sync — se
 
 ## Published packages
 
-Everything publishes under the single **`@linktogo`** scope. The CLIs ship as
-`@linktogo/maggie` (the package you install); the libraries are published
-independently so they can be reused on their own:
+Everything publishes under the single **`@lk`** scope. The `maggie` command ships in
+`@lk/maggie-board` (the package you install, with the board UI), which runs the agents
+server shipped in `@lk/maggie-server`; the libraries are published independently so they
+can be reused on their own:
 
 | Package | What it gives you |
 |---|---|
-| [`@linktogo/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
-| [`@linktogo/maggie-git`](libs/git) | thin git/`gh` wrapper |
-| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
-| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
-| [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
-| [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
-| [`@linktogo/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
-| [`@linktogo/maggie-agent-runner`](libs/agent-runner) | run local agent CLIs on a checkout, with streamed output |
+| [`@lk/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
+| [`@lk/maggie-git`](libs/git) | thin git/`gh` wrapper |
+| [`@lk/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
+| [`@lk/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
+| [`@lk/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
+| [`@lk/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
+| [`@lk/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
+| [`@lk/maggie-agent-runner`](libs/agent-runner) | run local agent CLIs on a checkout, with streamed output |
 
 All are released in lockstep on the same version — see
-[Releasing](CONTRIBUTING.md#releasing). The `apps/*` projects stay private, keep
-internal `@maggie/*` names, and are never published on their own.
+[Releasing](CONTRIBUTING.md#releasing). The two apps are published too:
+`@lk/maggie-board` (the `maggie` command and the board) and `@lk/maggie-server`.
 
 ## Tests
 

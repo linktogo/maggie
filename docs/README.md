@@ -10,7 +10,7 @@ the overview and quickstart; these pages are the detail.
 | [Configuration](configuration.md) | The `repos.json` schema, and the two ways both CLIs resolve it |
 | [Skills library](skills-library.md) | Authoring skills, how they map to each target platform |
 | [`maggie` CLI](sync-cli.md) | Rendering skills into repos and pushing them |
-| [`maggie-workspace` CLI](workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
+| [`maggie workspace` CLI](workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
 | [Board dashboard](board-dashboard.md) | The kanban dashboard, its server and endpoints |
 | [CI status](ci-status.md) | Per-contributor CI badges on the board, and how to enable them |
 | [Retro-documentation](retro-doc.md) | Folding a repository's specs and plans into one document an agent can read |

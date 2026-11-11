@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { parseFrontmatter } from '@linktogo/maggie-retro-doc';
+import { parseFrontmatter } from '@lk/maggie-retro-doc';
 import { AgentError } from './errors.js';
 
 // <techno>/<name>: two plain segments, so an id can never climb out of the skills directory.

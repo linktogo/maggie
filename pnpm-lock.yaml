@@ -19,35 +19,13 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      '@inquirer/prompts':
-        specifier: ^8.7.5
-        version: 8.7.5(@types/node@26.6.6)
-      '@linktogo/maggie-agent-runner':
-        specifier: ^1.3.1
-        version: link:libs/agent-runner
-      '@linktogo/maggie-ci-status':
-        specifier: ^1.3.1
-        version: link:libs/ci-status
-      '@linktogo/maggie-config':
-        specifier: ^1.3.1
-        version: link:libs/config
-      '@linktogo/maggie-git':
-        specifier: ^1.3.1
-        version: link:libs/git
-      '@linktogo/maggie-retro-doc':
-        specifier: ^1.3.1
-        version: link:libs/retro-doc
-      '@linktogo/maggie-skill-sync':
-        specifier: ^1.3.1
-        version: link:libs/skill-sync
-      '@linktogo/maggie-workspace-bootstrap':
-        specifier: ^1.3.1
-        version: link:libs/workspace-bootstrap
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.14.0(jiti@2.7.0))
+      '@lk/maggie-retro-doc':
+        specifier: ^1.3.1
+        version: link:libs/retro-doc
       '@nx/eslint':
         specifier: ^24.0.4
         version: 24.0.6(@babel/traverse@7.29.12)(@zkochan/js-yaml@0.0.7)(eslint@10.14.0(jiti@2.7.0))(nx@24.0.6)
@@ -100,54 +78,36 @@ importers:
         specifier: ~5.1.0
         version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(jsdom@31.0.0)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.0))
 
-  apps/agents:
-    dependencies:
-      '@linktogo/maggie-agent-runner':
-        specifier: ^1.3.1
-        version: link:../../libs/agent-runner
-      '@linktogo/maggie-config':
-        specifier: ^1.3.1
-        version: link:../../libs/config
-
   apps/board:
     dependencies:
+      '@inquirer/prompts':
+        specifier: ^8.7.5
+        version: 8.7.5(@types/node@26.6.6)
+      '@lk/maggie-ci-status':
+        specifier: ^1.3.1
+        version: link:../../libs/ci-status
+      '@lk/maggie-config':
+        specifier: ^1.3.1
+        version: link:../../libs/config
+      '@lk/maggie-git':
+        specifier: ^1.3.1
+        version: link:../../libs/git
+      '@lk/maggie-retro-doc':
+        specifier: ^1.3.1
+        version: link:../../libs/retro-doc
+      '@lk/maggie-server':
+        specifier: ^1.3.1
+        version: link:../server
+      '@lk/maggie-skill-sync':
+        specifier: ^1.3.1
+        version: link:../../libs/skill-sync
+      '@lk/maggie-workspace-bootstrap':
+        specifier: ^1.3.1
+        version: link:../../libs/workspace-bootstrap
+    devDependencies:
       '@fontsource/roboto':
         specifier: ^5.3.0
         version: 5.3.0
-      '@linktogo/maggie-ci-status':
-        specifier: ^1.3.1
-        version: link:../../libs/ci-status
-      '@linktogo/maggie-config':
-        specifier: ^1.3.1
-        version: link:../../libs/config
-      '@linktogo/maggie-retro-doc':
-        specifier: ^1.3.1
-        version: link:../../libs/retro-doc
-      '@linktogo/maggie-workspace-bootstrap':
-        specifier: ^1.3.1
-        version: link:../../libs/workspace-bootstrap
-      '@xterm/addon-fit':
-        specifier: 0.11.0
-        version: 0.11.0
-      '@xterm/xterm':
-        specifier: 6.0.0
-        version: 6.0.0
-      chart.js:
-        specifier: ^4.5.1
-        version: 4.6.1
-      dompurify:
-        specifier: 3.4.17
-        version: 3.4.17
-      marked:
-        specifier: 18.1.1
-        version: 18.1.1
-      vue:
-        specifier: ^3.5.44
-        version: 3.5.44(typescript@6.0.3)
-      vue-router:
-        specifier: ^5.4.0
-        version: 5.4.0(@vue/compiler-sfc@3.5.44)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.44(typescript@6.0.3))
-    devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.3.4
         version: 4.3.5(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.0))
@@ -160,12 +120,27 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.5.1(@vue/compiler-dom@3.5.44)(@vue/server-renderer@3.5.44)(vue@3.5.44(typescript@6.0.3))
+      '@xterm/addon-fit':
+        specifier: 0.11.0
+        version: 0.11.0
+      '@xterm/xterm':
+        specifier: 6.0.0
+        version: 6.0.0
+      chart.js:
+        specifier: ^4.5.1
+        version: 4.6.1
+      dompurify:
+        specifier: 3.4.17
+        version: 3.4.17
       eslint-plugin-vue:
         specifier: ^10.10.0
         version: 10.12.0(eslint@10.14.0(jiti@2.7.0))(vue-eslint-parser@10.4.1(eslint@10.14.0(jiti@2.7.0)))
       jsdom:
         specifier: ^31.0.0
         version: 31.0.0
+      marked:
+        specifier: 18.1.1
+        version: 18.1.1
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -175,31 +150,25 @@ importers:
       vitest:
         specifier: ~5.1.0
         version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(jsdom@31.0.0)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.0))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      vue-router:
+        specifier: ^5.4.0
+        version: 5.4.0(@vue/compiler-sfc@3.5.44)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.44(typescript@6.0.3))
 
-  apps/sync:
+  apps/server:
     dependencies:
-      '@linktogo/maggie-config':
+      '@lk/maggie-agent-runner':
+        specifier: ^1.3.1
+        version: link:../../libs/agent-runner
+      '@lk/maggie-config':
         specifier: ^1.3.1
         version: link:../../libs/config
-      '@linktogo/maggie-skill-sync':
-        specifier: ^1.3.1
-        version: link:../../libs/skill-sync
-
-  apps/workspace:
-    dependencies:
-      '@inquirer/prompts':
-        specifier: ^8.7.5
-        version: 8.7.5(@types/node@26.6.6)
-      '@linktogo/maggie-config':
-        specifier: ^1.3.1
-        version: link:../../libs/config
-      '@linktogo/maggie-workspace-bootstrap':
-        specifier: ^1.3.1
-        version: link:../../libs/workspace-bootstrap
 
   libs/agent-runner:
     dependencies:
-      '@linktogo/maggie-retro-doc':
+      '@lk/maggie-retro-doc':
         specifier: ^1.3.1
         version: link:../retro-doc
     optionalDependencies:
@@ -211,10 +180,10 @@ importers:
 
   libs/config:
     dependencies:
-      '@linktogo/maggie-git':
+      '@lk/maggie-git':
         specifier: ^1.3.1
         version: link:../git
-      '@linktogo/maggie-renderers':
+      '@lk/maggie-renderers':
         specifier: ^1.3.1
         version: link:../renderers
 
@@ -230,10 +199,10 @@ importers:
 
   libs/skill-sync:
     dependencies:
-      '@linktogo/maggie-git':
+      '@lk/maggie-git':
         specifier: ^1.3.1
         version: link:../git
-      '@linktogo/maggie-renderers':
+      '@lk/maggie-renderers':
         specifier: ^1.3.1
         version: link:../renderers
       gray-matter:
@@ -242,7 +211,7 @@ importers:
 
   libs/workspace-bootstrap:
     dependencies:
-      '@linktogo/maggie-git':
+      '@lk/maggie-git':
         specifier: ^1.3.1
         version: link:../git
 

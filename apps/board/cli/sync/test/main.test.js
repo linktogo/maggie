@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { main, resolveSkillsDir } from '../src/main.js';
+import { main, packagedSkillsDir, resolveSkillsDir } from '../src/main.js';
 
 function silentLogger() {
   return { log() {}, warn() {}, error() {} };
@@ -119,4 +119,12 @@ test('main returns 1 when any repo errored', async () => {
     logger: silentLogger(),
   });
   assert.equal(code, 1);
+});
+
+test('packagedSkillsDir prefers the skills shipped inside the package, then the repository ones', () => {
+  assert.equal(packagedSkillsDir(() => true, 'file:///pkg/cli/sync/src/main.js'), path.resolve('/pkg/skills'));
+  assert.equal(
+    packagedSkillsDir(() => false, 'file:///repo/apps/board/cli/sync/src/main.js'),
+    path.resolve('/repo/skills'),
+  );
 });

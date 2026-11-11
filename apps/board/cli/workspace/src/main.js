@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveConfigSource } from '@linktogo/maggie-config';
+import { resolveConfigSource } from '@lk/maggie-config';
 import {
   bootstrap,
   AGENTS,
@@ -15,7 +15,7 @@ import {
   readCopilotTranscriptUsage as defaultReadCopilotTranscriptUsage,
   resolveHistoryPath,
   appendHistoryEntry as defaultAppendHistoryEntry,
-} from '@linktogo/maggie-workspace-bootstrap';
+} from '@lk/maggie-workspace-bootstrap';
 
 const TITLE_MAX = 60;
 

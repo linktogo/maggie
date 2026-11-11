@@ -1,4 +1,4 @@
-# @linktogo/maggie-workspace-bootstrap
+# @lk/maggie-workspace-bootstrap
 
 Backs the `maggie-workspace` CLI from
 [maggie](https://github.com/linktogo/maggie): clones the configured
@@ -7,7 +7,7 @@ status hooks for a local coding agent — Claude Code or GitHub Copilot CLI —
 into each checkout, and maintains the shared `board.json` kanban state.
 
 ```js
-import { setSessionStatus } from '@linktogo/maggie-workspace-bootstrap';
+import { setSessionStatus } from '@lk/maggie-workspace-bootstrap';
 
 await setSessionStatus('/ws/.maggie/board.json', 'example-api', 'sess-1', 'done');
 ```

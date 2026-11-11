@@ -20,7 +20,7 @@ on this repository. If that is unavailable to you, email **security@linktogo.fr*
 
 Please include:
 
-- the affected component (`maggie` CLI, `maggie-workspace` CLI, board server, a library);
+- the affected component (`maggie` CLI, `maggie workspace` CLI, board server, a library);
 - the version or commit you tested;
 - reproduction steps or a proof of concept;
 - the impact you believe it has.
@@ -39,7 +39,7 @@ A few properties of this project are worth knowing before reporting:
   `--pr` is passed. Treat a config file — and the repository serving it via
   `--config-repo` — as trusted input: pointing either at content you do not
   control is equivalent to running that content's install scripts.
-- **`maggie-workspace bootstrap` writes Claude Code hooks** into each checkout's
+- **`maggie workspace bootstrap` writes Claude Code hooks** into each checkout's
   `.claude/settings.local.json`. Those hooks run this CLI's `status` subcommand
   on session events.
 - **The board server (`apps/board/server.js`) is a local development tool.** It
@@ -51,12 +51,12 @@ A few properties of this project are worth knowing before reporting:
   (`localhost:5173`) — other local pages included. Reports that it can be reached or driven
   from another host or from a web page are in scope.
 - **The Factory console opens a shell as your user.** From a Factory
-  conversation, the board can ask the agents server (`apps/agents`) for an
+  conversation, the board can ask the agents server (`apps/server`) for an
   interactive shell in an allowlisted checkout: anyone who can drive the board
   locally can use it. Opening, typing into and closing a console are
   `POST`/`DELETE` requests, so the board's `Origin` check applies; the
   output stream sends no CORS headers and terminal ids are random and never
-  listed. `maggie-agents --no-terminal` turns the console off. Reports that a
+  listed. `maggie-server --no-terminal` turns the console off. Reports that a
   web page or another host can open, read or type into a console are in scope.
 
 Findings that require an attacker to already control the config file, the target

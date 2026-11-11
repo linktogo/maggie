@@ -6,8 +6,8 @@ import { createServer } from 'node:net';
 import { chmod, mkdtemp, mkdir, readFile, stat, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { AgentError, createThreadStore } from '@linktogo/maggie-agent-runner';
-import { defaultDbFile, defaultTokenFile, main, onProcessSignal } from '../src/main.js';
+import { AgentError, createThreadStore } from '@lk/maggie-agent-runner';
+import { defaultDbFile, defaultTokenFile, main, onProcessSignal, packagedSkillsDir } from '../src/main.js';
 import { installSqliteWarningFilter } from '../src/warnings.js';
 
 async function workspace(t) {
@@ -483,4 +483,11 @@ test('SIGINT/SIGTERM kill every open console', async (t) => {
   handler();
   await once(server, 'close');
   assert.equal(terminals.killed, 1);
+});
+
+test('packagedSkillsDir prefers the skills shipped inside the package, then the repository ones', () => {
+  const bundled = packagedSkillsDir(() => true, 'file:///pkg/src/main.js');
+  assert.equal(bundled, path.resolve('/pkg/skills'));
+  const clone = packagedSkillsDir(() => false, 'file:///repo/apps/server/src/main.js');
+  assert.equal(clone, path.resolve('/repo/skills'));
 });

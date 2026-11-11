@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
-import { AgentError, listSkills } from '@linktogo/maggie-agent-runner';
+import { AgentError, listSkills } from '@lk/maggie-agent-runner';
 
 // This server runs commands on the machine, so it answers loopback only, wants a
 // bearer token on every request, and refuses any request carrying an Origin that

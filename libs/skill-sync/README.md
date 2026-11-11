@@ -1,4 +1,4 @@
-# @linktogo/maggie-skill-sync
+# @lk/maggie-skill-sync
 
 Resolves which skills apply to a repository — by matching its `technologies`
 against `skills/<techno>/` — and drives the
@@ -6,7 +6,7 @@ against `skills/<techno>/` — and drives the
 commit, push, and optionally open a pull request.
 
 ```js
-import { run } from '@linktogo/maggie-skill-sync';
+import { run } from '@lk/maggie-skill-sync';
 
 const results = await run(config, { skillsDir: 'skills', dryRun: true, logger: console });
 ```

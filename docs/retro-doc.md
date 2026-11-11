@@ -3,7 +3,7 @@
 Read every spec and plan of a repository, ask an LLM, and get back one reference
 document — the *why* behind a codebase, written for the AI agent about to change
 it. Three ways in: the `scripts/retro-doc.js` CLI, a button on the board, or
-[`@linktogo/maggie-retro-doc`](../libs/retro-doc) directly.
+[`@lk/maggie-retro-doc`](../libs/retro-doc) directly.
 
 A design record grows the way this repository's did: one spec and one plan per
 feature, written at a point in time and never revisited. That history is the

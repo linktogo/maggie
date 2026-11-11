@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// Also the command the agent hooks run (see `hookCommand`), so it stays executable on its own.
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { select } from '@inquirer/prompts';
 import { main } from '../src/main.js';
 
@@ -26,10 +29,16 @@ function onExisting(repo) {
   });
 }
 
-main(process.argv.slice(2), { selectRepo, onExisting }).then(
-  (code) => { process.exitCode = code; },
-  (err) => {
-    console.error(err.message);
-    process.exitCode = 1;
-  },
-);
+export function run(argv) {
+  return main(argv, { selectRepo, onExisting }).then(
+    (code) => { process.exitCode = code; },
+    (err) => {
+      console.error(err.message);
+      process.exitCode = 1;
+    },
+  );
+}
+
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await run(process.argv.slice(2));
+}

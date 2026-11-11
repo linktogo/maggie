@@ -10,6 +10,17 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Changed
+
+- **Packages are now published under the `@lk` scope**, and the two apps are published:
+  `@lk/maggie-board` (the board and the `maggie` command) and `@lk/maggie-server` (the agents
+  server, `maggie-server`). The libraries are renamed `@linktogo/maggie-*` → `@lk/maggie-*`.
+  The `@linktogo/maggie` package and the `maggie-agents` / `maggie-workspace` bins are gone.
+- **`maggie` starts the board and the server; `--board` / `--server` start one of them.** Other
+  options go to the part they belong to (`--port` is the board's, `--server-port` the server's
+  when both run). The skill sync and the workspace bootstrap are now `maggie sync` and
+  `maggie workspace`.
+
 ### Added
 
 - **`maggie-board` command.** `@linktogo/maggie` now ships the board UI (server plus the pre-built

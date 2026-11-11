@@ -1,34 +1,86 @@
 {
-  "name": "@maggie/board",
-  "version": "1.2.0",
-  "private": true,
+  "name": "@lk/maggie-board",
+  "version": "1.3.1",
+  "description": "The maggie board: kanban dashboard of the local agent sessions, and the `maggie` command (board, server, skill sync, workspace).",
+  "license": "Apache-2.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linktogo/maggie.git"
+  },
+  "homepage": "https://github.com/linktogo/maggie#readme",
+  "bugs": {
+    "url": "https://github.com/linktogo/maggie/issues"
+  },
+  "keywords": [
+    "maggie",
+    "ai-agents",
+    "claude-code",
+    "github-copilot",
+    "cursor",
+    "windsurf",
+    "monorepo",
+    "developer-tools"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "bin": {
+    "maggie": "./bin/maggie.js",
+    "maggie-board": "./bin/board.js"
+  },
+  "files": [
+    "bin",
+    "cli/maggie.js",
+    "cli/sync/src",
+    "cli/workspace/bin",
+    "cli/workspace/src",
+    "server.js",
+    "agentsProxy.js",
+    "ciReader.js",
+    "retroDocJobs.js",
+    "dist",
+    "skills"
+  ],
+  "scripts": {
+    "prepack": "vite build && node ../../scripts/stage-skills.js .",
+    "postpack": "node ../../scripts/stage-skills.js . --clean"
+  },
   "dependencies": {
-    "@fontsource/roboto": "^5.3.0",
-    "@linktogo/maggie-ci-status": "^1.3.1",
-    "@linktogo/maggie-config": "^1.3.1",
-    "@linktogo/maggie-retro-doc": "^1.3.1",
-    "@linktogo/maggie-workspace-bootstrap": "^1.3.1",
-    "@xterm/addon-fit": "0.11.0",
-    "@xterm/xterm": "6.0.0",
-    "chart.js": "^4.5.1",
-    "dompurify": "3.4.17",
-    "marked": "18.1.1",
-    "vue": "^3.5.44",
-    "vue-router": "^5.4.0"
+    "@inquirer/prompts": "^8.7.5",
+    "@lk/maggie-ci-status": "^1.3.1",
+    "@lk/maggie-config": "^1.3.1",
+    "@lk/maggie-git": "^1.3.1",
+    "@lk/maggie-retro-doc": "^1.3.1",
+    "@lk/maggie-server": "^1.3.1",
+    "@lk/maggie-skill-sync": "^1.3.1",
+    "@lk/maggie-workspace-bootstrap": "^1.3.1"
   },
   "devDependencies": {
+    "@fontsource/roboto": "^5.3.0",
     "@tailwindcss/vite": "^4.3.4",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitest/coverage-v8": "~5.1.0",
     "@vue/test-utils": "^2.4.6",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "chart.js": "^4.5.1",
+    "dompurify": "3.4.17",
     "eslint-plugin-vue": "^10.10.0",
     "jsdom": "^31.0.0",
+    "marked": "18.1.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.1",
-    "vitest": "~5.1.0"
+    "vitest": "~5.1.0",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
   },
   "nx": {
+    "name": "board",
     "tags": [
       "scope:board",
       "type:app"
@@ -40,7 +92,7 @@
           "build"
         ],
         "options": {
-          "command": "node apps/board/server.js --config-repo https://github.com/linktogo-org/lk-config.git"
+          "command": "node apps/board/bin/maggie.js --config-repo https://github.com/linktogo-org/lk-config.git"
         }
       },
       "test-server": {
@@ -51,8 +103,15 @@
       },
       "test": {
         "dependsOn": [
-          "test-server"
+          "test-server",
+          "test-cli"
         ]
+      },
+      "test-cli": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test --experimental-test-coverage --test-coverage-include=\"apps/board/cli/maggie.js\" --test-coverage-include=\"apps/board/cli/*/src/**/*.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"apps/board/cli/**/*.test.js\""
+        }
       }
     }
   }

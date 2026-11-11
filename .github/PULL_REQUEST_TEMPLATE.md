@@ -13,9 +13,9 @@
 
 <!-- How you know it works. Paste the relevant command output. -->
 
-- [ ] `npm run lint`
-- [ ] `npm test` (100% coverage gate per project)
-- [ ] `npm run build`
+- [ ] `pnpm run lint`
+- [ ] `pnpm test` (100% coverage gate per project)
+- [ ] `pnpm run build`
 
 ## Notes for reviewers
 

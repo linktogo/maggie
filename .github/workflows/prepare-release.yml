@@ -33,6 +33,9 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_PAT }}
 
+      # bump-version.js runs `pnpm install` to refresh pnpm-lock.yaml.
+      - uses: pnpm/action-setup@v4 # version from package.json `packageManager`
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24

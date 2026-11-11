@@ -106,7 +106,7 @@ function runCli() {
   const changelog = readFileSync(changelogPath, 'utf8');
   writeFileSync(changelogPath, updateChangelog(changelog, { oldVersion: currentVersion, newVersion, date: today }));
 
-  execFileSync('npm', ['install'], { cwd: REPO_ROOT, stdio: 'inherit' });
+  execFileSync('pnpm', ['install', '--lockfile-only'], { cwd: REPO_ROOT, stdio: 'inherit' });
 
   console.log('\nDone. Next steps:');
   console.log(`  git add -A && git commit -m "chore(release): v${newVersion}"`);

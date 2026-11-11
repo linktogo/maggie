@@ -14,7 +14,7 @@ Windsurf).
 It ships two CLIs — `maggie` (push skills to repos) and `maggie-workspace`
 (bootstrap a local workspace + status board) — plus a kanban dashboard and the
 `maggie-agents` server that launches local agents from it ([AI Factory](docs/ai-factory.md)), as an
-[Nx](https://nx.dev) monorepo on npm workspaces. The board tracks local agent
+[Nx](https://nx.dev) monorepo on pnpm workspaces. The board tracks local agent
 sessions for both Claude Code and GitHub Copilot CLI.
 
 ## Why
@@ -57,7 +57,7 @@ To hack on the project itself, work from a checkout:
 ```bash
 git clone https://github.com/linktogo/maggie.git
 cd maggie
-npm ci
+pnpm install
 node apps/sync/bin/sync.js --config repos.example.json --dry-run
 ```
 
@@ -65,11 +65,11 @@ Then copy `repos.example.json`, point it at your own repositories, and drop the
 `--dry-run` when the preview looks right.
 
 ```bash
-npm run wk     # clone those repos into ./wk and print the command to open them
-npm start      # serve the board (auto-detects wk/.maggie/board.json)
+pnpm run wk     # clone those repos into ./wk and print the command to open them
+pnpm start      # serve the board (auto-detects wk/.maggie/board.json)
 ```
 
-`npm run wk` wires Claude Code hooks by default; add `-- --agent copilot` to
+`pnpm run wk` wires Claude Code hooks by default; add `-- --agent copilot` to
 wire GitHub Copilot CLI instead. Sessions from both show up on the same board,
 each card labelled with the agent behind it — see
 [`maggie-workspace` CLI](docs/workspace-cli.md#status-tracking).
@@ -131,14 +131,14 @@ internal `@maggie/*` names, and are never published on their own.
 ## Tests
 
 ```bash
-npm test          # nx run-many -t test: every lib/app, 100% coverage gate each
-npm run test:board # apps/board suite only: server (node:test) + front-end (vitest)
-npm run check:coverage # fails if any project no longer enforces 100% coverage
+pnpm test          # nx run-many -t test: every lib/app, 100% coverage gate each
+pnpm run test:board # apps/board suite only: server (node:test) + front-end (vitest)
+pnpm run check:coverage # fails if any project no longer enforces 100% coverage
 ```
 
 CI runs `nx run-many -t lint test build`. Because Nx detects the package
-manager from the lockfile, keep `package-lock.json` as the only lockfile — a
-`pnpm-lock.yaml` breaks the Nx project graph. Layout, testing conventions and
+manager from the lockfile, keep `pnpm-lock.yaml` as the only lockfile — a
+`package-lock.json` breaks the Nx project graph. Layout, testing conventions and
 the reasons behind them are in [Architecture](docs/architecture.md).
 
 ## Contributing

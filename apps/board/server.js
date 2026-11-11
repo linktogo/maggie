@@ -54,15 +54,17 @@ export function isLocalHost(host) {
   return LOCAL_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost');
 }
 
-// A same-origin fetch and a command-line client send no Origin at all; a
-// cross-site one always does (`null` for an opaque origin, which is refused).
-export function isLocalOrigin(origin) {
+// Vite's dev server for the dashboard, the only page besides the board itself
+// allowed to change state. Any other local origin — another app on another
+// port, a `*.localhost` site — is refused like a remote one.
+export const DEV_ORIGINS = new Set(['http://localhost:5173', 'http://127.0.0.1:5173']);
+
+// A command-line client sends no Origin at all; a browser always does on a
+// state-changing request (`null` for an opaque origin, which is refused). The
+// board's own origin is the Host it was addressed by, already checked as local.
+export function isAllowedOrigin(origin, host) {
   if (origin === undefined) return true;
-  try {
-    return isLocalHost(new URL(origin).host);
-  } catch {
-    return false;
-  }
+  return origin === `http://${host}` || DEV_ORIGINS.has(origin);
 }
 
 function refuse(res, why) {
@@ -233,7 +235,7 @@ export function createBoardServer({ boardPath, distDir, config = null, ciReader 
     try {
       const url = new URL(req.url, 'http://localhost');
       if (!isLocalHost(req.headers.host)) return refuse(res, 'the board only answers requests addressed to localhost');
-      if (req.method !== 'GET' && req.method !== 'HEAD' && !isLocalOrigin(req.headers.origin)) {
+      if (req.method !== 'GET' && req.method !== 'HEAD' && !isAllowedOrigin(req.headers.origin, req.headers.host)) {
         return refuse(res, 'cross-site requests are not accepted');
       }
       if (url.pathname === '/api/board') return await serveBoard(boardPath, res);

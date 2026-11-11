@@ -1,0 +1,31 @@
+packages:
+  - apps/*
+  - libs/*
+
+# Resolve @linktogo/* deps (e.g. ^1.3.1) from the local workspace packages
+# instead of the npm registry, as npm workspaces do.
+linkWorkspacePackages: true
+
+# nx runs a postinstall script (native binary setup) that pnpm blocks by default.
+allowBuilds:
+  nx: true
+  # node-pty ships prebuilt binaries for macOS and Windows; elsewhere its install
+  # script compiles one with node-gyp.
+  node-pty: true
+
+# Dependency overrides. pnpm ignores npm's `overrides` field in package.json, so
+# they live here; `a>b` pins `b` only where `a` depends on it.
+overrides:
+  nx>brace-expansion: ^5.0.9
+  nx>smol-toml: ^1.9.1
+  qs: ^6.17.1
+  fast-uri: ^3.1.9
+  undici: ^8.12.4
+  # GHSA-g3hv-75wg-m249 / GHSA-3g3m-2fjr-6pw4: ahead of the ^10 / ^13 ranges of
+  # Nx, ESLint and js-beautify; drop once they catch up.
+  minimatch: ^11.0.5
+  glob: ^14.0.4
+  # @nx/vue's optional vue-router ^4 peer is only used by its generators.
+  '@nx/vue>vue-router': ^5.4.0
+  js-yaml@3: ^3.15.2
+  js-yaml@3>argparse: ^2.0.1

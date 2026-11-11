@@ -1,6 +1,6 @@
 # Architecture
 
-An [Nx](https://nx.dev) monorepo on npm workspaces. Applications live in
+An [Nx](https://nx.dev) monorepo on pnpm workspaces. Applications live in
 `apps/`, shared code in `libs/`.
 
 ## Projects
@@ -31,9 +31,12 @@ configured in `eslint.config.js`.
 
 ## Package manager
 
-This repo builds and installs with **npm** (`npm ci`). Nx detects the package
-manager from the lockfile, so `package-lock.json` must remain the only lockfile
-— adding a `pnpm-lock.yaml` breaks the Nx project graph.
+This repo builds and installs with **pnpm** (`pnpm install`, version pinned by
+`packageManager` in `package.json`). Nx detects the package manager from the
+lockfile, so `pnpm-lock.yaml` must remain the only lockfile — adding a
+`package-lock.json` breaks the Nx project graph. `pnpm-workspace.yaml` lists the
+workspaces, links `@linktogo/*` dependencies to the local packages
+(`linkWorkspacePackages`) and allows the install scripts of `nx` and `node-pty`.
 
 ## The composite action's imports
 
@@ -51,10 +54,10 @@ and is why `@nx/enforce-module-boundaries` is switched off for that directory in
 ## Testing
 
 ```bash
-npm test            # nx run-many -t test — every project
-npm run test:board  # apps/board only: server + reader (node:test) + front-end (vitest), 100% each
-npm run lint
-npm run build
+pnpm test            # nx run-many -t test — every project
+pnpm run test:board  # apps/board only: server + reader (node:test) + front-end (vitest), 100% each
+pnpm run lint
+pnpm run build
 ```
 
 Two testing styles coexist:
@@ -74,9 +77,9 @@ its `project.json` (or the `nx` block of its `package.json`), and for the board'
 Vue front-end through vitest's `coverage.thresholds` (statements too) in
 `apps/board/vite.config.js`. A drop fails the build.
 
-`scripts/check-coverage-gates.js` (`npm run check:coverage`) checks the gates
+`scripts/check-coverage-gates.js` (`pnpm run check:coverage`) checks the gates
 themselves: it fails when a project's `test` target no longer enforces 100%. CI
-and the `pre-push` git hook (`.githooks/pre-push`, activated by `npm install`)
+and the `pre-push` git hook (`.githooks/pre-push`, activated by `pnpm install`)
 run it before the tests.
 
 `.github/actions/ci-status-report` is tested by spawning its script as a

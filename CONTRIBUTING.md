@@ -7,7 +7,7 @@ By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## Getting started
 
-Requirements: **Node.js >= 22.13** and **npm** (see below — npm is not optional here).
+Requirements: **Node.js >= 24.22.1** and **npm** (see below — npm is not optional here).
 
 ```bash
 git clone https://github.com/linktogo/maggie.git

@@ -3,7 +3,7 @@
 Launch local AI coding agents from the board and keep the conversation going. Every request is a **thread**:
 a persisted conversation with one agent in one repository. You browse threads per project (an allowlisted
 repo) and per request, reply to a thread, and the agent resumes its own session. History lives in
-`~/.maggie/factory.db` (SQLite) and survives restarts. Requires **Node.js >= 22.13** (`node:sqlite`). Three pieces:
+`~/.maggie/factory.db` (SQLite) and survives restarts. Requires **Node.js >= 24.22.1** (the repository floor; `node:sqlite` itself needs 22.13). Three pieces:
 
 | Piece | What it is |
 |---|---|

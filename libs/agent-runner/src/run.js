@@ -2,7 +2,7 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { AgentError } from './errors.js';
 import { buildPrompt } from './prompt.js';
-import { commandFor, resolveProvider, validateModel } from './providers.js';
+import { commandFor, resolveProvider, validateModel, validateSessionId } from './providers.js';
 
 export const TERMINAL = new Set(['succeeded', 'failed', 'cancelled', 'timed-out']);
 export const DEFAULT_TIMEOUT_MS = 600_000;
@@ -10,6 +10,7 @@ export const DEFAULT_KILL_GRACE_MS = 5000;
 export const DEFAULT_MAX_EVENTS = 2000;
 export const DEFAULT_MAX_OUTPUT_CHARS = 2_000_000;
 export const DEFAULT_MAX_RUNS = 100;
+export const DEFAULT_MAX_ACTIVE = 4;
 
 const view = (record) => ({
   id: record.id,
@@ -25,7 +26,7 @@ const view = (record) => ({
 });
 
 /**
- * Runs agent CLIs one at a time per repository and publishes what they print.
+ * Runs agent CLIs one at a time per working directory (`maxActive` at once overall) and publishes what they print.
  * Runs live in memory only: `maxEvents` bounds the output kept per run and
  * `maxOutputChars` the retained output text and `maxRuns` the number of runs,
  * finished ones going first. A CLI still alive `killGraceMs` after SIGTERM gets SIGKILL.
@@ -38,6 +39,7 @@ export function createRunManager({
   maxEvents = DEFAULT_MAX_EVENTS,
   maxOutputChars = DEFAULT_MAX_OUTPUT_CHARS,
   maxRuns = DEFAULT_MAX_RUNS,
+  maxActive = DEFAULT_MAX_ACTIVE,
 } = {}) {
   const runs = new Map();
   let counter = 0;
@@ -108,21 +110,27 @@ export function createRunManager({
     }
   }
 
-  function start({ repo, cwd, provider, model = null, prompt, skill = null }) {
+  function start({ repo, cwd, provider, model = null, prompt, skill = null, resume = null }) {
     if (typeof repo !== 'string' || repo === '') throw new AgentError('invalid', 'repo is required');
     if (typeof cwd !== 'string' || cwd === '') throw new AgentError('invalid', 'cwd is required');
     resolveProvider({ requested: provider, fallback: undefined });
     const input = buildPrompt({ prompt, skill });
     const checkedModel = validateModel(model);
-    if ([...runs.values()].some((record) => record.repo === repo && !TERMINAL.has(record.status))) {
+    const checkedResume = resume === null || resume === undefined ? null : validateSessionId(resume);
+    const { command, args } = commandFor(provider, checkedModel, { resume: checkedResume });
+    const active = [...runs.values()].filter((record) => !TERMINAL.has(record.status));
+    if (active.some((record) => record.cwd === cwd)) {
       throw new AgentError('busy', `a run is already active on ${repo}`);
     }
-    const { command, args } = commandFor(provider, checkedModel);
+    if (active.length >= maxActive) {
+      throw new AgentError('busy', `too many agents running (max ${maxActive})`);
+    }
 
     counter += 1;
     const record = {
       id: `run-${counter}`,
       repo,
+      cwd,
       provider,
       model: checkedModel,
       skill: skill ? skill.id : null,

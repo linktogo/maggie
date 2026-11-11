@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { AgentError } from '../src/errors.js';
 import {
-  AGENT_PROVIDERS, DEFAULT_AGENT_PROVIDER, commandFor, detectProviders, findOnPath, resolveProvider, validateModel,
+  AGENT_PROVIDERS, DEFAULT_AGENT_PROVIDER, commandFor, detectProviders, findOnPath, resolveProvider, validateModel, validateSessionId,
 } from '../src/providers.js';
+
+const CLAUDE_TAIL = ['--permission-mode', 'acceptEdits', '--output-format', 'stream-json', '--verbose'];
+const CLAUDE_ARGS = ['-p', ...CLAUDE_TAIL];
 
 test('two CLI providers are offered, Claude Code first', () => {
   assert.deepEqual(AGENT_PROVIDERS, ['claude-cli', 'copilot']);
@@ -12,9 +15,31 @@ test('two CLI providers are offered, Claude Code first', () => {
 });
 
 test('commandFor builds the CLI invocation, the prompt travelling on stdin', () => {
-  assert.deepEqual(commandFor('claude-cli'), { command: 'claude', args: ['-p'] });
-  assert.deepEqual(commandFor('claude-cli', 'sonnet'), { command: 'claude', args: ['-p', '--model', 'sonnet'] });
+  assert.deepEqual(commandFor('claude-cli'), { command: 'claude', args: CLAUDE_ARGS });
+  assert.deepEqual(commandFor('claude-cli', 'sonnet'), {
+    command: 'claude', args: ['-p', '--model', 'sonnet', ...CLAUDE_TAIL],
+  });
   assert.deepEqual(commandFor('copilot'), { command: 'copilot', args: ['--allow-all-tools'] });
+});
+
+test('claude args include stream-json and verbose', () => {
+  const { args } = commandFor('claude-cli');
+  assert.ok(args.includes('--output-format') && args.includes('stream-json') && args.includes('--verbose'));
+});
+
+test('claude args end with --resume <id> when resuming', () => {
+  assert.deepEqual(commandFor('claude-cli', null, { resume: 'abc-123' }).args, [...CLAUDE_ARGS, '--resume', 'abc-123']);
+});
+
+test('copilot cannot resume', () => {
+  assert.throws(() => commandFor('copilot', null, { resume: 'abc' }), (e) => e instanceof AgentError && e.code === 'invalid' && /cannot be resumed/.test(e.message));
+});
+
+test('rejects a session id that could read as an option', () => {
+  assert.equal(validateSessionId('abc-123'), 'abc-123');
+  for (const bad of ['--dangerous', '', 'a b', 'x'.repeat(129), 5, null]) {
+    assert.throws(() => validateSessionId(bad), (e) => e instanceof AgentError && e.message === 'invalid session id');
+  }
 });
 
 test('findOnPath returns the first PATH entry holding an executable', () => {

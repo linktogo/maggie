@@ -6,15 +6,15 @@ writes. It lives in `apps/board/` with a zero-dependency Node server.
 
 ## Running it
 
-`npm start` builds the front-end and then serves it:
+`pnpm start` builds the front-end and then serves it:
 
 ```bash
-npm start                                          # build + serve on http://localhost:4180
-npm start -- --board /tmp/board.json               # a specific board file
-AI_SYNC_BOARD=/tmp/board.json npm start            # board path via env
-npm start -- --board /tmp/board.json --port 8080   # custom port
-npm start -- --config repos.example.json           # also serve repo metadata
-npm run board:build                                # build only, no server
+pnpm start                                          # build + serve on http://localhost:4180
+pnpm start -- --board /tmp/board.json               # a specific board file
+AI_SYNC_BOARD=/tmp/board.json pnpm start            # board path via env
+pnpm start -- --board /tmp/board.json --port 8080   # custom port
+pnpm start -- --config repos.example.json           # also serve repo metadata
+pnpm run board:build                                # build only, no server
 ```
 
 ### Flags
@@ -37,7 +37,7 @@ First match wins:
 3. auto-detected `wk/.maggie/board.json`
 4. `board.json` in the current directory
 
-So a plain `npm start` from the repo root picks up a live `wk/` workspace
+So a plain `pnpm start` from the repo root picks up a live `wk/` workspace
 automatically; `--board` / `AI_SYNC_BOARD` is only needed for a workspace
 elsewhere. The startup log prints the resolved path (`board on … (data: …)`) —
 check it first if the board looks empty.

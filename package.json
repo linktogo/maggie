@@ -4,6 +4,7 @@
   "description": "Sync AI agent skills, practices, and workflows across repositories — author once, render for Claude Code, GitHub Copilot, Cursor, and Windsurf.",
   "license": "Apache-2.0",
   "type": "module",
+  "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=24.22.1"
   },
@@ -90,12 +91,12 @@
     "build": "nx run-many -t build",
     "start": "nx run board:start",
     "sync": "node apps/sync/bin/sync.js",
-    "agents": "node apps/agents/bin/agents.js",
+    "agents": "node apps/agents/bin/agents.js --config-repo https://github.com/linktogo-org/lk-config.git",
     "wk": "node apps/workspace/bin/workspace.js --workspace wk",
     "board:build": "nx run board:build",
     "test:board": "nx run board:test",
-    "publish:libs": "npm publish --workspaces",
-    "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873",
+    "publish:libs": "pnpm -r publish --no-git-checks",
+    "publish:verdaccio": "pnpm -r publish --no-git-checks --registry http://localhost:4873",
     "prepack": "nx run board:build",
     "prepare": "node scripts/install-git-hooks.js",
     "board": "node apps/board/bin/board.js"

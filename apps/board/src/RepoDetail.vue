@@ -5,6 +5,7 @@ import RetroDocLog from './RetroDocLog.vue';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 import Icon from './Icon.vue';
+import { vTooltip } from './tooltip.js';
 import { eventLabel, ciConclusionLabel, ciReasonLabel } from './labels.js';
 import { describeUsage } from './liveUsage.js';
 import { costText, costTitle } from './costDisplay.js';
@@ -90,8 +91,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
             type="submit"
             data-test="detail-message-send"
             :disabled="!draft.trim()"
-            class="shrink-0 rounded-control bg-accent px-2 py-1 text-xs font-medium text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
-          >{{ t('session.send') }}</button>
+            :aria-label="t('session.send')"
+            v-tooltip="t('session.send')"
+            class="inline-flex shrink-0 items-center justify-center rounded-control bg-accent p-1 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+          ><Icon name="send" emoji="➤" :size="16" /></button>
         </form>
       </template>
 

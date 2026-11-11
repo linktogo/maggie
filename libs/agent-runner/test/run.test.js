@@ -1,35 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EventEmitter } from 'node:events';
 import { createRunManager } from '../src/run.js';
+import { harness } from './helpers.js';
 
-function fakeChild() {
-  const child = new EventEmitter();
-  child.stdout = new EventEmitter();
-  child.stderr = new EventEmitter();
-  child.stdin = Object.assign(new EventEmitter(), { end(data) { child.input = data; } });
-  child.kill = (signal) => { child.killed = signal; };
-  return child;
-}
-
-function harness(options = {}) {
-  const calls = [];
-  const spawn = (command, args, opts) => {
-    const child = fakeChild();
-    calls.push({ command, args, opts, child });
-    return child;
-  };
-  const manager = createRunManager({ spawn, now: () => new Date('2026-10-26T10:00:00.000Z'), ...options });
-  return { manager, calls };
-}
-
+const CLAUDE_TAIL = ['--permission-mode', 'acceptEdits', '--output-format', 'stream-json', '--verbose'];
 const START = { repo: 'api', cwd: '/ws/api', provider: 'claude-cli', prompt: 'fix the bug' };
 
 test('start spawns the provider CLI in the checkout and writes the prompt to its stdin', () => {
   const { manager, calls } = harness();
   const run = manager.start(START);
   assert.equal(calls[0].command, 'claude');
-  assert.deepEqual(calls[0].args, ['-p']);
+  assert.deepEqual(calls[0].args, ['-p', ...CLAUDE_TAIL]);
   assert.equal(calls[0].opts.cwd, '/ws/api');
   assert.equal(calls[0].child.input, 'fix the bug');
   assert.deepEqual(run, {
@@ -38,11 +19,24 @@ test('start spawns the provider CLI in the checkout and writes the prompt to its
   });
 });
 
+test('start passes resume to the claude command', () => {
+  const { manager, calls } = harness();
+  manager.start({ ...START, resume: 'sess-1' });
+  assert.deepEqual(calls[0].args, ['-p', ...CLAUDE_TAIL, '--resume', 'sess-1']);
+});
+
+test('start rejects a bad resume id or resume on copilot before spawning', () => {
+  const { manager, calls } = harness();
+  assert.throws(() => manager.start({ ...START, resume: '--x' }), /invalid session id/);
+  assert.throws(() => manager.start({ ...START, provider: 'copilot', resume: 'sess-1' }), /cannot be resumed/);
+  assert.equal(calls.length, 0);
+});
+
 test('start passes the model and uses the Copilot CLI for the copilot provider', () => {
   const { manager, calls } = harness();
-  manager.start({ ...START, repo: 'a', model: 'sonnet' });
-  manager.start({ ...START, repo: 'b', provider: 'copilot' });
-  assert.deepEqual(calls[0].args, ['-p', '--model', 'sonnet']);
+  manager.start({ ...START, repo: 'a', cwd: '/ws/a', model: 'sonnet' });
+  manager.start({ ...START, repo: 'b', cwd: '/ws/b', provider: 'copilot' });
+  assert.deepEqual(calls[0].args, ['-p', '--model', 'sonnet', ...CLAUDE_TAIL]);
   assert.equal(calls[1].command, 'copilot');
   assert.deepEqual(calls[1].args, ['--allow-all-tools']);
 });
@@ -62,13 +56,38 @@ test('start refuses a bad model or an empty request before spawning anything', (
   assert.equal(calls.length, 0);
 });
 
-test('one active run per repository; a finished one frees it', () => {
+test('one active run per working directory; a finished one frees it', () => {
   const { manager, calls } = harness();
   manager.start(START);
   assert.throws(() => manager.start(START), (err) => err.code === 'busy' && /already active on api/.test(err.message));
-  assert.doesNotThrow(() => manager.start({ ...START, repo: 'web' }));
+  assert.doesNotThrow(() => manager.start({ ...START, repo: 'web', cwd: '/ws/web' }));
   calls[0].child.emit('close', 0);
   assert.doesNotThrow(() => manager.start(START));
+});
+
+test('worktrees of one repository run in parallel next to its checkout, each cwd locked on its own', () => {
+  const { manager } = harness();
+  manager.start({ ...START, cwd: '/wk/.worktrees/api/a' });
+  manager.start({ ...START, cwd: '/wk/.worktrees/api/b' });
+  manager.start({ ...START, cwd: '/wk/api' });
+  assert.throws(() => manager.start({ ...START, cwd: '/wk/api' }), (err) => err.code === 'busy' && /already active on api/.test(err.message));
+  assert.throws(() => manager.start({ ...START, cwd: '/wk/.worktrees/api/a' }), (err) => err.code === 'busy' && /already active on api/.test(err.message));
+});
+
+test('a global cap bounds the active runs; a finished run frees its slot', () => {
+  const { manager, calls } = harness({ maxActive: 2 });
+  manager.start({ ...START, cwd: '/wk/a' });
+  manager.start({ ...START, cwd: '/wk/b' });
+  assert.throws(() => manager.start({ ...START, cwd: '/wk/c' }), (err) => err.code === 'busy' && err.message === 'too many agents running (max 2)');
+  assert.equal(calls.length, 2);
+  calls[0].child.emit('close', 0);
+  assert.doesNotThrow(() => manager.start({ ...START, cwd: '/wk/c' }));
+});
+
+test('the cap defaults to 4 active runs', () => {
+  const { manager } = harness();
+  for (const n of [1, 2, 3, 4]) manager.start({ ...START, cwd: `/wk/${n}` });
+  assert.throws(() => manager.start({ ...START, cwd: '/wk/5' }), /too many agents running \(max 4\)/);
 });
 
 test('output is published as events, and the run ends succeeded on exit code 0', () => {
@@ -192,15 +211,15 @@ test('finished runs are pruned oldest first once maxRuns is exceeded', () => {
 
 test('active runs are never pruned', () => {
   const { manager } = harness({ maxRuns: 1 });
-  manager.start({ ...START, repo: 'a' });
-  manager.start({ ...START, repo: 'b' });
+  manager.start({ ...START, repo: 'a', cwd: '/ws/a' });
+  manager.start({ ...START, repo: 'b', cwd: '/ws/b' });
   assert.equal(manager.list().length, 2);
 });
 
 test('list is newest first and get returns null for an unknown run', () => {
   const { manager } = harness();
-  manager.start({ ...START, repo: 'a' });
-  manager.start({ ...START, repo: 'b' });
+  manager.start({ ...START, repo: 'a', cwd: '/ws/a' });
+  manager.start({ ...START, repo: 'b', cwd: '/ws/b' });
   assert.deepEqual(manager.list().map((r) => r.id), ['run-2', 'run-1']);
   assert.equal(manager.get('run-99'), null);
 });

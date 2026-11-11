@@ -63,10 +63,12 @@ const ciUnavailable = computed(() => {
   return null;
 });
 
+const FACTORY_ROUTES = new Set(['factory', 'factory-repo', 'factory-thread']);
+
 const routeProps = computed(() => {
   if (route.name === 'history') return { fetchImpl };
   if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
-  if (route.name === 'factory') return { fetchImpl };
+  if (FACTORY_ROUTES.has(route.name)) return { fetchImpl };
   return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value, dayPartial: dayEnabled.value && !historyLoaded.value };
 });
 </script>
@@ -75,7 +77,11 @@ const routeProps = computed(() => {
   <main class="min-h-screen p-4 sm:p-6">
     <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
       <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap">maggie · {{ t('app.subtitle') }}</h1>
+        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap flex items-center gap-2">
+          <img data-test="logo" class="logo-light size-7" src="/maggie-mark-light.svg" alt="" />
+          <img data-test="logo-dark" class="logo-dark size-7" src="/maggie-mark-dark.svg" alt="" />
+          <span>maggie · {{ t('app.subtitle') }}</span>
+        </h1>
         <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
           <router-link
             data-test="view-board" to="/"
@@ -91,7 +97,7 @@ const routeProps = computed(() => {
           >{{ t('nav.retroDoc') }}</router-link>
           <router-link
             data-test="view-factory" to="/factory"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'factory' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
+            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', FACTORY_ROUTES.has(route.name) ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
           >{{ t('nav.factory') }}</router-link>
         </div>
       </div>

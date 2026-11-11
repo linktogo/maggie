@@ -11,9 +11,19 @@ export const DEFAULT_AGENT_PROVIDER = AGENT_PROVIDERS[0];
 // accepted, never something that could read as another option.
 const MODEL_PATTERN = /^[A-Za-z0-9][\w.:/-]*$/;
 
-/** How a provider is invoked; the prompt goes in on stdin. */
-export function commandFor(provider, model = null) {
-  return providerCommand(provider, { model });
+/**
+ * How a provider is invoked; the prompt goes in on stdin. `claude -p` cannot answer
+ * permission prompts, so file edits are accepted up front; other tools still follow
+ * the repository's `.claude/settings.json`. Claude streams structured events and can resume a session.
+ */
+export function commandFor(provider, model = null, { resume = null } = {}) {
+  const command = providerCommand(provider, { model });
+  if (provider !== 'claude-cli') {
+    if (resume) throw new AgentError('invalid', 'copilot threads cannot be resumed');
+    return command;
+  }
+  const args = [...command.args, '--permission-mode', 'acceptEdits', '--output-format', 'stream-json', '--verbose'];
+  return { ...command, args: resume ? [...args, '--resume', resume] : args };
 }
 
 /** The first PATH entry holding `command` (with PATHEXT on Windows), or null. */
@@ -53,4 +63,12 @@ export function validateModel(model) {
     throw new AgentError('invalid', `invalid model: ${String(model)}`);
   }
   return model;
+}
+
+// The session id ends up as a CLI argument (`--resume <id>`): never something that could read as an option.
+const SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/;
+
+export function validateSessionId(id) {
+  if (typeof id !== 'string' || !SESSION_ID_PATTERN.test(id)) throw new AgentError('invalid', 'invalid session id');
+  return id;
 }

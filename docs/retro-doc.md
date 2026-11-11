@@ -15,7 +15,7 @@ read before it starts.
 ```bash
 node scripts/retro-doc.js                                 # ask which repo, which LLM, then write
 node scripts/retro-doc.js --repo ../some-repo --dry-run   # what it would read and cost
-npm run retro-doc -- --repo api --provider copilot        # a workspace checkout, through Copilot
+pnpm run retro-doc -- --repo api --provider copilot        # a workspace checkout, through Copilot
 ```
 
 The output is a **directory**: a front page plus one document per domain of the
@@ -36,8 +36,8 @@ next agent session finds it.
 the board works here:
 
 ```bash
-npm run retro-doc -- --repo api          # documents wk/api
-npm run retro-doc -- --repo ../other     # documents a path
+pnpm run retro-doc -- --repo api          # documents wk/api
+pnpm run retro-doc -- --repo ../other     # documents a path
 ```
 
 With no `--repo` on a terminal, the script lists the current directory followed
@@ -69,8 +69,8 @@ agent the rights of the user running it — `--provider-command` replaces the wh
 command when that is not what you want:
 
 ```bash
-npm run retro-doc -- --provider copilot --provider-command "copilot"
-npm run retro-doc -- --provider claude-cli --provider-command "claude -p --model claude-opus-5"
+pnpm run retro-doc -- --provider copilot --provider-command "copilot"
+pnpm run retro-doc -- --provider claude-cli --provider-command "claude -p --model claude-opus-5"
 ```
 
 `--model` is passed through to whichever provider is in use (`--model
@@ -211,7 +211,7 @@ a dev dependency of this repository, which resolves credentials in this order:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-…
-npm run retro-doc -- --repo ../some-repo
+pnpm run retro-doc -- --repo ../some-repo
 ```
 
 The `claude-cli` and `copilot` providers need no key at all — they reuse the
@@ -245,7 +245,7 @@ distinguish that from a freeze. The same lines go to stderr on the command line.
 
 Two things the board needs, and says so when it does not have them:
 
-- **a config** (`npm start -- --config repos.json`, or `AI_SYNC_CONFIG`) — it is
+- **a config** (`pnpm start -- --config repos.json`, or `AI_SYNC_CONFIG`) — it is
   what tells the board where each repository is checked out. Without it the
   panel says so instead of guessing a directory to write into;
 - **a checkout** of that repository in the workspace. The rule is the same one

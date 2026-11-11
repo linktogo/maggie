@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run by `npm install` (the root "prepare" script): points git at the hooks
+// Run by `pnpm install` (the root "prepare" script): points git at the hooks
 // versioned in .githooks/, so the pre-push coverage gate is active in every
 // clone without a manual step. A no-op outside a git checkout (a tarball, an
 // `npm publish` from an exported tree) and when git is not installed.

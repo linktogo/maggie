@@ -43,6 +43,7 @@ test('listWorkspaceManifests finds root, libs, and apps package.json files', asy
       path.join(root, 'package.json'),
       path.join(root, 'libs', 'a', 'package.json'),
       path.join(root, 'libs', 'b', 'package.json'),
+      path.join(root, 'apps', 'c', 'package.json'),
     ].sort(),
   );
   assert.deepEqual(
@@ -86,13 +87,13 @@ test('bumpManifestVersion updates only the version field', async () => {
   assert.deepEqual(pkg.dependencies, { y: '^1.0.0' });
 });
 
-test('updateInternalDependencyRanges bumps only @linktogo/maggie-* deps', async () => {
+test('updateInternalDependencyRanges bumps only @lk/maggie-* deps', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'bump-'));
   const file = path.join(root, 'package.json');
   await writeFile(
     file,
     JSON.stringify(
-      { name: 'x', version: '1.2.3', dependencies: { '@linktogo/maggie-git': '^1.2.3', 'gray-matter': '^4.0.3' } },
+      { name: 'x', version: '1.2.3', dependencies: { '@lk/maggie-git': '^1.2.3', 'gray-matter': '^4.0.3' } },
       null,
       2,
     ) + '\n',
@@ -101,7 +102,7 @@ test('updateInternalDependencyRanges bumps only @linktogo/maggie-* deps', async 
   updateInternalDependencyRanges(file, '1.3.0');
 
   const pkg = JSON.parse(await readFile(file, 'utf8'));
-  assert.equal(pkg.dependencies['@linktogo/maggie-git'], '^1.3.0');
+  assert.equal(pkg.dependencies['@lk/maggie-git'], '^1.3.0');
   assert.equal(pkg.dependencies['gray-matter'], '^4.0.3');
 });
 

@@ -4,8 +4,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, loadConfigFromRepo, resolveConfigSource } from '@linktogo/maggie-config';
-import { reconcileHooks, resolveHistoryPath, closeSession, queueMessage } from '@linktogo/maggie-workspace-bootstrap';
+import { loadConfig, loadConfigFromRepo, resolveConfigSource } from '@lk/maggie-config';
+import { reconcileHooks, resolveHistoryPath, closeSession, queueMessage } from '@lk/maggie-workspace-bootstrap';
 import { createCiReader } from './ciReader.js';
 import { createRetroDocRunner } from './retroDocJobs.js';
 import { createAgentsProxy, DEFAULT_AGENTS_URL } from './agentsProxy.js';
@@ -281,7 +281,7 @@ export async function startFromArgv(argv, {
         { config: configSrc ? path.resolve(configSrc) : null, configRepo, configFile: values['config-file'] },
         { loadConfig: loadConfigDep, loadConfigFromRepo: loadConfigFromRepoDep },
       );
-      const hookCommand = fileURLToPath(new URL('../workspace/bin/workspace.js', import.meta.url));
+      const hookCommand = fileURLToPath(new URL('./cli/workspace/bin/workspace.js', import.meta.url));
       const results = await reconcileHooks(config, { boardPath, hookCommand });
       for (const r of results) {
         if (r.status === 'repointed') log(`  ✓ ${r.repo}: ${r.agent} hooks repointed`);

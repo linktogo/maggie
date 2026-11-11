@@ -8,13 +8,13 @@ repo) and per request, reply to a thread, and the agent resumes its own session.
 | Piece | What it is |
 |---|---|
 | [`libs/agent-runner`](../libs/agent-runner) | the logic: providers, repo allowlist, skills, run lifecycle, thread store and service |
-| `apps/agents` (`maggie-agents`) | an independent Node.js server: HTTP + SSE, bearer token, loopback only |
+| `apps/server` (`maggie-server`) | an independent Node.js server: HTTP + SSE, bearer token, loopback only |
 | the board's **AI Factory** tab | a three-pane message center (projects, requests, conversation); it relays to the server through `/api/factory/*` |
 
 ## Start it
 
 ```bash
-pnpm run agents -- --repos repos.json --workspace wk      # the server (default port 4318)
+pnpm run server -- --repos repos.json --workspace wk      # the server (default port 4318)
 pnpm start                                                  # the board; open the "AI Factory" tab
 ```
 
@@ -39,7 +39,7 @@ and a server-launched run cannot answer that dialog. `--trust-repos` does what a
 `hasTrustDialogAccepted` for each configured repo that is checked out. It is opt-in, since it grants those repos'
 own permissions; only use it for repositories you trust.
 
-`--repos` is parsed by `@linktogo/maggie-config` (`loadConfig`), so it is validated like the sync config:
+`--repos` is parsed by `@lk/maggie-config` (`loadConfig`), so it is validated like the sync config:
 every repo needs `targets`, or the file needs a top-level `defaultTargets`, as in `repos.example.json`.
 
 The board finds the server with `pnpm start -- --agents-url <url> --agents-token-file <file>` (defaults:
@@ -143,7 +143,7 @@ use every tool without asking. Review what you point an agent at.
 
 ## Run manager (library)
 
-`createRunManager` from `@linktogo/maggie-agent-runner` takes these options:
+`createRunManager` from `@lk/maggie-agent-runner` takes these options:
 
 | Option | Default | Meaning |
 |---|---|---|

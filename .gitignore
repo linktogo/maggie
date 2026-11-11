@@ -1,6 +1,8 @@
 node_modules/
 wk/
 apps/board/dist/
+# copied in by `prepack`, see scripts/stage-skills.js
+apps/*/skills/
 
 # Visual brainstorming companion
 .superpowers/

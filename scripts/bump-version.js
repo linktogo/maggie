@@ -30,7 +30,8 @@ export function listWorkspaceManifests(repoRoot) {
   const libs = readManifestDirs(path.join(repoRoot, 'libs'));
   const apps = readManifestDirs(path.join(repoRoot, 'apps'));
   const root = path.join(repoRoot, 'package.json');
-  return { versioned: [root, ...libs], all: [root, ...libs, ...apps] };
+  // The apps are published too (the board and the server), in lockstep with the libraries.
+  return { versioned: [root, ...libs, ...apps], all: [root, ...libs, ...apps] };
 }
 
 export function bumpManifestVersion(filePath, newVersion) {
@@ -45,7 +46,7 @@ export function updateInternalDependencyRanges(filePath, newVersion) {
   if (!deps) return;
   let changed = false;
   for (const name of Object.keys(deps)) {
-    if (!name.startsWith('@linktogo/maggie-')) continue;
+    if (!name.startsWith('@lk/maggie-')) continue;
     const next = `^${newVersion}`;
     if (deps[name] !== next) {
       deps[name] = next;

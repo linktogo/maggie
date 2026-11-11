@@ -44,7 +44,7 @@ pnpm run build       # nx run-many -t build
 pnpm start           # build + serve the kanban dashboard
 ```
 
-`pnpm run agents -- --repos repos.example.json` starts the AI Factory agents
+`pnpm run server -- --repos repos.example.json` starts the AI Factory agents
 server (see [AI Factory](docs/ai-factory.md)); it needs the `claude` or
 `copilot` CLI to actually run an agent, tests never do.
 
@@ -70,8 +70,8 @@ a project dependency, since nothing in CI runs it.
 To exercise the CLIs against the sample config without touching any real repo:
 
 ```bash
-node apps/sync/bin/sync.js --config repos.example.json --dry-run
-node apps/workspace/bin/workspace.js --config repos.example.json --workspace /tmp/ws --dry-run
+node apps/board/bin/maggie.js sync --config repos.example.json --dry-run
+node apps/board/bin/maggie.js workspace --config repos.example.json --workspace /tmp/ws --dry-run
 ```
 
 ## Tests and the coverage gate
@@ -100,7 +100,8 @@ than lowering the threshold.
 
 Tests live next to the code they cover:
 
-- `libs/*/test/*.test.js` and `apps/{sync,workspace,agents}/test/*.test.js` — `node:test`
+- `libs/*/test/*.test.js` and `apps/server/test/*.test.js` — `node:test`
+- `apps/board/cli/maggie.test.js` and `apps/board/cli/{sync,workspace}/test/*.test.js` — `node:test` for the `maggie` command and its `sync` / `workspace` subcommands
 - `apps/board/*.test.js` — `node:test` for the server side (`server.js`, `ciReader.js`, …), all run together so their coverage adds up
 - `apps/board/src/*.test.js` — `vitest` + `@vue/test-utils`, coverage via `@vitest/coverage-v8` (report in `coverage/apps/board`)
 
@@ -133,14 +134,13 @@ Copilot, Cursor, Windsurf); you do not need to write per-platform variants.
 ## Architecture boundaries
 
 Nx enforces module boundaries by `scope:*` tags (see `eslint.config.js`). Import
-another project only through its package entry (`@linktogo/maggie-<name>`), never by
+another project only through its package entry (`@lk/maggie-<name>`), never by
 a deep relative path across project roots. `pnpm run lint` catches violations.
 
-Package naming follows what is published: the seven libraries under `libs/` carry
-their public `@linktogo/maggie-*` names, while the applications under `apps/` stay
-`private` and keep internal `@maggie/*` names, since they are never published on
-their own. Nx project names (`config`, `sync`, …) come from each `project.json`
-and are independent of both.
+Package naming follows what is published: the libraries under `libs/` and the two
+applications under `apps/` carry their public `@lk/maggie-*` names (`@lk/maggie-board`,
+`@lk/maggie-server`). Nx project names (`config`, `board`, `server`, …) come from each
+`project.json` (or the `nx` key of the package) and are independent of both.
 
 ## Dependency holds
 
@@ -184,9 +184,10 @@ discussed before you invest in the implementation.
 
 ## Releasing
 
-Eight packages ship from this repository and are versioned **in lockstep**: the
-CLI package `@linktogo/maggie` (the repo root) and the seven `@linktogo/maggie-*`
-libraries under `libs/`. The libraries depend on each other by caret range
+Ten packages ship from this repository and are versioned **in lockstep**: the
+`@lk/maggie-board` and `@lk/maggie-server` apps under `apps/` and the eight `@lk/maggie-*`
+libraries under `libs/` (the repository root is private, it only carries the version the
+tags follow). The packages depend on each other by caret range
 (`^0.1.0`), so a version that moves in one place must move everywhere.
 
 ### Patch and minor releases (automatic)
@@ -233,8 +234,8 @@ tag matches `package.json`, extracts the matching section of
 hand-written release notes needed.
 
 That Release's `published` event triggers `.github/workflows/publish.yml`,
-which runs `pnpm -r publish` (libraries) and then `pnpm publish` (the
-CLI package, which depends on them) with no manual approval step.
+which runs `pnpm -r publish` (libraries, then the server, then the board, which depend on
+them) with no manual approval step.
 
 If `RELEASE_PAT` is missing or expired, the tagging step fails loudly in the
 Actions log and nothing downstream (release, npm publish) happens — rotate it
@@ -244,14 +245,14 @@ updating the secret.
 To rehearse a release against a local registry:
 
 ```bash
-pnpm run publish:verdaccio   # publishes the seven libraries to http://localhost:4873
+pnpm run publish:verdaccio   # publishes every package to http://localhost:4873
 ```
 
 Check what a tarball would actually contain before releasing:
 
 ```bash
-pnpm pack --dry-run                                            # the CLI package
-pnpm --filter @linktogo/maggie-renderers pack --dry-run        # one library
+pnpm --filter @lk/maggie-board pack --dry-run                    # the board / `maggie` command
+pnpm --filter @lk/maggie-renderers pack --dry-run        # one library
 ```
 
 ## Reporting bugs and requesting features

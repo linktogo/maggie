@@ -12,7 +12,7 @@ import {
   DEFAULT_WORKSPACE,
   PROVIDERS,
   planBatches,
-} from '@linktogo/maggie-retro-doc';
+} from '@lk/maggie-retro-doc';
 import { formatDryRun, main, parseArgs } from './retro-doc.js';
 
 function makeRepo(files) {

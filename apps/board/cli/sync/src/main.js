@@ -3,12 +3,15 @@ import path from 'node:path';
 import os from 'node:os';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { resolveConfigSource } from '@linktogo/maggie-config';
-import { run as defaultRun } from '@linktogo/maggie-skill-sync';
+import { resolveConfigSource } from '@lk/maggie-config';
+import { run as defaultRun } from '@lk/maggie-skill-sync';
 
-// The skills library shipped inside the installed package, used when the
-// current directory has none of its own (i.e. the CLI is not run from a clone).
-const packagedSkillsDir = () => path.join(fileURLToPath(new URL('../../../', import.meta.url)), 'skills');
+// The skills library shipped inside the installed package (copied there by `prepack`), used
+// when the current directory has none of its own; from a clone it is the repository's own.
+export function packagedSkillsDir(exists = existsSync, base = import.meta.url) {
+  const bundled = fileURLToPath(new URL('../../../skills', base));
+  return exists(bundled) ? bundled : fileURLToPath(new URL('../../../../../skills', base));
+}
 
 // `--skills` wins; otherwise prefer a `skills/` folder in the current directory
 // so a clone keeps working, and fall back to the packaged library.

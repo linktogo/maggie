@@ -1,4 +1,4 @@
-// Public surface of @linktogo/maggie-retro-doc.
+// Public surface of @lk/maggie-retro-doc.
 //
 // Four concerns, isolated the way the rest of the monorepo isolates them: what
 // a repository's design record *is* (sources), how it is *asked about*

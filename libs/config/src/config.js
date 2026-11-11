@@ -1,8 +1,8 @@
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { knownTargets } from '@linktogo/maggie-renderers';
-import { clone as defaultClone } from '@linktogo/maggie-git';
+import { knownTargets } from '@lk/maggie-renderers';
+import { clone as defaultClone } from '@lk/maggie-git';
 
 export async function loadConfig(filePath) {
   return parseConfig(await readFile(filePath, 'utf8'));

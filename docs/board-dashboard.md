@@ -1,7 +1,7 @@
 # Board dashboard
 
 A read-only kanban dashboard (Vue 3 + Tailwind) showing each repo's status, fed
-by the `board.json` that [`maggie-workspace` status tracking](workspace-cli.md#status-tracking)
+by the `board.json` that [`maggie workspace` status tracking](workspace-cli.md#status-tracking)
 writes. It lives in `apps/board/` with a zero-dependency Node server.
 
 ## Running it
@@ -145,7 +145,7 @@ whichever hook the agent lets write back into the conversation:
 Under Copilot that means a message typed while the agent sits blocked on a
 permission prompt or idle reaches it on that notification, without waiting for
 you to type the next prompt. The `messages` subcommand
-(`maggie-workspace messages <repo> --agent copilot`) is the delivery-only entry
+(`maggie workspace messages <repo> --agent copilot`) is the delivery-only entry
 point the `sessionStart` hook uses; it drains the queue without touching the
 session's status.
 

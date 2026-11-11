@@ -120,7 +120,7 @@ test('listProjectDirs tolerates a workspace without apps/ or libs/', async () =>
 test('this repository enforces the gate in every project', async () => {
   const { projects, problems } = await checkWorkspace();
   assert.deepEqual(problems, []);
-  assert.ok(projects.includes('@maggie/board'));
+  assert.ok(projects.includes('board'));
   assert.ok(projects.includes('ci-status-report'));
 });
 

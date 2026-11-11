@@ -1,18 +1,18 @@
-# `maggie-workspace` CLI
+# `maggie workspace` CLI
 
 Clones the configured repos into one workspace folder, installs their
 dependencies, wires up kanban status tracking, and prints the command to open
 the workspace in Claude Code, GitHub Copilot CLI or VS Code.
 
 Examples call the CLI through its source entry
-(`node apps/workspace/bin/workspace.js`). Once installed it is `maggie-workspace`.
+(`node apps/board/bin/maggie.js workspace`). Once installed it is `maggie workspace`.
 
 ## Bootstrap
 
 ```bash
 CFG="--config-repo https://github.com/example-org/ai-config.git"
 
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg
 ```
 
 Dependency install is detected per repo from `package.json` (Node, via `pnpm`)
@@ -39,12 +39,12 @@ resumes one.
 | `--dry-run` | Preview clone/install actions; no side effects, no hooks, no board seeding. |
 
 ```bash
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --agent copilot
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --editor vscode
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --repo example-api
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --no-install
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --offline
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --dry-run
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --agent copilot
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --editor vscode
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --repo example-api
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --no-install
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --offline
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --dry-run
 ```
 
 ## Worktrees
@@ -55,7 +55,7 @@ command at it. Re-running reuses an existing worktree. Without the flag the tool
 prints a tip suggesting it.
 
 ```bash
-node apps/workspace/bin/workspace.js $CFG --workspace ~/work/myorg --worktree feat/login
+node apps/board/bin/maggie.js workspace $CFG --workspace ~/work/myorg --worktree feat/login
 # → adds example-api.feat-login/, then prints:
 #   cd "~/work/myorg/example-api.feat-login" && claude
 ```
@@ -111,13 +111,13 @@ Each hook shells out to this CLI's `status` subcommand, which you can also run
 by hand:
 
 ```bash
-node apps/workspace/bin/workspace.js status example-api done --board ~/work/myorg/.maggie/board.json
+node apps/board/bin/maggie.js workspace status example-api done --board ~/work/myorg/.maggie/board.json
 # installed on PATH:
-maggie-workspace status example-api done --board <board.json>
+maggie workspace status example-api done --board <board.json>
 
 # Copilot hooks pass --agent copilot, which switches the payload format,
 # the usage reader and the stdout contract:
-maggie-workspace status example-api question --board <board.json> \
+maggie workspace status example-api question --board <board.json> \
   --event agentStop --agent copilot
 ```
 

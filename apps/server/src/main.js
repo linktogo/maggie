@@ -7,15 +7,22 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import {
   loadConfig as defaultLoadConfig, loadConfigFromRepo as defaultLoadConfigFromRepo, resolveConfigSource,
-} from '@linktogo/maggie-config';
+} from '@lk/maggie-config';
 import {
   DEFAULT_AGENT_PROVIDER, DEFAULT_MAX_ACTIVE, createRepoResolver, createRunManager, createTerminalManager, createWorktreeManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
-} from '@linktogo/maggie-agent-runner';
+} from '@lk/maggie-agent-runner';
 import { LOOPBACK, createAgentsServer } from './server.js';
 
 export const DEFAULT_PORT = 4318;
 
-const DEFAULT_SKILLS_DIR = fileURLToPath(new URL('../../../skills', import.meta.url));
+/**
+ * The skills library shipped with the package (copied there by `prepack`), or, from a clone,
+ * the one at the repository root.
+ */
+export function packagedSkillsDir(exists = existsSync, base = import.meta.url) {
+  const bundled = fileURLToPath(new URL('../skills', base));
+  return exists(bundled) ? bundled : fileURLToPath(new URL('../../../skills', base));
+}
 
 /** Where the board finds the token to talk to this server. */
 export const defaultTokenFile = (home = os.homedir()) => path.join(home, '.maggie', 'agents.token');
@@ -114,7 +121,7 @@ export async function main(argv, {
     requested: values.provider ?? env.MAGGIE_AGENT_PROVIDER,
     fallback: DEFAULT_AGENT_PROVIDER,
   });
-  const skillsDir = path.resolve(values.skills ?? DEFAULT_SKILLS_DIR);
+  const skillsDir = path.resolve(values.skills ?? packagedSkillsDir());
   if (!existsSync(skillsDir)) throw new Error(`Skills directory not found: ${skillsDir}`);
 
   log(`loading config from ${values.repos ?? values['config-repo']}`);

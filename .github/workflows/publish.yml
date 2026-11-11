@@ -31,23 +31,25 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Guard: the root package and every publishable library must carry the
-      # release tag's version (e.g. v0.1.0). They ship in lockstep, so a
-      # forgotten bump in one library would publish a broken dependency range.
+      # Guard: every publishable package (the libraries, the board and the server) must
+      # carry the release tag's version (e.g. v0.1.0). They ship in lockstep, so a
+      # forgotten bump in one package would publish a broken dependency range.
       - name: Check versions match the release tag
         run: |
           tag="${GITHUB_REF_NAME#v}"
           node -e '
             const fs = require("fs");
             const tag = process.argv[1];
-            const root = JSON.parse(fs.readFileSync("package.json", "utf8"));
             const bad = [];
-            if (root.version !== tag) bad.push(root.name + "@" + root.version);
-            for (const dir of fs.readdirSync("libs")) {
-              const pkg = JSON.parse(fs.readFileSync("libs/" + dir + "/package.json", "utf8"));
-              if (pkg.private) continue;
-              if (pkg.version !== tag) bad.push(pkg.name + "@" + pkg.version);
+            for (const base of ["libs", "apps"]) {
+              for (const dir of fs.readdirSync(base)) {
+                const pkg = JSON.parse(fs.readFileSync(base + "/" + dir + "/package.json", "utf8"));
+                if (pkg.private) continue;
+                if (pkg.version !== tag) bad.push(pkg.name + "@" + pkg.version);
+              }
             }
+            const root = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            if (root.version !== tag) bad.push(root.name + "@" + root.version);
             if (bad.length) {
               console.error("release tag is " + tag + " but these do not match: " + bad.join(", "));
               process.exit(1);
@@ -57,15 +59,10 @@ jobs:
 
       - run: pnpm test
 
-      # Libraries first: the root CLI package depends on them by version range.
-      # `pnpm -r publish` skips the workspace root and any version already on
-      # the registry; --no-git-checks because a release checks out a tag, not a branch.
-      - name: Publish libraries
+      # `pnpm -r publish` publishes in dependency order (libraries, @lk/maggie-server, then
+      # @lk/maggie-board), skips the private workspace root and any version already on the
+      # registry; --no-git-checks because a release checks out a tag, not a branch.
+      - name: Publish packages
         run: pnpm -r publish --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish CLI package
-        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

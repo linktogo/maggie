@@ -2,7 +2,7 @@ packages:
   - apps/*
   - libs/*
 
-# Resolve @linktogo/* deps (e.g. ^1.3.1) from the local workspace packages
+# Resolve @lk/* deps (e.g. ^1.3.1) from the local workspace packages
 # instead of the npm registry, as npm workspaces do.
 linkWorkspacePackages: true
 

@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   AgentError, createRepoResolver, createRunManager, createThreadService, createThreadStore,
-} from '@linktogo/maggie-agent-runner';
+} from '@lk/maggie-agent-runner';
 import { createAgentsServer, isAuthorized, isLoopbackHost } from '../src/server.js';
 
 function fakeChild() {

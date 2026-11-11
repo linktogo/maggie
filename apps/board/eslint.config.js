@@ -38,6 +38,7 @@ export default [
     // Node-side files: dev server, build/tooling config, and their tests.
     files: [
       'bin/*.js',
+      'cli/**/*.js',
       'server.js',
       'server.test.js',
       'ciReader.js',

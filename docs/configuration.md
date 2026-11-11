@@ -1,6 +1,6 @@
 # Configuration
 
-Both CLIs (`maggie` and `maggie-workspace`) read the same JSON config describing
+Both CLIs (`maggie` and `maggie workspace`) read the same JSON config describing
 the target repositories. It can be a local file (`--config`) or live in a **separate repository** fetched
 with `--config-repo` — the latter is how an organization shares one config
 across everyone's machine without committing its repo list into this project.
@@ -47,7 +47,7 @@ Points at an existing checkout outside the workspace folder. Typically
 absolute — a relative value resolves against the **current working directory**,
 not the config file's location.
 
-Only `maggie-workspace` consumes it: status tracking, hooks and dependency install
+Only `maggie workspace` consumes it: status tracking, hooks and dependency install
 are wired up there instead of cloning into `--workspace` (cloning into `path`
 first if it does not exist yet). `maggie` ignores it and always clones into its
 own temporary work dir.

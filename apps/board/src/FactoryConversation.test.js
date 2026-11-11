@@ -113,9 +113,11 @@ test('the tabs slot sits under the header and the messages can be hidden', () =>
   const w = mount(FactoryConversation, {
     props: { thread: THREAD, messages: [msg('user', 'text', 'go')], showMessages: false },
     slots: { tabs: '<nav data-test="tabs-slot">tabs</nav>' },
+    attachTo: document.body, // jsdom 31 reports a detached element as visible
   });
   expect(w.get('header').element.nextElementSibling.getAttribute('data-test')).toBe('tabs-slot');
   expect(w.get('[data-test=factory-user]').isVisible()).toBe(false);
+  w.unmount();
 });
 
 test('lists the newest message first, keeping the steps of a turn in order', () => {

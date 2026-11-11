@@ -33,6 +33,10 @@ changes in minor releases.
   version is pinned by `packageManager` in `package.json`, and CI, the release PR and the npm publish
   workflow run `pnpm install --frozen-lockfile`. Contributors run `corepack enable`, then
   `pnpm install`. `@linktogo/maggie` is still installed from npm with `npm install -g`.
+- **Dependencies.** Nx 24, vitest 5.1, jsdom 31, vue-router 5.4 and `@anthropic-ai/sdk` 1.x
+  (previously 0.125). Dependency overrides moved to `pnpm-workspace.yaml`, since pnpm ignores npm's
+  `overrides` field: `undici`, `smol-toml`, `qs`, `fast-uri`, `minimatch` and `glob` are pinned again.
+  `pnpm audit` reports no known vulnerability.
 
 ## [1.3.1] - 2026-10-18
 

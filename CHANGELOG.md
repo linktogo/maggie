@@ -27,6 +27,13 @@ changes in minor releases.
   a `0600` file, repository allowlist, one run per repository). Logic lives in the new
   `@linktogo/maggie-agent-runner` library. See `docs/ai-factory.md`.
 
+### Changed
+
+- **The repository now installs with pnpm.** `pnpm-lock.yaml` replaces `package-lock.json`, the
+  version is pinned by `packageManager` in `package.json`, and CI, the release PR and the npm publish
+  workflow run `pnpm install --frozen-lockfile`. Contributors run `corepack enable`, then
+  `pnpm install`. `@linktogo/maggie` is still installed from npm with `npm install -g`.
+
 ## [1.3.1] - 2026-10-18
 
 ## [1.3.0] - 2026-10-01

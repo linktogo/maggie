@@ -14,8 +14,8 @@ repo) and per request, reply to a thread, and the agent resumes its own session.
 ## Start it
 
 ```bash
-npm run agents -- --repos repos.json --workspace wk      # the server (default port 4318)
-npm start                                                  # the board; open the "AI Factory" tab
+pnpm run agents -- --repos repos.json --workspace wk      # the server (default port 4318)
+pnpm start                                                  # the board; open the "AI Factory" tab
 ```
 
 | Flag | Default | Meaning |
@@ -42,7 +42,7 @@ own permissions; only use it for repositories you trust.
 `--repos` is parsed by `@linktogo/maggie-config` (`loadConfig`), so it is validated like the sync config:
 every repo needs `targets`, or the file needs a top-level `defaultTargets`, as in `repos.example.json`.
 
-The board finds the server with `npm start -- --agents-url <url> --agents-token-file <file>` (defaults:
+The board finds the server with `pnpm start -- --agents-url <url> --agents-token-file <file>` (defaults:
 `http://127.0.0.1:4318` and `~/.maggie/agents.token`). Pass the same file as the server's `--token-file`
 when you moved it.
 

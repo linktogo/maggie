@@ -21,13 +21,15 @@ jobs:
       # No `scope:` here on purpose: setup-node writes a registry-wide auth
       # token, which keeps working if a package is ever published under a
       # different scope than the others.
+      - uses: pnpm/action-setup@v4 # version from package.json `packageManager`
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           check-latest: true
           registry-url: https://registry.npmjs.org
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       # Guard: the root package and every publishable library must carry the
       # release tag's version (e.g. v0.1.0). They ship in lockstep, so a
@@ -53,15 +55,17 @@ jobs:
             console.log("all publishable packages are at " + tag);
           ' "$tag"
 
-      - run: npm test
+      - run: pnpm test
 
       # Libraries first: the root CLI package depends on them by version range.
+      # `pnpm -r publish` skips the workspace root and any version already on
+      # the registry; --no-git-checks because a release checks out a tag, not a branch.
       - name: Publish libraries
-        run: npm publish --workspaces
+        run: pnpm -r publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish CLI package
-        run: npm publish
+        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

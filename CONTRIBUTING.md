@@ -7,45 +7,48 @@ By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## Getting started
 
-Requirements: **Node.js >= 24.22.1** and **npm** (see below — npm is not optional here).
+Requirements: **Node.js >= 24.22.1** and **pnpm** (see below — pnpm is not optional here).
+The pinned version is in `package.json` (`packageManager`): `corepack enable`
+installs it.
 
 ```bash
 git clone https://github.com/linktogo/maggie.git
 cd maggie
-npm ci
-npm test
+pnpm install
+pnpm test
 ```
 
-The repo is an [Nx](https://nx.dev) monorepo using npm workspaces: applications
+The repo is an [Nx](https://nx.dev) monorepo using pnpm workspaces (`pnpm-workspace.yaml`): applications
 in `apps/`, shared libraries in `libs/`, the skills library in `skills/`. See
 [Project layout](README.md#project-layout) for what each project does.
 
-> **Keep `package-lock.json` as the only lockfile.** Nx detects the package
-> manager from the lockfile; adding a `pnpm-lock.yaml` or `yarn.lock` breaks the
-> project graph and the CI build.
+> **Keep `pnpm-lock.yaml` as the only lockfile.** Nx detects the package
+> manager from the lockfile; adding a `package-lock.json` or `yarn.lock` breaks
+> the project graph and the CI build. Install with pnpm only: Nx reads
+> `node_modules/.modules.yaml`, which npm does not write.
 
 > **`node-pty` is native.** The Factory console's pseudo-terminal
 > (`libs/agent-runner`, optional dependency) ships prebuilt binaries for macOS
-> and Windows; on Linux `npm ci` compiles it with node-gyp (Python 3 and a C++
+> and Windows; on Linux `pnpm install` compiles it with node-gyp (Python 3 and a C++
 > toolchain). If that build fails the install still succeeds and the console is
 > reported unavailable.
 
 ## Running things locally
 
 ```bash
-npm test            # nx run-many -t test — every lib/app, 100% coverage gate each
-npm run test:board  # apps/board only: server (node:test) + front-end (vitest), both at 100%
-npm run check:coverage # fails if any project no longer enforces a 100% gate
-npm run lint        # nx run-many -t lint
-npm run build       # nx run-many -t build
-npm start           # build + serve the kanban dashboard
+pnpm test            # nx run-many -t test — every lib/app, 100% coverage gate each
+pnpm run test:board  # apps/board only: server (node:test) + front-end (vitest), both at 100%
+pnpm run check:coverage # fails if any project no longer enforces a 100% gate
+pnpm run lint        # nx run-many -t lint
+pnpm run build       # nx run-many -t build
+pnpm start           # build + serve the kanban dashboard
 ```
 
-`npm run agents -- --repos repos.example.json` starts the AI Factory agents
+`pnpm run agents -- --repos repos.example.json` starts the AI Factory agents
 server (see [AI Factory](docs/ai-factory.md)); it needs the `claude` or
 `copilot` CLI to actually run an agent, tests never do.
 
-`npm run retro-doc` reconstructs a repository's design record into one
+`pnpm run retro-doc` reconstructs a repository's design record into one
 agent-facing document, asking which repository of the workspace to document and
 which LLM to use (Anthropic API, the `claude` CLI or the `copilot` CLI). Add
 `--dry-run` to see what it would read and cost without calling anything. See
@@ -54,7 +57,7 @@ which LLM to use (Anthropic API, the `claude` CLI or the `copilot` CLI). Add
 The screenshots in `docs/images` are generated, not captured by hand:
 
 ```bash
-npm run board:build
+pnpm run board:build
 NODE_PATH="$(npm root -g)" node docs/screenshots/capture.mjs
 ```
 
@@ -79,15 +82,15 @@ patch that lowers coverage fails CI, so new code needs new tests.
 
 Two checks hold the line, both run by CI and by a **`pre-push` git hook**:
 
-- `npm run check:coverage` (`scripts/check-coverage-gates.js`) fails if any
+- `pnpm run check:coverage` (`scripts/check-coverage-gates.js`) fails if any
   project's `test` target stops enforcing 100%: a `node --test` command without
   `--experimental-test-coverage` or with a threshold below 100, a vitest config
   without `coverage.enabled` and 100% thresholds, or a project with no gated
   runner at all.
-- `npx nx run-many -t test` runs every project's tests under that gate (Nx
+- `pnpm exec nx run-many -t test` runs every project's tests under that gate (Nx
   caches the projects you did not touch).
 
-`npm install` activates the hook (the root `prepare` script points
+`pnpm install` activates the hook (the root `prepare` script points
 `core.hooksPath` at `.githooks/`). `git push --no-verify` skips it locally, but
 CI runs the same checks.
 
@@ -131,7 +134,7 @@ Copilot, Cursor, Windsurf); you do not need to write per-platform variants.
 
 Nx enforces module boundaries by `scope:*` tags (see `eslint.config.js`). Import
 another project only through its package entry (`@linktogo/maggie-<name>`), never by
-a deep relative path across project roots. `npm run lint` catches violations.
+a deep relative path across project roots. `pnpm run lint` catches violations.
 
 Package naming follows what is published: the seven libraries under `libs/` carry
 their public `@linktogo/maggie-*` names, while the applications under `apps/` stay
@@ -150,8 +153,8 @@ proposing it (`.github/dependabot.yml`):
 
 Nothing in this repository is written in TypeScript; `typescript` is present
 only because Nx's plugins and editor tooling load it. Lift the hold once Nx
-processes the project graph on TS 7 — check with `npm i -D typescript@7 && npx
-nx reset && npx nx show projects` before touching `package.json`.
+processes the project graph on TS 7 — check with `pnpm add -D -w typescript@7 && pnpm exec
+nx reset && pnpm exec nx show projects` before touching `package.json`.
 
 ## Commit messages
 
@@ -171,7 +174,7 @@ Scopes usually map to a project (`sync`, `workspace`, `board`, `config`, `git`,
 
 1. Branch off `main`.
 2. Make the change with tests; keep the diff focused on one concern.
-3. Run `npm run lint && npm test && npm run build` before pushing.
+3. Run `pnpm run lint && pnpm test && pnpm run build` before pushing.
 4. Open the pull request and fill in the template — what changed, why, and how
    you verified it.
 5. CI (`nx run-many -t lint test build`) must be green before review.
@@ -230,7 +233,7 @@ tag matches `package.json`, extracts the matching section of
 hand-written release notes needed.
 
 That Release's `published` event triggers `.github/workflows/publish.yml`,
-which runs `npm publish --workspaces` (libraries) and then `npm publish` (the
+which runs `pnpm -r publish` (libraries) and then `pnpm publish` (the
 CLI package, which depends on them) with no manual approval step.
 
 If `RELEASE_PAT` is missing or expired, the tagging step fails loudly in the
@@ -241,14 +244,14 @@ updating the secret.
 To rehearse a release against a local registry:
 
 ```bash
-npm run publish:verdaccio   # publishes the seven libraries to http://localhost:4873
+pnpm run publish:verdaccio   # publishes the seven libraries to http://localhost:4873
 ```
 
 Check what a tarball would actually contain before releasing:
 
 ```bash
-npm pack --dry-run                                # the CLI package
-npm pack --dry-run --workspace @linktogo/maggie-renderers # one library
+pnpm pack --dry-run                                            # the CLI package
+pnpm --filter @linktogo/maggie-renderers pack --dry-run        # one library
 ```
 
 ## Reporting bugs and requesting features

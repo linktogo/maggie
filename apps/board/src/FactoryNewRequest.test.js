@@ -78,6 +78,14 @@ test('skill mode needs a skill, the prompt becoming extra instructions', async (
   expect(w.emitted('submit')[0][0]).toMatchObject({ repo: 'api', provider: 'copilot', skill: 'nx/monorepo', prompt: '' });
 });
 
+test('switching back from skill mode to prompt mode hides the skill picker', async () => {
+  const w = form();
+  await w.get('[data-test=factory-mode-skill]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(true);
+  await w.get('[data-test=factory-mode-prompt]').setValue(true);
+  expect(w.find('[data-test=factory-skill]').exists()).toBe(false);
+});
+
 test('the form is disabled when the agents server is unavailable, has no provider or no repo', () => {
   expect(form({ available: false }).get('[data-test=factory-run]').element.disabled).toBe(true);
   expect(form({ providers: [] }).get('[data-test=factory-run]').element.disabled).toBe(true);

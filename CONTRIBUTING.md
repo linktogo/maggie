@@ -33,8 +33,9 @@ in `apps/`, shared libraries in `libs/`, the skills library in `skills/`. See
 ## Running things locally
 
 ```bash
-npm test            # nx run-many -t test — every lib/app, 100% coverage gate each (except board)
-npm run test:board  # apps/board only: server (node:test) + front-end (vitest)
+npm test            # nx run-many -t test — every lib/app, 100% coverage gate each
+npm run test:board  # apps/board only: server (node:test) + front-end (vitest), both at 100%
+npm run check:coverage # fails if any project no longer enforces a 100% gate
 npm run lint        # nx run-many -t lint
 npm run build       # nx run-many -t build
 npm start           # build + serve the kanban dashboard
@@ -72,8 +73,23 @@ node apps/workspace/bin/workspace.js --config repos.example.json --workspace /tm
 
 ## Tests and the coverage gate
 
-Every library and CLI app enforces a **100% coverage gate** (`apps/board` is
-exempt). A patch that lowers coverage fails CI, so new code needs new tests.
+Every project under `apps/`, `libs/` and `.github/actions/` — the board included — enforces a **100%
+coverage gate** on lines, functions and branches (and statements for vitest). A
+patch that lowers coverage fails CI, so new code needs new tests.
+
+Two checks hold the line, both run by CI and by a **`pre-push` git hook**:
+
+- `npm run check:coverage` (`scripts/check-coverage-gates.js`) fails if any
+  project's `test` target stops enforcing 100%: a `node --test` command without
+  `--experimental-test-coverage` or with a threshold below 100, a vitest config
+  without `coverage.enabled` and 100% thresholds, or a project with no gated
+  runner at all.
+- `npx nx run-many -t test` runs every project's tests under that gate (Nx
+  caches the projects you did not touch).
+
+`npm install` activates the hook (the root `prepare` script points
+`core.hooksPath` at `.githooks/`). `git push --no-verify` skips it locally, but
+CI runs the same checks.
 
 This project is developed test-first: write the failing test, make it pass, then
 refactor. If a change is genuinely untestable, say so in the pull request rather
@@ -82,7 +98,8 @@ than lowering the threshold.
 Tests live next to the code they cover:
 
 - `libs/*/test/*.test.js` and `apps/{sync,workspace,agents}/test/*.test.js` — `node:test`
-- `apps/board/src/*.test.js` — `vitest` + `@vue/test-utils`
+- `apps/board/*.test.js` — `node:test` for the server side (`server.js`, `ciReader.js`, …), all run together so their coverage adds up
+- `apps/board/src/*.test.js` — `vitest` + `@vue/test-utils`, coverage via `@vitest/coverage-v8` (report in `coverage/apps/board`)
 
 ## Adding a skill
 

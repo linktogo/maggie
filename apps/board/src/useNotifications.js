@@ -3,7 +3,7 @@ import { translate, locale } from './i18n.js';
 
 const SOUND_KEY = 'maggie:sound';
 
-function defaultPlaySound() {
+export function defaultPlaySound() {
   try {
     const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!Ctx) return;

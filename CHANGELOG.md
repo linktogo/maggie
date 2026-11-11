@@ -12,6 +12,15 @@ changes in minor releases.
 
 ### Added
 
+- **`maggie-board` command.** `@linktogo/maggie` now ships the board UI (server plus the pre-built
+  front-end, built by `prepack`) behind a `maggie-board` bin, next to `maggie-agents`: after
+  `npm install -g @linktogo/maggie`, both run from any directory without a checkout.
+- **100% coverage gate for `apps/board`, and a hook that keeps every project at 100%.** The board's
+  server (`node:test`) and front-end (vitest + `@vitest/coverage-v8`) suites now fail below 100%, like
+  every other project. `npm run check:coverage` fails when a project stops enforcing the gate; it runs
+  in CI and, with the full test run, in a `pre-push` git hook that `npm install` activates.
+- The board server now closes cleanly on Ctrl-C / `SIGTERM` (exit code 0) when run directly.
+
 - **AI Factory.** A new `maggie-agents` server (`npm run agents`) runs Claude Code or GitHub Copilot
   CLI agents on the repositories of the config, and a new **AI Factory** tab in the board launches them
   and streams their output. The server is independent of the board (loopback only, bearer token kept in

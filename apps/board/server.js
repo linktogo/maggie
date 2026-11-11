@@ -204,7 +204,9 @@ async function serveRetroDoc(runner, req, res, url) {
   res.end(JSON.stringify(started.job ? { job: started.job } : { error: started.error }));
 }
 
-async function serveStatic(distDir, pathname, res) {
+// Exported for its tests: the 403 branch is a second fence that `new URL()`
+// already makes unreachable over HTTP.
+export async function serveStatic(distDir, pathname, res) {
   const file = resolveStaticFile(distDir, pathname);
   if (!file) {
     res.writeHead(403); res.end('forbidden'); return;
@@ -333,6 +335,21 @@ export async function startFromArgv(argv, {
   return server;
 }
 
+// The command-line entry: `node apps/board/server.js` and the published
+// `maggie-board` bin both go through here.
+export async function runCli(argv, { proc = process } = {}) {
+  const server = await startFromArgv(argv);
+  // Ctrl-C closes the server (which also stops the CI timer) and exits cleanly
+  // instead of being killed mid-response.
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    proc.once(signal, () => {
+      server.closeAllConnections();
+      server.close(() => proc.exit(0));
+    });
+  }
+  return server;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  await startFromArgv(process.argv.slice(2));
+  await runCli(process.argv.slice(2));
 }

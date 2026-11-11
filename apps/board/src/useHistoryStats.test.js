@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { ref } from 'vue';
 import { useHistoryStats, bucketKey } from './useHistoryStats.js';
+import { USD_TO_EUR } from './pricing.js';
 
 function entry(overrides = {}) {
   return {
@@ -58,7 +59,9 @@ test('bucketByPeriod attributes cost per model, and pre-migration entries with n
   ]);
   const { bucketByPeriod } = useHistoryStats(entries);
   const [bucket] = bucketByPeriod('day');
-  expect(bucket.costByModel).toEqual({ 'claude-sonnet-5': 3, unknown: 3 });
+  expect(bucket.costByModel['claude-sonnet-5']).toBeCloseTo(3 * USD_TO_EUR, 6);
+  expect(bucket.costByModel.unknown).toBeCloseTo(3 * USD_TO_EUR, 6);
+  expect(Object.keys(bucket.costByModel).sort()).toEqual(['claude-sonnet-5', 'unknown']);
 });
 
 test('totalsByProject aggregates every entry by repo, regardless of granularity, sorted by token volume descending', () => {
@@ -77,4 +80,19 @@ test('totalsByProject includes entries with no endedAt (only time-bucketing need
   const entries = ref([entry({ repo: 'a', endedAt: null })]);
   const { totalsByProject } = useHistoryStats(entries);
   expect(totalsByProject()).toHaveLength(1);
+});
+
+test('bucketByPeriod counts an entry with no usage as zero tokens, and keeps equal keys together', () => {
+  const entries = ref([
+    { repo: 'a', endedAt: '2026-06-02T10:00:00.000Z' },
+    { repo: 'a', endedAt: '2026-06-01T10:00:00.000Z', usage: { inputTokens: 5 } },
+    { repo: 'a', endedAt: '2026-06-03T10:00:00.000Z' },
+  ]);
+  const buckets = useHistoryStats(entries).bucketByPeriod('day');
+  expect(buckets.map((b) => b.key)).toEqual(['2026-06-01', '2026-06-02', '2026-06-03']);
+  expect(buckets[0].tokens).toEqual({ inputTokens: 5, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 });
+  expect(buckets[1].tokens).toEqual({ inputTokens: 0, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 });
+  expect(useHistoryStats(ref([
+    { repo: 'a', endedAt: '2026-06-01T10:00:00.000Z' }, { repo: 'b', endedAt: '2026-06-01T11:00:00.000Z' },
+  ])).bucketByPeriod('month')).toHaveLength(1);
 });

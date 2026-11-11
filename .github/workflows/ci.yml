@@ -22,11 +22,14 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
+          check-latest: true
           cache: npm
       - run: npm ci
       - name: Lint
         run: npx nx run-many -t lint
+      - name: Check every project enforces a 100% coverage gate
+        run: npm run check:coverage
       - name: Test (100% coverage gate per project)
         run: npx nx run-many -t test
       - name: Test release scripts

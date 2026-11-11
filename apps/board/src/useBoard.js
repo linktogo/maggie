@@ -20,6 +20,7 @@ export function useBoard({ intervalMs = 3000, fetchImpl = fetch } = {}) {
   const error = ref(null);
   const transitions = ref([]);
   const connected = ref(true);
+  const loaded = ref(false); // true once the first fetch has succeeded
   let prev = null; // null until the first successful fetch establishes a baseline
 
   async function refresh() {
@@ -32,6 +33,7 @@ export function useBoard({ intervalMs = 3000, fetchImpl = fetch } = {}) {
       repos.value = next;
       error.value = null;
       connected.value = true;
+      loaded.value = true;
     } catch (err) {
       error.value = err;
       connected.value = false;
@@ -43,5 +45,5 @@ export function useBoard({ intervalMs = 3000, fetchImpl = fetch } = {}) {
   function stop() { clearInterval(timer); }
   onUnmounted(stop);
 
-  return { repos, error, transitions, connected, refresh, stop };
+  return { repos, error, transitions, connected, loaded, refresh, stop };
 }

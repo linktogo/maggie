@@ -5,7 +5,9 @@ import { createMemoryHistory } from 'vue-router';
 import App from './App.vue';
 import Column from './Column.vue';
 import { createBoardRouter } from './router.js';
-import { DEFAULT_LOCALE, locale, STORAGE_KEY } from './i18n.js';
+import { DEFAULT_LOCALE, locale, STORAGE_KEY, translate } from './i18n.js';
+import { setBudget } from './budget.js';
+import { USD_TO_EUR } from './pricing.js';
 
 // The /history route mounts real chart components; jsdom has no <canvas>
 // support, so Chart.js is mocked the same way the dedicated chart test
@@ -21,6 +23,7 @@ vi.mock('chart.js', () => {
 });
 
 afterEach(() => {
+  setBudget({ session: null, day: null });
   vi.restoreAllMocks();
   locale.value = DEFAULT_LOCALE;
   window.localStorage.clear();
@@ -376,4 +379,121 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
   const inactive = wrapper.get('[data-test=view-history]');
   expect(inactive.classes()).toContain('text-ink-muted');
+});
+
+test('App polls /api/history only once a day threshold is set', async () => {
+  setBudget({ day: null });
+  const off = routedFetch();
+  await mountApp(off);
+  expect(off.mock.calls.filter(([u]) => u === '/api/history')).toHaveLength(0);
+
+  setBudget({ day: 50 });
+  const on = routedFetch();
+  await mountApp(on);
+  expect(on.mock.calls.filter(([u]) => u === '/api/history').length).toBeGreaterThan(0);
+  setBudget({ day: null });
+});
+
+test('App shows the budget settings in the header', async () => {
+  const { wrapper } = await mountApp(routedFetch());
+  expect(wrapper.find('[data-test=budget-settings]').exists()).toBe(true);
+});
+
+test('App does not replay a day alert on reload when the history arrives before the board', async () => {
+  const sent = [];
+  class FakeNotification { constructor(title) { sent.push(title); } }
+  FakeNotification.permission = 'granted';
+  vi.stubGlobal('Notification', FakeNotification);
+
+  const usage = { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, byModel: { 'claude-sonnet-5': { inputTokens: 1_000_000, outputTokens: 0, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 } } };
+  const oneMillion = 3 * USD_TO_EUR; // euros
+  setBudget({ day: oneMillion * 1.5 }); // history alone (1x) is below it, history + live (2x) is above
+  let releaseBoard;
+  const boardGate = new Promise((r) => { releaseBoard = r; });
+  const fetchImpl = vi.fn().mockImplementation((url) => {
+    if (url === '/api/config') return Promise.resolve({ json: async () => ({ repos: {} }) });
+    if (url === '/api/history') return Promise.resolve({ json: async () => ([{ repo: 'h', sessionId: 'old', endedAt: new Date().toISOString(), usage }]) });
+    return boardGate.then(() => ({ json: async () => ({ version: 2, repos: { a: { sessions: { s1: { status: 'inprogress', lastEvent: 'Stop', updatedAt: 'T', title: 't', lastPrompt: 'p', events: [], usage } } } } }) }));
+  });
+  await mountApp(fetchImpl);
+  releaseBoard();
+  await settle();
+  expect(sent).toHaveLength(0);
+  setBudget({ day: null });
+  vi.unstubAllGlobals();
+});
+
+test('App says the day figure is live-only when the history cannot be loaded', async () => {
+  setBudget({ day: 50 });
+  const base = routedFetch();
+  const fetchImpl = vi.fn().mockImplementation((url) => (url === '/api/history' ? Promise.reject(new Error('down')) : base(url)));
+  const { wrapper } = await mountApp(fetchImpl);
+  expect(wrapper.find('[data-test=day-partial]').exists()).toBe(true);
+  setBudget({ day: null });
+});
+
+test('App falls back to the global fetch when no fetchImpl prop is given', async () => {
+  const fetchImpl = routedFetch();
+  vi.stubGlobal('fetch', fetchImpl);
+  try {
+    const router = createBoardRouter(createMemoryHistory());
+    router.push('/');
+    await router.isReady();
+    mount(App, { props: { intervalMs: 100000 }, global: { plugins: [router] } });
+    await settle();
+    expect(fetchImpl).toHaveBeenCalledWith('/api/board');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test('App counts repos with no sessions object as having none', async () => {
+  setBudget({ day: 50 });
+  const fetchImpl = vi.fn().mockImplementation((url) => {
+    if (url === '/api/board') return Promise.resolve({ json: async () => ({ repos: { bare: {} } }) });
+    return routedFetch()(url);
+  });
+  const { wrapper } = await mountApp(fetchImpl);
+  expect(wrapper.text()).toContain('bare');
+  setBudget({ day: null });
+});
+
+test('App warns when the board is unreachable', async () => {
+  const fetchImpl = vi.fn().mockImplementation((url) => (url === '/api/board' ? Promise.reject(new Error('down')) : routedFetch()(url)));
+  const { wrapper } = await mountApp(fetchImpl);
+  expect(wrapper.text()).toContain(translate('banner.disconnected'));
+});
+
+test('the notification button asks for permission, and the sound button toggles its icon', async () => {
+  class FakeNotification { }
+  FakeNotification.permission = 'default';
+  FakeNotification.requestPermission = vi.fn().mockResolvedValue('granted');
+  vi.stubGlobal('Notification', FakeNotification);
+  try {
+    const { wrapper } = await mountApp(routedFetch());
+    const enable = wrapper.findAll('button').find((b) => b.text().includes(translate('notifications.enable')));
+    await enable.trigger('click');
+    await settle();
+    expect(FakeNotification.requestPermission).toHaveBeenCalled();
+    expect(wrapper.findAll('button').some((b) => b.text().includes(translate('notifications.enable')))).toBe(false);
+
+    const sound = () => wrapper.findAll('button').find((b) => b.text().includes(translate('notifications.sound')));
+    expect(sound().classes()).toContain('text-ink-faint');
+    await sound().trigger('click');
+    expect(sound().classes()).toContain('text-ink-soft');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test('App explains that notifications are blocked when permission was denied', async () => {
+  class FakeNotification { }
+  FakeNotification.permission = 'denied';
+  vi.stubGlobal('Notification', FakeNotification);
+  try {
+    const { wrapper } = await mountApp(routedFetch());
+    expect(wrapper.text()).toContain(translate('notifications.blocked'));
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

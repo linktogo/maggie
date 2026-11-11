@@ -45,3 +45,12 @@ test('useCi keeps the last known repos when a fetch fails', async () => {
   expect(syncError.value).toBe('unreachable');
   stop();
 });
+
+test('useCi treats a payload without repos as empty', async () => {
+  const fetchImpl = respond({});
+  const { repos, syncError, stop } = useCi({ intervalMs: 100000, fetchImpl });
+  await nextTick(); await Promise.resolve();
+  expect(repos.value).toEqual({});
+  expect(syncError.value).toBeNull();
+  stop();
+});

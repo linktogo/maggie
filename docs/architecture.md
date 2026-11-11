@@ -52,7 +52,7 @@ and is why `@nx/enforce-module-boundaries` is switched off for that directory in
 
 ```bash
 npm test            # nx run-many -t test — every project
-npm run test:board  # apps/board only: server + reader (node:test) + front-end (vitest)
+npm run test:board  # apps/board only: server + reader (node:test) + front-end (vitest), 100% each
 npm run lint
 npm run build
 ```
@@ -68,16 +68,20 @@ Nx caches test results aggressively. When verifying something for real, pass
 
 ### Coverage gates
 
-Every project under `libs/` enforces **100% line, function and branch coverage**
-through `node --test --experimental-test-coverage`, wired in its `project.json`.
-A drop fails the build.
+Every project under `apps/`, `libs/` and `.github/actions/` enforces **100%
+line, function and branch coverage**: through `node --test --experimental-test-coverage` wired in
+its `project.json` (or the `nx` block of its `package.json`), and for the board's
+Vue front-end through vitest's `coverage.thresholds` (statements too) in
+`apps/board/vite.config.js`. A drop fails the build.
 
-Two projects deliberately have no percentage gate:
+`scripts/check-coverage-gates.js` (`npm run check:coverage`) checks the gates
+themselves: it fails when a project's `test` target no longer enforces 100%. CI
+and the `pre-push` git hook (`.githooks/pre-push`, activated by `npm install`)
+run it before the tests.
 
-- `apps/board` — the Vue front-end and the HTTP server are covered by
-  behavioural tests rather than a threshold.
-- `.github/actions/ci-status-report` — an integration harness that spawns the
-  script as a subprocess, so the parent process cannot measure its coverage.
+`.github/actions/ci-status-report` is tested by spawning its script as a
+subprocess: `node --test` merges the coverage of child processes, so it is gated
+like the rest.
 
 A 100% gate proves every line ran, not that every contract is checked. Several
 real defects in this codebase sat behind fully-covered lines — an argument

@@ -35,7 +35,8 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
+          check-latest: true
 
       - name: Detect bump type from commits since last tag
         id: detect

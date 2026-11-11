@@ -66,3 +66,36 @@ test('useBoard sets connected=false on a fetch error', async () => {
   expect(connected.value).toBe(false);
   stop();
 });
+
+test('useBoard reports loaded only after the first successful fetch', async () => {
+  let resolve;
+  const fetchImpl = vi.fn().mockReturnValueOnce(new Promise((r) => { resolve = r; }));
+  const { loaded, stop } = useBoard({ intervalMs: 100000, fetchImpl });
+  await nextTick();
+  expect(loaded.value).toBe(false);
+  resolve({ json: async () => ({ version: 2, repos: {} }) });
+  await vi.waitFor(() => expect(loaded.value).toBe(true));
+  stop();
+});
+
+test('useBoard stays not loaded when the first fetch fails', async () => {
+  const fetchImpl = vi.fn().mockRejectedValue(new Error('down'));
+  const { loaded, connected, stop } = useBoard({ intervalMs: 100000, fetchImpl });
+  await vi.waitFor(() => expect(connected.value).toBe(false));
+  expect(loaded.value).toBe(false);
+  stop();
+});
+
+test('useBoard treats a payload without repos, and repos without sessions, as empty', async () => {
+  const responses = [{}, { repos: { a: {} } }, { repos: { a: { sessions: { s1: { status: 'done' } } } } }];
+  const fetchImpl = vi.fn().mockImplementation(async () => ({ json: async () => responses.shift() }));
+  const { repos, transitions, refresh, stop } = useBoard({ intervalMs: 100000, fetchImpl });
+  await nextTick(); await Promise.resolve(); await nextTick();
+  expect(repos.value).toEqual({});
+  await refresh();
+  expect(repos.value).toEqual({ a: {} });
+  expect(transitions.value).toEqual([]);
+  await refresh();
+  expect(transitions.value).toEqual([{ name: 'a', sessionId: 's1', title: undefined, status: 'done' }]);
+  stop();
+});

@@ -1,6 +1,7 @@
 import { test, expect, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import RetroDocPage from './RetroDocPage.vue';
+import { translate } from './i18n.js';
 
 const config = {
   'oc-be': { url: 'https://h/oc-be.git', technologies: ['nestjs', 'postgres'] },
@@ -156,4 +157,32 @@ test('a finished run says how many documents it produced', async () => {
   const line = w.get('[data-test=retro-done-oc-be]').text();
   expect(line).toContain('docs/ai/retro-doc/README.md');
   expect(line).toContain('3 documents');
+});
+
+test('a running row with no log and no start time shows the generic progress, without an elapsed time', async () => {
+  const w = await page(fetchWith({ jobs: [{ id: 'x', repo: 'oc-be', status: 'running' }] }));
+  const line = w.get('[data-test=retro-running-oc-be]').text();
+  expect(line).toContain(translate('detail.retroDocRunning'));
+  expect(line).not.toContain('running for');
+});
+
+test('a run younger than a minute counts its elapsed time in seconds', async () => {
+  const w = await page(fetchWith({
+    jobs: [{ id: 'x', repo: 'oc-be', status: 'running', startedAt: '2026-09-14T09:59:45.000Z', log: [] }],
+  }));
+  expect(w.get('[data-test=retro-running-oc-be]').text()).toContain(translate('retro.elapsedSeconds', { s: 15 }));
+});
+
+test('a repository whose config entry is empty is still listed, without technologies', async () => {
+  const w = mount(RetroDocPage, { props: { config: { bare: null, other: {} }, now, fetchImpl: fetchWith() } });
+  await flushPromises();
+  expect(w.findAll('tbody tr')).toHaveLength(2);
+  expect(w.findAll('tbody .rounded-chip')).toHaveLength(0);
+});
+
+test('a refused start shows the server error above the table', async () => {
+  const w = await page(fetchWith({ onPost: () => ({ status: 409, body: { error: 'already running' } }) }));
+  await w.get('[data-test=retro-run-oc-be]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=retro-error]').text()).toContain('already running');
 });

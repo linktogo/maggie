@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=24.22.1"
   },
   "workspaces": [
     "apps/*",
@@ -40,6 +40,12 @@
     "apps/workspace/src",
     "apps/agents/bin",
     "apps/agents/src",
+    "apps/board/bin",
+    "apps/board/server.js",
+    "apps/board/agentsProxy.js",
+    "apps/board/ciReader.js",
+    "apps/board/retroDocJobs.js",
+    "apps/board/dist",
     "skills",
     "README.md",
     "CHANGELOG.md",
@@ -49,12 +55,16 @@
   "bin": {
     "maggie": "apps/sync/bin/sync.js",
     "maggie-workspace": "apps/workspace/bin/workspace.js",
-    "maggie-agents": "apps/agents/bin/agents.js"
+    "maggie-agents": "apps/agents/bin/agents.js",
+    "maggie-board": "apps/board/bin/board.js"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
     "@linktogo/maggie-agent-runner": "^1.3.1",
+    "@linktogo/maggie-ci-status": "^1.3.1",
     "@linktogo/maggie-config": "^1.3.1",
+    "@linktogo/maggie-git": "^1.3.1",
+    "@linktogo/maggie-retro-doc": "^1.3.1",
     "@linktogo/maggie-skill-sync": "^1.3.1",
     "@linktogo/maggie-workspace-bootstrap": "^1.3.1"
   },
@@ -75,6 +85,7 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "test:scripts": "node --test scripts/*.test.js",
+    "check:coverage": "node scripts/check-coverage-gates.js",
     "retro-doc": "node scripts/retro-doc.js",
     "build": "nx run-many -t build",
     "start": "nx run board:start",
@@ -84,7 +95,10 @@
     "board:build": "nx run board:build",
     "test:board": "nx run board:test",
     "publish:libs": "npm publish --workspaces",
-    "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873"
+    "publish:verdaccio": "npm publish --workspaces --registry http://localhost:4873",
+    "prepack": "nx run board:build",
+    "prepare": "node scripts/install-git-hooks.js",
+    "board": "node apps/board/bin/board.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

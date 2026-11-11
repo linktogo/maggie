@@ -188,3 +188,10 @@ test('useTheme exposes the reactive state, the setters and the lists', () => {
   expect(api.theme.value).toBe('classic');
   expect(api.isLightOnly('legacy')).toBe(true);
 });
+
+test('setMode ignores an unsupported mode and keeps the current one', () => {
+  const doc = fakeDoc();
+  setMode('dark', { storage: fakeStorage(), doc, media: fakeMedia() });
+  expect(setMode('sepia', { storage: fakeStorage(), doc, media: fakeMedia() })).toBe('dark');
+  expect(mode.value).toBe('dark');
+});

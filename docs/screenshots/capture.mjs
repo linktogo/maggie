@@ -153,11 +153,66 @@ const history = [
   },
 ];
 
+// factory: the AI Factory tab, with one finished and one running run.
+const factoryRuns = [
+  { id: 'r2', repo: 'example-api', provider: 'claude-cli', skill: 'nestjs/testing', status: 'running' },
+  { id: 'r1', repo: 'example-web', provider: 'copilot', skill: null, status: 'succeeded' },
+];
+const factoryApi = {
+  health: {
+    ok: true, repos: ['example-api', 'example-web', 'example-local-checkout'],
+    providers: { available: ['claude-cli', 'copilot'], default: 'claude-cli' },
+  },
+  skills: { skills: [{ id: 'nestjs/testing' }, { id: 'postgres/migrations' }, { id: 'vuejs/composition-api' }] },
+  runs: { runs: factoryRuns },
+  events: [
+    ['status', { status: 'running' }],
+    ['stdout', { text: 'Reading the existing specs under src/auth/…\n' }],
+    ['stdout', { text: 'Adding a regression test for the logout redirect loop.\n' }],
+    ['stdout', { text: '  ✔ src/auth/logout.spec.ts (3 tests)\n' }],
+    ['stderr', { text: 'warning: jest cache is stale, rebuilding\n' }],
+    ['stdout', { text: 'Done. 1 file changed, 42 insertions(+).\n' }],
+    ['status', { status: 'succeeded' }],
+  ],
+};
+
+// retro-doc: one finished job with its console, one repo never run.
+const retroConfig = {
+  repos: {
+    'example-api': { url: 'https://github.com/example-org/example-api.git', technologies: ['nodejs', 'claude'] },
+    'example-web': { url: 'https://github.com/example-org/example-web.git', technologies: ['vuejs', 'claude'] },
+    'example-docs': { url: 'https://github.com/example-org/example-docs.git', technologies: ['claude'] },
+  },
+};
+const retroJobs = {
+  jobs: [{
+    id: 'j1', repo: 'example-api', provider: 'claude', generator: 'digest', status: 'done',
+    startedAt: ago(9 * MIN), finishedAt: ago(5 * MIN), out: 'docs/retro/example-api.md', files: 24,
+    log: [
+      { at: ago(9 * MIN), text: 'collecting specs and plans — 24 document(s)' },
+      { at: ago(8 * MIN), text: 'digest 1/3: 8 document(s) — docs/specs/auth.md' },
+      { at: ago(7 * MIN), text: 'digest 2/3: 8 document(s) — docs/plans/billing.md' },
+      { at: ago(6 * MIN), text: 'digest 3/3: 8 document(s) — docs/plans/search.md' },
+      { at: ago(5 * MIN), text: 'wrote docs/retro/example-api.md' },
+    ],
+  }],
+};
+
+const historyRich = Array.from({ length: 7 }, (_, i) => {
+  const repo = ['oc-auth', 'oc-be', 'oc-idle'][i % 3];
+  const start = now - (i * 3 + 1) * 24 * H;
+  return {
+    repo, sessionId: `h${i}`, title: `session ${i}`,
+    startedAt: new Date(start).toISOString(), endedAt: new Date(start + 20 * MIN).toISOString(),
+    usage: usage(4000 + i * 700, 2000 + i * 300, 1000 + i * 100, 20000 + i * 6000),
+  };
+});
+
 const EMPTY_CI = { generatedAt: new Date(now).toISOString(), repos: {} };
 
 // ─── stub server ──────────────────────────────────────────────────────────────
 
-let api = { board: { version: 2, repos: {} }, config: { repos: {} }, ci: EMPTY_CI, history: [] };
+let api = { factory: null, retro: null, board: { version: 2, repos: {} }, config: { repos: {} }, ci: EMPTY_CI, history: [] };
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -169,6 +224,19 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/api/config') return json(api.config);
   if (url.pathname === '/api/ci') return json(api.ci);
   if (url.pathname === '/api/history') return json(api.history);
+  if (url.pathname === '/api/retro-doc') return json(api.retro ?? { jobs: [] });
+  if (url.pathname.startsWith('/api/factory') && api.factory) {
+    const f = api.factory;
+    const route = url.pathname.replace('/api/factory', '');
+    if (route === '/health') return json(f.health);
+    if (route === '/skills') return json(f.skills);
+    if (route === '/runs') return json(f.runs);
+    if (/^\/runs\/[^/]+\/events$/.test(route)) {
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      res.end(f.events.map(([type, data]) => `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`).join(''));
+      return;
+    }
+  }
   const rel = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
   try {
     const data = await readFile(path.join(DIST, rel));
@@ -227,6 +295,30 @@ const scenes = [
     out: 'board/theme-picker.png', locale: 'en', width: 1240, height: 430,
     api: { board: localesBoard, config: { repos: {} }, ci: EMPTY_CI, history: [] },
     target: (page) => page.locator('div.flex.items-center.justify-between.gap-3.flex-wrap.mb-4'),
+  },
+  {
+    out: 'board/history-en.png', locale: 'en', width: 1240, height: 760, route: '/history',
+    api: { board: localesBoard, config: { repos: {} }, ci: EMPTY_CI, history: historyRich },
+    target: 'main',
+  },
+  {
+    out: 'board/retro-doc.png', locale: 'en', width: 1240, height: 700, route: '/retro-doc',
+    api: { board: localesBoard, config: retroConfig, ci: EMPTY_CI, history: [], retro: retroJobs },
+    async prep(page) {
+      await page.locator('[data-test="retro-toggle-log-example-api"]').click();
+    },
+    target: 'main',
+  },
+  {
+    out: 'board/ai-factory.png', locale: 'en', width: 1240, height: 800, route: '/factory',
+    api: { board: localesBoard, config: { repos: {} }, ci: EMPTY_CI, history: [], factory: factoryApi },
+    async prep(page) {
+      await page.locator('[data-test="factory-prompt"]')
+        .fill('Add a regression test for the logout redirect loop.');
+      await page.locator('[data-test="factory-follow-r1"]').click();
+      await page.waitForTimeout(500);
+    },
+    target: 'main',
   },
   {
     out: 'worktree-badge/board.png', locale: 'en', width: 1360, height: 840,

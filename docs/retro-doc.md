@@ -5,6 +5,8 @@ document — the *why* behind a codebase, written for the AI agent about to chan
 it. Three ways in: the `scripts/retro-doc.js` CLI, a button on the board, or
 [`@linktogo/maggie-retro-doc`](../libs/retro-doc) directly.
 
+![The retro-documentation page of the board](images/board/retro-doc.png)
+
 A design record grows the way this repository's did: one spec and one plan per
 feature, written at a point in time and never revisited. That history is the
 best explanation of the codebase that exists, and the worst possible thing to

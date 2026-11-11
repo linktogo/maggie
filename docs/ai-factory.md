@@ -5,6 +5,8 @@ a persisted conversation with one agent in one repository. You browse threads pe
 repo) and per request, reply to a thread, and the agent resumes its own session. History lives in
 `~/.maggie/factory.db` (SQLite) and survives restarts. Requires **Node.js >= 24.22.1** (the repository floor; `node:sqlite` itself needs 22.13). Three pieces:
 
+![The AI Factory tab of the board](images/board/ai-factory.png)
+
 | Piece | What it is |
 |---|---|
 | [`libs/agent-runner`](../libs/agent-runner) | the logic: providers, repo allowlist, skills, run lifecycle, thread store and service |

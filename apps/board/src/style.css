@@ -1,0 +1,177 @@
+/*
+ * Roboto ships with the board rather than loading from a font CDN: the board
+ * has to work offline, and a stylesheet link would leak every page view to a
+ * third party. Imported weights cover both the theme tokens (--title-weight/
+ * --card-title-weight top out at 700, in Expressive) and the heaviest
+ * Tailwind weight utility still used directly in components (font-semibold,
+ * 600) — without a 600 file, those elements would fall back to the nearest
+ * registered face (700) once a Material theme replaces the system font
+ * stack, rendering visibly bolder than intended. No component or theme asks
+ * for 900; add that file back if one starts to.
+ */
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/600.css';
+@import '@fontsource/roboto/700.css';
+
+/*
+ * Tailwind v4 is configured from CSS: `source(none)` turns off automatic
+ * content detection so the scanned set stays exactly what tailwind.config.js
+ * used to declare, and the `@source` lines below replace its `content` array.
+ */
+@import 'tailwindcss' source(none);
+@import './themes/contract.css';
+@import './themes/m3.css';
+@import './themes/expressive.css';
+@import './themes/classic.css';
+@import './themes/legacy.css';
+
+@source '../index.html';
+@source './**/*.{vue,js}';
+
+/*
+ * Typography is a theme token now: --font-ui, set by each theme file. The
+ * Material themes ask for Roboto (shipped locally in Task 13); the legacy
+ * theme reproduces the platform UI stack this file used to pin, so the
+ * screenshots in docs/images/board/ stay accurate under it.
+ */
+/*
+ * Preflight defaults that v4 dropped and the board still relies on. Keeping
+ * them here means the migration is visually neutral instead of a silent
+ * restyle of every button and input.
+ */
+@layer base {
+  /*
+   * The ground used to come from `bg-slate-100` on <main>, so it only painted
+   * once Vue had mounted. Painting it on <html> means the stored theme's
+   * ground is there on the first frame, with no flash of the default.
+   */
+  html {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+  }
+
+  body {
+    background: var(--color-ground);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-ink-faint);
+  }
+}
+
+@layer components {
+  .icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: -0.2em;
+  }
+
+  /* Material themes show the glyph; legacy keeps the emoji it always had. */
+  .icon-emoji { display: none; }
+  html[data-theme='legacy'] .icon.has-emoji .icon-symbol { display: none; }
+  html[data-theme='legacy'] .icon.has-emoji .icon-emoji { display: inline; }
+
+  /* Popover from the v-tooltip directive (tooltip.js), appended to <body>. */
+  .tooltip {
+    position: fixed;
+    z-index: 1000;
+    max-width: 16rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: min(var(--radius-control), 0.5rem);
+    background: var(--color-ink);
+    color: var(--color-surface);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: var(--shadow-overlay);
+  }
+
+  /*
+   * Properties Tailwind has no namespace for. Classic sets --nav-transform to
+   * uppercase with wide tracking; Expressive sets --title-weight to 700. Every
+   * theme fills all five, so these classes need no per-theme rules.
+   */
+  .nav-tab {
+    text-transform: var(--nav-transform);
+    letter-spacing: var(--nav-tracking);
+  }
+
+  .col-title {
+    font-weight: var(--title-weight);
+  }
+
+  .card-title {
+    font-weight: var(--card-title-weight);
+  }
+
+  .progress-fill {
+    background: var(--progress-fill);
+  }
+
+  /*
+   * Agent replies rendered by renderMarkdown(): preflight strips every heading,
+   * list and quote style, so long answers read as one undifferentiated block.
+   * Headings mark the summaries, blockquotes become callouts.
+   */
+  .markdown { line-height: 1.6; }
+  .markdown > * + * { margin-top: 0.6em; }
+  .markdown h1, .markdown h2, .markdown h3, .markdown h4 {
+    margin-top: 1em;
+    color: var(--color-ink-strong);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .markdown > :first-child { margin-top: 0; }
+  .markdown h1 { font-size: 1.15em; }
+  .markdown h2 {
+    font-size: 1.1em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .markdown h3 { font-size: 1em; color: var(--color-accent); }
+  .markdown h4 { font-size: 0.95em; }
+  .markdown strong { color: var(--color-ink-strong); font-weight: 600; }
+  .markdown a { color: var(--color-accent); text-decoration: underline; }
+  .markdown ul { list-style: disc; padding-left: 1.25em; }
+  .markdown ol { list-style: decimal; padding-left: 1.5em; }
+  .markdown li + li { margin-top: 0.2em; }
+  .markdown li > ul, .markdown li > ol { margin-top: 0.2em; }
+  .markdown code {
+    padding: 0.1em 0.3em;
+    border-radius: 0.25rem;
+    background: var(--color-surface-muted);
+    font-size: 0.9em;
+  }
+  .markdown pre {
+    overflow-x: auto;
+    padding: 0.5em 0.75em;
+    border-radius: min(var(--radius-control), 0.5rem);
+    background: var(--color-surface-muted);
+  }
+  .markdown pre code { padding: 0; background: none; }
+  .markdown blockquote {
+    padding: 0.4em 0.75em;
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 0.25rem 0.25rem 0;
+    background: var(--color-accent-soft);
+    color: var(--color-on-accent-soft);
+  }
+  .markdown hr { border-color: var(--color-line); }
+  .markdown table { display: block; overflow-x: auto; border-collapse: collapse; }
+  .markdown th, .markdown td { padding: 0.25em 0.5em; border: 1px solid var(--color-line); text-align: left; }
+  .markdown th { background: var(--color-surface-muted); font-weight: 600; }
+}
+
+/* Header logo: the dark-mode mark is swapped in by the data-mode stamp. */
+.logo-dark { display: none; }
+[data-mode='dark'] .logo-light { display: none; }
+[data-mode='dark'] .logo-dark { display: block; }

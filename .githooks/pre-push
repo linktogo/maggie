@@ -1,0 +1,13 @@
+#!/bin/sh
+# Coverage gate: refuses the push unless every project still enforces 100%
+# coverage AND every project's tests reach it. Installed by `pnpm install`
+# (scripts/install-git-hooks.js sets core.hooksPath to .githooks).
+# Nx caches test results, so unchanged projects are not re-run.
+# CI runs the same two checks, so `git push --no-verify` only defers the failure.
+set -e
+
+echo "pre-push: checking that every project enforces a 100% coverage gate..."
+node scripts/check-coverage-gates.js
+
+echo "pre-push: running every project's tests (100% coverage required)..."
+pnpm exec nx run-many -t test --output-style=static

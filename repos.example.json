@@ -1,0 +1,23 @@
+{
+  "defaultTargets": ["claude", "copilot"],
+  "repos": [
+    {
+      "name": "example-api",
+      "url": "https://github.com/example-org/example-api.git",
+      "technologies": ["nestjs", "postgres"],
+      "targets": ["claude", "cursor"]
+    },
+    {
+      "name": "example-web",
+      "url": "https://github.com/example-org/example-web.git",
+      "technologies": ["nx", "nextjs", "reactjs"]
+    },
+    {
+      "name": "example-local-checkout",
+      "url": "https://github.com/example-org/example-local-checkout.git",
+      "path": "/absolute/path/to/example-local-checkout",
+      "technologies": ["vuejs"],
+      "targets": ["claude", "windsurf"]
+    }
+  ]
+}

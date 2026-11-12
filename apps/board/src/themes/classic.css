@@ -1,0 +1,214 @@
+/*
+ * Material of the M2 era: indigo 500 with a pink accent, 4px corners, real
+ * elevation shadows, uppercase nav. Dense and familiar. M2 has no defined
+ * role for `done` or `worktree` the way M3 defines roles — done borrows the
+ * era's green (green 800/300, deeper than the swatch used for chart series
+ * and the CI badge so it clears 4.5:1 against the white --color-on-status
+ * pills use), and worktree borrows the era's pink accent family so it reads
+ * distinct from the indigo/orange/green status trio already in use.
+ *
+ * --color-question-solid uses deep-orange 900 rather than orange 500 for the
+ * same reason: orange 500 (#f57c00, still used for the chart series and the
+ * ring) is only 2.7:1 against white text, well under WCAG AA — the filled
+ * pill needs a darker tone than the ring or the chart swatch do.
+ *
+ * The Task 19 contrast gate found two more shortfalls in the light block:
+ * --color-question-on-soft was orange 900 (#e65100) on the question-soft
+ * tint, 3.46:1 against the 4.5:1 AA bar — it now reuses deep-orange 900
+ * (#bf360c), the same swatch --color-question-solid already sits on, which
+ * clears 5.1:1. --color-ink-muted at 54% black was 4.48:1 against
+ * --color-panel (#f5f5f5), a hair under the bar; 56% clears it with margin
+ * while staying in the same 87/80/60/56/45% black scale as its siblings.
+ */
+html[data-theme='classic'] {
+  /* Surfaces */
+  --color-ground: #fafafa;
+  --color-surface: #ffffff;
+  --color-panel: #f5f5f5;
+  --color-surface-muted: #fafafa;
+  --color-surface-hover: #eeeeee;
+  --color-overlay: rgb(0 0 0 / 0.5);
+
+  /* Hairlines */
+  --color-line: rgb(0 0 0 / 0.12);
+  --color-line-soft: rgb(0 0 0 / 0.06);
+
+  /* Text */
+  --color-ink-strong: rgb(0 0 0 / 0.87);
+  --color-ink: rgb(0 0 0 / 0.8);
+  --color-ink-soft: rgb(0 0 0 / 0.6);
+  --color-ink-muted: rgb(0 0 0 / 0.56);
+  --color-ink-faint: rgb(0 0 0 / 0.45);
+
+  /* Accent */
+  --color-accent: #3f51b5;
+  --color-accent-strong: #303f9f;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #e8eaf6;
+  --color-on-accent-soft: #303f9f;
+
+  /* Status */
+  --color-todo-solid: #616161;
+  --color-todo-soft: #f5f5f5;
+  --color-todo-on-soft: #424242;
+  --color-inprogress-solid: #3f51b5;
+  --color-inprogress-soft: #e8eaf6;
+  --color-inprogress-on-soft: #303f9f;
+  --color-question-solid: #bf360c;
+  --color-question-soft: #fff3e0;
+  --color-question-on-soft: #bf360c;
+  --color-done-solid: #2e7d32;
+  --color-done-soft: #e8f5e9;
+  --color-done-on-soft: #2e7d32;
+  --color-on-status: #ffffff;
+  --color-question-ring: #ffb74d;
+  --color-drop-ring: #81c784;
+
+  /* CI badges */
+  --color-ci-failure-soft: #ffebee;
+  --color-ci-failure-on-soft: #c62828;
+  --color-ci-failure-line: #ef9a9a;
+  --color-ci-running-soft: #e8eaf6;
+  --color-ci-running-on-soft: #303f9f;
+  --color-ci-running-line: #9fa8da;
+  --color-ci-neutral-soft: #f5f5f5;
+  --color-ci-neutral-on-soft: #616161;
+  --color-ci-neutral-line: #e0e0e0;
+  --color-ci-success-soft: #e8f5e9;
+  --color-ci-success-on-soft: #2e7d32;
+  --color-ci-success-line: #a5d6a7;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #e8eaf6;
+  --color-agent-claude-on-soft: #303f9f;
+  --color-agent-copilot-soft: #e0f7fa;
+  --color-agent-copilot-on-soft: #00697a;
+  --color-worktree-soft: #fce4ec;
+  --color-worktree-on-soft: #ad1457;
+
+  /* Chart series */
+  --color-series-1: #3f51b5;
+  --color-series-2: #388e3c;
+  --color-series-3: #f57c00;
+  --color-series-4: #9e9e9e;
+  --color-series-5: #00838f;
+  --color-series-6: #c2185b;
+
+  /* Shape, spacing and type */
+  --radius-card: 0.25rem;
+  --radius-panel: 0.25rem;
+  --radius-control: 0.25rem;
+  --radius-badge: 0.125rem;
+  --radius-chip: 0.125rem;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.24);
+  --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.12);
+  --shadow-overlay: 0 8px 10px -5px rgb(0 0 0 / 0.2), 0 16px 24px 2px rgb(0 0 0 / 0.14), 0 6px 30px 5px rgb(0 0 0 / 0.12);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.5rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: uppercase;
+  --nav-tracking: 0.09em;
+  --title-weight: 500;
+  --card-title-weight: 500;
+  --progress-fill: #3f51b5;
+}
+
+/*
+ * Dark. `system` is resolved in theme.js, so this one block covers both an
+ * explicit dark choice and an OS that asks for dark — there is no media query
+ * to keep in sync with it.
+ */
+html[data-theme='classic'][data-mode='dark'] {
+  /* Surfaces */
+  --color-ground: #121212;
+  --color-surface: #1e1e1e;
+  --color-panel: #242424;
+  --color-surface-muted: #1a1a1a;
+  --color-surface-hover: #2c2c2c;
+  --color-overlay: rgb(0 0 0 / 0.6);
+
+  /* Hairlines */
+  --color-line: rgb(255 255 255 / 0.12);
+  --color-line-soft: rgb(255 255 255 / 0.06);
+
+  /* Text */
+  --color-ink-strong: rgb(255 255 255 / 0.87);
+  --color-ink: rgb(255 255 255 / 0.8);
+  --color-ink-soft: rgb(255 255 255 / 0.7);
+  --color-ink-muted: rgb(255 255 255 / 0.6);
+  --color-ink-faint: rgb(255 255 255 / 0.38);
+
+  /* Accent */
+  --color-accent: #9fa8da;
+  --color-accent-strong: #c5cae9;
+  --color-on-accent: #1a237e;
+  --color-accent-soft: #283593;
+  --color-on-accent-soft: #e8eaf6;
+
+  /* Status */
+  --color-todo-solid: #9e9e9e;
+  --color-todo-soft: #2c2c2c;
+  --color-todo-on-soft: #e0e0e0;
+  --color-inprogress-solid: #9fa8da;
+  --color-inprogress-soft: #283593;
+  --color-inprogress-on-soft: #e8eaf6;
+  --color-question-solid: #ffb74d;
+  --color-question-soft: #5d3a00;
+  --color-question-on-soft: #ffe0b2;
+  --color-done-solid: #81c784;
+  --color-done-soft: #1b5e20;
+  --color-done-on-soft: #c8e6c9;
+  --color-on-status: #121212;
+  --color-question-ring: #f57c00;
+  --color-drop-ring: #81c784;
+
+  /* CI badges */
+  --color-ci-failure-soft: #5c1a1a;
+  --color-ci-failure-on-soft: #ef9a9a;
+  --color-ci-failure-line: #8e3a3a;
+  --color-ci-running-soft: #283593;
+  --color-ci-running-on-soft: #c5cae9;
+  --color-ci-running-line: #5c6bc0;
+  --color-ci-neutral-soft: #2c2c2c;
+  --color-ci-neutral-on-soft: #bdbdbd;
+  --color-ci-neutral-line: #424242;
+  --color-ci-success-soft: #1b5e20;
+  --color-ci-success-on-soft: #a5d6a7;
+  --color-ci-success-line: #2e7d32;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #283593;
+  --color-agent-claude-on-soft: #c5cae9;
+  --color-agent-copilot-soft: #004d5a;
+  --color-agent-copilot-on-soft: #80deea;
+  --color-worktree-soft: #4a0e2a;
+  --color-worktree-on-soft: #f8bbd0;
+
+  /* Chart series */
+  --color-series-1: #9fa8da;
+  --color-series-2: #81c784;
+  --color-series-3: #ffb74d;
+  --color-series-4: #bdbdbd;
+  --color-series-5: #4dd0e1;
+  --color-series-6: #f06292;
+
+  /* Shape, spacing and type */
+  --radius-card: 0.25rem;
+  --radius-panel: 0.25rem;
+  --radius-control: 0.25rem;
+  --radius-badge: 0.125rem;
+  --radius-chip: 0.125rem;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.6);
+  --shadow-panel: 0 1px 3px rgb(0 0 0 / 0.5);
+  --shadow-overlay: 0 8px 10px -5px rgb(0 0 0 / 0.5), 0 16px 24px 2px rgb(0 0 0 / 0.4), 0 6px 30px 5px rgb(0 0 0 / 0.35);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.5rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+
+  --nav-transform: uppercase;
+  --nav-tracking: 0.09em;
+  --title-weight: 500;
+  --card-title-weight: 500;
+  --progress-fill: #9fa8da;
+}

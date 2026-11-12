@@ -1,0 +1,123 @@
+/*
+ * The theme contract. Every theme file under this directory redefines this
+ * exact set of variables — no more, no less; themes/contract.test.js fails a
+ * theme that drifts. The values here are Material 3 tonal in light, which is
+ * both the default theme and the fallback when `data-theme` is never stamped.
+ *
+ * Keep this file flat: one declaration per line, no nested rules, and no
+ * braces inside comments. The contract test parses it with a deliberately
+ * dumb regex rather than a CSS parser.
+ */
+@theme {
+  /*
+   * Surfaces, outermost to innermost: ground is the page behind everything,
+   * surface a card or a panel that sits on it, panel the tinted well a column
+   * body forms around its cards, surface-muted a row or chip inside a card,
+   * surface-hover its hover state, overlay the scrim behind the detail drawer.
+   */
+  --color-ground: #fef7ff;
+  --color-surface: #fffbff;
+  --color-panel: #f7f2fa;
+  --color-surface-muted: #f3edf7;
+  --color-surface-hover: #ece6f0;
+  --color-overlay: rgb(29 27 32 / 0.32);
+
+  /* Hairlines */
+  --color-line: #cac4d0;
+  --color-line-soft: #e7e0ec;
+
+  /* Text */
+  --color-ink-strong: #1d1b20;
+  --color-ink: #2b2930;
+  --color-ink-soft: #49454f;
+  --color-ink-muted: #605d66;
+  --color-ink-faint: #79747e;
+
+  /* Accent */
+  --color-accent: #6750a4;
+  --color-accent-strong: #563f9b;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #eaddff;
+  --color-on-accent-soft: #21005d;
+
+  /* Status */
+  --color-todo-solid: #605d66;
+  --color-todo-soft: #ece6f0;
+  --color-todo-on-soft: #49454f;
+  --color-inprogress-solid: #6750a4;
+  --color-inprogress-soft: #eaddff;
+  --color-inprogress-on-soft: #21005d;
+  --color-question-solid: #b3261e;
+  --color-question-soft: #f9dedc;
+  --color-question-on-soft: #410e0b;
+  --color-done-solid: #386a3c;
+  --color-done-soft: #c8efc9;
+  --color-done-on-soft: #0a2e0c;
+  /*
+   * The ink on a filled status pill. This can't reuse --color-on-accent
+   * (above) — in dark mode the accent inverts to a light tone whose "on"
+   * colour goes dark, while the status solids stay light-on-dark, so
+   * sharing one token would make the column pills unreadable in dark mode.
+   */
+  --color-on-status: #ffffff;
+  --color-question-ring: #f2b8b5;
+  --color-drop-ring: #7abf7e;
+
+  /* CI badges */
+  --color-ci-failure-soft: #f9dedc;
+  --color-ci-failure-on-soft: #8c1d18;
+  --color-ci-failure-line: #f2b8b5;
+  --color-ci-running-soft: #eaddff;
+  --color-ci-running-on-soft: #21005d;
+  --color-ci-running-line: #d0bcff;
+  --color-ci-neutral-soft: #ece6f0;
+  --color-ci-neutral-on-soft: #49454f;
+  --color-ci-neutral-line: #cac4d0;
+  --color-ci-success-soft: #c8efc9;
+  --color-ci-success-on-soft: #0a2e0c;
+  --color-ci-success-line: #8fd693;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #e8def8;
+  --color-agent-claude-on-soft: #1d192b;
+  --color-agent-copilot-soft: #ffd8e4;
+  --color-agent-copilot-on-soft: #31111d;
+  --color-worktree-soft: #d7f0f6;
+  --color-worktree-on-soft: #0b3b45;
+
+  /* Chart series */
+  --color-series-1: #6750a4;
+  --color-series-2: #386a3c;
+  --color-series-3: #7d5260;
+  --color-series-4: #79747e;
+  --color-series-5: #3f5f9e;
+  --color-series-6: #8c4a1f;
+
+  /* Shape, spacing and type */
+  --radius-card: 1rem;
+  --radius-panel: 1rem;
+  --radius-control: 0.5rem;
+  --radius-badge: 0.25rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --shadow-panel: none;
+  --shadow-overlay: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.5rem;
+  --font-ui: Roboto, ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Five properties Tailwind has no namespace for. The component layer in
+ * style.css consumes them; themes set them like any other token.
+ * --title-weight is the column heading's weight; --card-title-weight is the
+ * card/row title's — Column.vue and Card.vue carry different weights today
+ * (font-semibold vs font-medium) and one token can't hold both.
+ */
+:root {
+  --nav-transform: none;
+  --nav-tracking: 0.00625em;
+  --title-weight: 500;
+  --card-title-weight: 500;
+  --progress-fill: #6750a4;               /* a colour or a gradient — whatever background the progress bar paints */
+}

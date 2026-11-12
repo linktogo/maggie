@@ -1,0 +1,14 @@
+{
+  "name": "workspace-bootstrap",
+  "sourceRoot": "libs/workspace-bootstrap/src",
+  "projectType": "library",
+  "tags": ["scope:workspace", "type:lib"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test --experimental-test-coverage --test-coverage-include=\"libs/workspace-bootstrap/src/**/*.js\" --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"libs/workspace-bootstrap/test/**/*.test.js\""
+      }
+    }
+  }
+}

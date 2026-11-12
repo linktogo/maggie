@@ -1,0 +1,45 @@
+name: Skill proposal
+description: Propose guidance for a technology in the shared skills library.
+labels: ["skill"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Skills live at `skills/<techno>/<name>/SKILL.md` and are matched against
+        each repo's `technologies` list. See
+        [Adding a skill](../blob/main/CONTRIBUTING.md#adding-a-skill).
+
+  - type: input
+    id: techno
+    attributes:
+      label: Technology
+      description: The `<techno>` folder it belongs under (existing or new).
+      placeholder: "postgres"
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Skill name
+      placeholder: "connection-pooling"
+    validations:
+      required: true
+
+  - type: textarea
+    id: guidance
+    attributes:
+      label: Guidance to encode
+      description: >
+        What should an agent do differently after reading this skill? Concrete
+        rules beat general advice — this text ends up steering edits to real code.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources
+      description: Docs, style guides, or postmortems the guidance is based on.
+    validations:
+      required: false

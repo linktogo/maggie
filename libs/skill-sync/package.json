@@ -1,0 +1,40 @@
+{
+  "name": "@lk/maggie-skill-sync",
+  "version": "2.0.0",
+  "description": "Resolve the skills that apply to a repository and drive the maggie render/commit/push pipeline.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/pipeline.js",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linktogo/maggie.git",
+    "directory": "libs/skill-sync"
+  },
+  "homepage": "https://github.com/linktogo/maggie/tree/main/libs/skill-sync#readme",
+  "bugs": {
+    "url": "https://github.com/linktogo/maggie/issues"
+  },
+  "keywords": [
+    "maggie",
+    "ai-agents",
+    "claude-code",
+    "developer-tools"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@lk/maggie-git": "^2.0.0",
+    "@lk/maggie-renderers": "^2.0.0",
+    "gray-matter": "^4.0.3"
+  }
+}

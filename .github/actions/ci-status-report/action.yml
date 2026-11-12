@@ -1,0 +1,25 @@
+name: maggie CI status report
+description: Report this repository's CI outcome to the maggie board.
+inputs:
+  token:
+    description: Token with write access to the status repository's ci-status branch.
+    required: true
+  status-repo:
+    description: owner/name of the repository holding the ci-status branch.
+    required: false
+    default: linktogo/maggie
+  branch:
+    description: Branch holding the updates/ folder.
+    required: false
+    default: ci-status
+runs:
+  using: composite
+  steps:
+    - name: Report CI status
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/report.js"
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_STATUS_REPO: ${{ inputs.status-repo }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        JOB_STATUS: ${{ job.status }}

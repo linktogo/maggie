@@ -1,0 +1,300 @@
+# Board dashboard
+
+A read-only kanban dashboard (Vue 3 + Tailwind) showing each repo's status, fed
+by the `board.json` that [`maggie workspace` status tracking](workspace-cli.md#status-tracking)
+writes. It lives in `apps/board/` with a zero-dependency Node server.
+
+## Running it
+
+`pnpm start` builds the front-end and then serves it:
+
+```bash
+pnpm start                                          # build + serve on http://localhost:4180
+pnpm start -- --board /tmp/board.json               # a specific board file
+AI_SYNC_BOARD=/tmp/board.json pnpm start            # board path via env
+pnpm start -- --board /tmp/board.json --port 8080   # custom port
+pnpm start -- --config repos.example.json           # also serve repo metadata
+pnpm run board:build                                # build only, no server
+```
+
+### Flags
+
+| Flag | Env | Default |
+|---|---|---|
+| `--board <path>` | `AI_SYNC_BOARD` | auto-detected, see below |
+| `--config <path>` | `AI_SYNC_CONFIG` | none — degraded mode |
+| `--port <n>` | — | `4180` |
+| `--dist <path>` | — | the built front-end next to the server |
+
+CI status adds five more flags — see [CI status](ci-status.md).
+
+### Board path resolution
+
+First match wins:
+
+1. `--board <path>`
+2. `AI_SYNC_BOARD`
+3. auto-detected `wk/.maggie/board.json`
+4. `board.json` in the current directory
+
+So a plain `pnpm start` from the repo root picks up a live `wk/` workspace
+automatically; `--board` / `AI_SYNC_BOARD` is only needed for a workspace
+elsewhere. The startup log prints the resolved path (`board on … (data: …)`) —
+check it first if the board looks empty.
+
+If the chosen port is already in use the server falls back to the next free one
+and prints where it settled, so avoid starting a second instance by accident.
+
+## Endpoints
+
+| Endpoint | Serves |
+|---|---|
+| `GET /api/board` | The raw `board.json`. Returns an empty board when the file does not exist. |
+| `GET /api/config` | Repo metadata (url, technologies, targets) when started with `--config`. |
+| `GET /api/ci` | Per-contributor CI status — see [CI status](ci-status.md). |
+| `POST /api/sessions/close` | Closes a session: removes it from the board and appends a history entry. Body: `{ repo, sessionId }`. |
+| `POST /api/sessions/message` | Queues a message for a session (see [Messaging a session](#messaging-a-session)). Body: `{ repo, sessionId, message }`. |
+| `POST /api/retro-doc` | Starts a retro-documentation of a repo (see [Generating a retro-documentation](#generating-a-retro-documentation)). Body: `{ repo, provider, model }`. |
+| `GET /api/retro-doc` | The jobs of this board session, newest first; `?repo=<name>` narrows it. |
+| anything else | The built front-end, with an SPA fallback to `index.html`. |
+
+## `board.json`
+
+```json
+{
+  "version": 1,
+  "repos": {
+    "example-api": {
+      "status": "inprogress",
+      "updatedAt": "2026-07-29T18:41:00.000Z",
+      "lastEvent": "UserPromptSubmit",
+      "events": [{ "event": "UserPromptSubmit", "at": "2026-07-29T18:41:00.000Z" }]
+    }
+  }
+}
+```
+
+`status` is one of `todo`, `inprogress`, `question`, `done`. `events` is a
+bounded per-repo history (last 20, newest first). A session may also carry a
+`pendingMessages` array (`[{ text, at }]`, last 20) holding messages queued from
+the dashboard but not yet delivered — see [Messaging a session](#messaging-a-session)
+— and an `agent` field naming the local agent that runs it (`claude` or
+`copilot`; `null` on sessions recorded before the board tracked it).
+
+The version stays `1`: `events` is additive and legacy files are backfilled
+transparently on read. The dashboard only reads the file — writers work whether
+or not the server is running.
+
+## What the UI does
+
+![The board in English](images/board/board-en.png)
+
+- **Four columns**, one per status.
+- **Browser notification** plus a tab-title badge whenever a repo moves into
+  `question` (an agent is blocked on you) or `done`. An optional sound toggle is
+  off by default and persisted in `localStorage`.
+- **Summary header** with per-status counts and a done-progress bar.
+- **Filter bar** narrowing by repo name, technology, or CI state.
+- **Detail side panel** on click: repo URL, technology and target chips, CI
+  breakdown per contributor, the event timeline, and a **message box** to send a
+  message to the session (see below).
+- **Message box** on each session card (and in the detail panel) to send a
+  message to that session — see [Messaging a session](#messaging-a-session).
+- **Agent badge** on each session row naming the local agent behind it —
+  `claude` (Claude Code) or `copilot` (GitHub Copilot CLI) — so a workspace
+  mixing both stays readable. Sessions recorded before the board tracked the
+  agent show as `claude`.
+- **Live cost** on each session card and in the detail panel: the estimated
+  cost in euros, with the per-model split and the prompt-cache hit rate in the
+  tooltip. A `~` in front of the amount means some of it is priced at a guess —
+  a model the pricing table does not list, or a session with no per-model
+  breakdown. A low cache hit rate over a large session adds a hint. See
+  [Cost and budget](#cost-and-budget).
+- **Budget** control in the header: optional per-session and per-day thresholds
+  in euros, with a browser notification when one is crossed.
+- **Language picker** in the header: English (the default), French, German and
+  Spanish. See below.
+- **Theme picker** in the header: Material 3 (the default), Material 3
+  Expressive, Material classic, and Legacy — the board's pre-Material look,
+  kept selectable but frozen. A second picker sets light, dark or system.
+  See [Themes](#themes).
+
+## Messaging a session
+
+An agent that moves to `question` is blocked waiting on you. Rather than
+switching back to the terminal where the session runs, you can type a reply from
+the board — from the input on the session card, or in the detail side panel,
+which also lists any messages still queued.
+
+![The message box on a session card](images/board/send-message-card.png)
+
+![The message box and queued messages in the detail side panel](images/board/send-message-detail.png)
+
+Sending posts `{ repo, sessionId, message }` to `POST /api/sessions/message`.
+The server appends the message to that session's `pendingMessages` queue in
+`board.json` (bounded to the last 20). Because maggie only observes sessions
+through the agent's own hooks — it never drives them — the message is not pushed
+into a live terminal. It is **delivered on the session's next turn**, through
+whichever hook the agent lets write back into the conversation:
+
+| Agent | Delivered by | How |
+|---|---|---|
+| Claude Code | `UserPromptSubmit` | The hook prints the queued messages to stdout, which Claude Code adds to the conversation context. |
+| GitHub Copilot CLI | `sessionStart` and `notification` | Copilot drops the stdout of a `userPromptSubmitted` hook, so the queue is drained on the two events whose output it does honour, and returned as `{"additionalContext": "…"}` — which Copilot injects as a prepended user message. |
+
+Under Copilot that means a message typed while the agent sits blocked on a
+permission prompt or idle reaches it on that notification, without waiting for
+you to type the next prompt. The `messages` subcommand
+(`maggie workspace messages <repo> --agent copilot`) is the delivery-only entry
+point the `sessionStart` hook uses; it drains the queue without touching the
+session's status.
+
+## Generating a retro-documentation
+
+The **Retro-doc** tab, next to Board and History, lists every repository of the
+config: technologies, choice of LLM, state of the last run (with how many
+documents it produced), and a button. The
+same controls also sit in a repository's detail panel — clicking a repository's
+**name** on its card opens it, no session needed, which is the point: an idle
+repo is exactly the one you want to document. Either way: pick an LLM — the Anthropic API, the local `claude` CLI or the local `copilot` CLI — and
+the board reconstructs that repository's reference document from its specs and
+plans, into `docs/ai/retro-documentation.md` inside the checkout. See
+[Retro-documentation](retro-doc.md) for what it reads and what it writes.
+
+The run takes minutes, so `POST /api/retro-doc` answers `202` as soon as the job
+is accepted and the panel polls `GET /api/retro-doc` for what became of it. One
+run at a time per repository — a second `POST` gets a `409`. Jobs live in the
+board process, so restarting it forgets them; the generated file stays.
+
+Each job carries a **console**: timestamped lines, open by default while the run
+is in flight and one toggle away afterwards. A single LLM call over a 200 000-
+character batch takes minutes and says nothing while it runs, so every call is
+both announced and reported:
+
+```
+09:19:14  starting on /home/fabien/wk/lk-mind through GitHub Copilot CLI
+09:19:15  digest 1/5: 6 document(s), 187432 chars — docs/superpowers/plans/…
+09:20:57    ↳ digest 1/5 answered in 1m 42s — 4821 chars
+09:20:58  digest 2/5: 5 document(s), 192135 chars — docs/superpowers/plans/…
+```
+
+That is how you tell a slow run from a stuck one: the row also shows how long it
+has been running, so a last line two minutes old with a call in flight is
+normal, and a last line ten minutes old is the call about to hit its timeout.
+
+The board needs to know **where each repository is checked out**, which it only
+knows when started with a config (`--config`, or `AI_SYNC_CONFIG`). Without one
+both routes answer `503` and the panel says so rather than guessing a directory
+to write into. The checkout is resolved the same way hook reconciliation
+resolves it: `path` from the config when it pins one, otherwise
+`<workspace>/<name>`.
+
+## Cost and budget
+
+Cost is computed in the browser, at render time, from the token counts the board
+already stores — nothing on the server changes, and a correction to the pricing
+table re-prices live sessions and the whole History page at once.
+
+`apps/board/src/pricing.js` holds the table in **USD per million tokens, as
+Anthropic publishes them**, and one hand-set `USD_TO_EUR` factor; every amount
+the board shows is in euros through that factor, so it is indicative. A model id
+is matched exactly, then by family prefix (`claude-sonnet-5-5` is priced as
+`claude-sonnet-5`), and anything else is priced at the table's default rate and
+shown with a `~`. There is no network lookup, for prices or for the rate:
+refresh both by hand when the table is reviewed.
+
+**Budget.** The *Budget* control in the header takes a per-session and a per-day
+threshold in euros; empty means off, which is the default. They are stored in
+this browser only (`localStorage`). A notification is sent when a session — or
+the day's total — reaches its threshold, and again at each doubling (T, 2T, 4T…),
+following the same permission and sound toggles as the other notifications. A
+session already over its threshold when the page loads is recorded, not alerted,
+so a reload never replays alerts; changing a threshold re-baselines the same way.
+A session over its threshold also turns its cost badge to the warning colour.
+
+The day total counts the sessions that closed on the browser's local calendar
+day plus every running session, so it needs `/api/history`; the board only
+fetches it while a day threshold is set, and then only when it can have changed
+— when the number of running sessions changes (a session closing is what grows
+the history), plus a slow 60-second safety-net poll. If the history cannot be
+loaded the header says the figure covers running sessions only, and day alerts
+stay silent until it loads. A session spanning midnight counts
+wholly toward the day it is running in or closes in — it is an alarm, not an
+invoice.
+
+## Themes
+
+![The theme and mode pickers](images/board/theme-picker.png)
+
+The board ships four looks, chosen from the header:
+
+| Theme | What it is |
+|---|---|
+| **Material 3** | Material 3's tonal surfaces on a violet seed. The default. |
+| **Material 3 Expressive** | The expressive revision: full-colour column blocks, large radii, heavy titles. |
+| **Material classic** | Material of the M2 era — indigo app bar, 4px corners, elevation shadows. |
+| **Legacy (frozen)** | Exactly what the board looked like before themes existed. Still selectable, no longer maintained: new work targets the Material themes. |
+
+A second picker sets **light**, **dark** or **system** (the default, which
+follows the operating system). The legacy theme is light only, so the mode
+picker is disabled while it is active — the stored preference is kept and
+applies again as soon as another theme is selected.
+
+Both choices live in `localStorage` (`maggie:theme`, `maggie:mode`),
+per browser, like the language. Nothing is stored server-side, so two people
+looking at the same board can each have their own.
+
+### Adding or changing a theme
+
+Every theme is one CSS file under `apps/board/src/themes/` that redefines the
+same contract of custom properties — colours, radii, shadows, spacing and
+type. `contract.css` declares the full set; `themes/contract.test.js` fails
+any theme that misses one, and `themes/contrast.test.js` fails a palette that
+puts text below WCAG AA on its own background. Components never name a
+colour: they use semantic utilities (`bg-surface`, `text-ink`,
+`rounded-card`) that resolve through those variables.
+
+## Language
+
+The interface ships in English by default — a fresh browser always starts in
+English, regardless of the OS or browser language. The header picker switches
+the whole UI (columns, filters, banners, history table and charts, notification
+bodies, relative times) to French, German or Spanish, and the choice is
+persisted in `localStorage` under `maggie:locale` and re-applied on the next
+visit. Switching also updates `<html lang>`.
+
+The same board in French, German and Spanish:
+
+![The board in French](images/board/board-fr.png)
+![The board in German](images/board/board-de.png)
+![The board in Spanish](images/board/board-es.png)
+
+Charts and the history table follow along — the Chart.js series are relabelled
+and redrawn on a language change:
+
+![The history page in Spanish](images/board/history-es.png)
+
+Translations live in `apps/board/src/locales/<code>.js`, keyed by flat dotted
+keys, with `en.js` as the source catalog: a key missing from another locale
+falls back to its English text rather than showing the key. To add a language,
+drop a catalog next to the others, register it in `MESSAGES` and `LOCALES` in
+`apps/board/src/i18n.js`, and the picker gains an entry. Repo data (names,
+session titles, prompts, CI branches) is never translated.
+
+Without `--config` the board still runs, in a degraded mode with no repo links
+and no technology filter.
+
+## Hook reconciliation on start
+
+When started with `--config`, the server re-verifies every configured repo's
+status hooks and silently repoints any that drifted — a CLI path that moved, or
+hooks writing to a different `board.json` than the one being served. Each
+checkout is reconciled for the agents it is already wired for, detected from the
+settings files present (`.claude/settings.local.json`,
+`.github/copilot/settings.local.json`), falling back to Claude Code when it has
+neither; the log line names the agent. Repos with no checkout on disk are
+skipped; nothing is cloned and no dependencies are installed. A short summary is
+logged.
+
+This exists because both kinds of drift are invisible otherwise: the symptom is
+a card that simply never moves.

@@ -23,7 +23,7 @@ function readManifestDirs(base) {
     if (err.code === 'ENOENT') return [];
     throw err;
   }
-  // Not every directory is a workspace package (e.g. apps/landing-page is a static site),
+  // Not every directory is a workspace package,
   // so only keep the ones that actually have a manifest — as pnpm does.
   return entries
     .filter((e) => e.isDirectory())

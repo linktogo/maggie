@@ -1,6 +1,6 @@
 {
   "name": "@lk/maggie-ci-status",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "CI status payloads for maggie: build them from a GitHub Actions run, validate them, and fold them into per-repo, per-contributor state.",
   "license": "Apache-2.0",
   "type": "module",

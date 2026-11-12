@@ -1,6 +1,6 @@
 {
   "name": "@lk/maggie-board",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "The maggie board: kanban dashboard of the local agent sessions, and the `maggie` command (board, server, skill sync, workspace).",
   "license": "Apache-2.0",
   "type": "module",
@@ -52,13 +52,13 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.7.5",
-    "@lk/maggie-ci-status": "^2.0.0",
-    "@lk/maggie-config": "^2.0.0",
-    "@lk/maggie-git": "^2.0.0",
-    "@lk/maggie-retro-doc": "^2.0.0",
-    "@lk/maggie-server": "^2.0.0",
-    "@lk/maggie-skill-sync": "^2.0.0",
-    "@lk/maggie-workspace-bootstrap": "^2.0.0"
+    "@lk/maggie-ci-status": "^2.1.0",
+    "@lk/maggie-config": "^2.1.0",
+    "@lk/maggie-git": "^2.1.0",
+    "@lk/maggie-retro-doc": "^2.1.0",
+    "@lk/maggie-server": "^2.1.0",
+    "@lk/maggie-skill-sync": "^2.1.0",
+    "@lk/maggie-workspace-bootstrap": "^2.1.0"
   },
   "devDependencies": {
     "@fontsource/roboto": "^5.3.0",

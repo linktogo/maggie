@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, readdirSync, realpathSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, realpathSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +23,12 @@ function readManifestDirs(base) {
     if (err.code === 'ENOENT') return [];
     throw err;
   }
-  return entries.filter((e) => e.isDirectory()).map((e) => path.join(base, e.name, 'package.json'));
+  // Not every directory is a workspace package (e.g. apps/landing-page is a static site),
+  // so only keep the ones that actually have a manifest — as pnpm does.
+  return entries
+    .filter((e) => e.isDirectory())
+    .map((e) => path.join(base, e.name, 'package.json'))
+    .filter((manifest) => existsSync(manifest));
 }
 
 export function listWorkspaceManifests(repoRoot) {

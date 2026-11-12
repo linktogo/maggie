@@ -6,6 +6,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { clone, createRepo } from '../src/git.js';
 
+// Run from a git hook (a pre-push from a worktree exports GIT_DIR), these would
+// redirect every fixture repo's `git -C <tmp>` call to the real checkout.
+for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_COMMON_DIR', 'GIT_PREFIX', 'GIT_NAMESPACE']) {
+  delete process.env[name];
+}
+
 async function makeBareRemote() {
   const root = await mkdtemp(path.join(tmpdir(), 'git-'));
   const bare = path.join(root, 'origin.git');

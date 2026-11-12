@@ -10,6 +10,8 @@ changes in minor releases.
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-11-12
+
 ### Changed
 
 - **Packages are published under the `@linktogo` scope again.** The `@lk` scope from 2.0.0 was
@@ -315,7 +317,8 @@ Initial release.
 - Starter skills library for NestJS, Postgres, Next.js, React, Angular, Vue, Nx,
   Firebase, and Cloudflare Workers.
 
-[Unreleased]: https://github.com/linktogo/maggie/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/linktogo/maggie/compare/v2.1.2...HEAD
+[2.1.2]: https://github.com/linktogo/maggie/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/linktogo/maggie/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/linktogo/maggie/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/linktogo/maggie/compare/v1.3.1...v2.0.0

@@ -57,6 +57,21 @@ test('listWorkspaceManifests finds root, libs, and apps package.json files', asy
   );
 });
 
+test('listWorkspaceManifests skips directories without a package.json', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'bump-'));
+  await mkdir(path.join(root, 'apps', 'server'), { recursive: true });
+  await mkdir(path.join(root, 'apps', 'landing-page'), { recursive: true });
+  await writeFile(path.join(root, 'package.json'), '{}');
+  await writeFile(path.join(root, 'apps', 'server', 'package.json'), '{}');
+  await writeFile(path.join(root, 'apps', 'landing-page', 'index.html'), '<html></html>');
+
+  const { versioned, all } = listWorkspaceManifests(root);
+
+  const expected = [path.join(root, 'package.json'), path.join(root, 'apps', 'server', 'package.json')].sort();
+  assert.deepEqual(versioned.sort(), expected);
+  assert.deepEqual(all.sort(), expected);
+});
+
 test('listWorkspaceManifests tolerates a missing apps directory', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'bump-'));
   await mkdir(path.join(root, 'libs', 'a'), { recursive: true });

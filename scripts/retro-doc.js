@@ -23,7 +23,7 @@ import {
   readSource,
   resolveRepoArg,
   runRetroDoc,
-} from '@lk/maggie-retro-doc';
+} from '@linktogo/maggie-retro-doc';
 
 export const USAGE = `Usage: node scripts/retro-doc.js [options]
 

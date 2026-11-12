@@ -51,7 +51,7 @@ export function updateInternalDependencyRanges(filePath, newVersion) {
   if (!deps) return;
   let changed = false;
   for (const name of Object.keys(deps)) {
-    if (!name.startsWith('@lk/maggie-')) continue;
+    if (!name.startsWith('@linktogo/maggie-')) continue;
     const next = `^${newVersion}`;
     if (deps[name] !== next) {
       deps[name] = next;

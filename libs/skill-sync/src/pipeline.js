@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
-import { clone as defaultClone } from '@lk/maggie-git';
+import { clone as defaultClone } from '@linktogo/maggie-git';
 import { resolveSkills as defaultResolveSkills } from './skills.js';
-import { getRenderer as defaultGetRenderer } from '@lk/maggie-renderers';
+import { getRenderer as defaultGetRenderer } from '@linktogo/maggie-renderers';
 import { readManifest as defaultReadManifest, writeManifest as defaultWriteManifest, stalePaths } from './manifest.js';
 
 const BRANCH = 'maggie/update-skills';

@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { chmod, mkdtemp, mkdir, readFile, stat, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { AgentError, createThreadStore } from '@lk/maggie-agent-runner';
+import { AgentError, createThreadStore } from '@linktogo/maggie-agent-runner';
 import { defaultDbFile, defaultTokenFile, main, onProcessSignal, packagedSkillsDir } from '../src/main.js';
 import { installSqliteWarningFilter } from '../src/warnings.js';
 

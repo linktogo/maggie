@@ -1,11 +1,11 @@
-# @lk/maggie-renderers
+# @linktogo/maggie-renderers
 
 Renders an agent skill into each target platform's on-disk format for
 [maggie](https://github.com/linktogo/maggie). Known targets: `claude`,
 `copilot`, `cursor`, `windsurf`.
 
 ```js
-import { getRenderer, knownTargets } from '@lk/maggie-renderers';
+import { getRenderer, knownTargets } from '@linktogo/maggie-renderers';
 
 const render = getRenderer('claude');
 ```

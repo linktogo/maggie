@@ -1,4 +1,4 @@
-# @lk/maggie-retro-doc
+# @linktogo/maggie-retro-doc
 
 Retro-documentation for [maggie](https://github.com/linktogo/maggie): read a
 repository's design record — specs, plans, decision records — and ask an LLM to
@@ -13,7 +13,7 @@ it into a single document with a fixed shape — orientation, glossary,
 architecture, decision log, invariants, workflows, drift, open questions.
 
 ```js
-import { createComplete, describeProvider, runRetroDoc } from '@lk/maggie-retro-doc';
+import { createComplete, describeProvider, runRetroDoc } from '@linktogo/maggie-retro-doc';
 
 const provider = 'copilot'; // or 'claude' (Anthropic API), or 'claude-cli'
 const { outPath, written, domains } = await runRetroDoc({

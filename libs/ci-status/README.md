@@ -1,4 +1,4 @@
-# @lk/maggie-ci-status
+# @linktogo/maggie-ci-status
 
 CI status payloads for [maggie](https://github.com/linktogo/maggie): build one
 from a GitHub Actions run, validate one read back from disk, and fold a set of
@@ -8,7 +8,7 @@ Pure functions only — no I/O, no git, no network. The composite action uses it
 to produce a status file; the board server uses it to consume one.
 
 ```js
-import { buildUpdate, parseUpdate, buildState, normalizeState } from '@lk/maggie-ci-status';
+import { buildUpdate, parseUpdate, buildState, normalizeState } from '@linktogo/maggie-ci-status';
 
 // In a GitHub Actions runner: build the payload from either trigger context
 const update = buildUpdate(process.env, event, new Date().toISOString());

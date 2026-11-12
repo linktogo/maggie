@@ -63,8 +63,8 @@ jobs:
 
       - run: pnpm test
 
-      # `pnpm -r publish` publishes in dependency order (libraries, @lk/maggie-server, then
-      # @lk/maggie-board), skips the private workspace root and any version already on the
+      # `pnpm -r publish` publishes in dependency order (libraries, @linktogo/maggie-server, then
+      # @linktogo/maggie-board), skips the private workspace root and any version already on the
       # registry; --no-git-checks because a release checks out a tag, not a branch.
       - name: Publish packages
         run: pnpm -r publish --no-git-checks

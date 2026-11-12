@@ -1,6 +1,6 @@
 import { accessSync, constants } from 'node:fs';
 import path from 'node:path';
-import { providerCommand } from '@lk/maggie-retro-doc';
+import { providerCommand } from '@linktogo/maggie-retro-doc';
 import { AgentError } from './errors.js';
 
 export const AGENT_PROVIDERS = ['claude-cli', 'copilot'];

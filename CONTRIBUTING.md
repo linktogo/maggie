@@ -134,12 +134,12 @@ Copilot, Cursor, Windsurf); you do not need to write per-platform variants.
 ## Architecture boundaries
 
 Nx enforces module boundaries by `scope:*` tags (see `eslint.config.js`). Import
-another project only through its package entry (`@lk/maggie-<name>`), never by
+another project only through its package entry (`@linktogo/maggie-<name>`), never by
 a deep relative path across project roots. `pnpm run lint` catches violations.
 
 Package naming follows what is published: the libraries under `libs/` and the two
-applications under `apps/` carry their public `@lk/maggie-*` names (`@lk/maggie-board`,
-`@lk/maggie-server`). Nx project names (`config`, `board`, `server`, …) come from each
+applications under `apps/` carry their public `@linktogo/maggie-*` names (`@linktogo/maggie-board`,
+`@linktogo/maggie-server`). Nx project names (`config`, `board`, `server`, …) come from each
 `project.json` (or the `nx` key of the package) and are independent of both.
 
 ## Dependency holds
@@ -185,7 +185,7 @@ discussed before you invest in the implementation.
 ## Releasing
 
 Ten packages ship from this repository and are versioned **in lockstep**: the
-`@lk/maggie-board` and `@lk/maggie-server` apps under `apps/` and the eight `@lk/maggie-*`
+`@linktogo/maggie-board` and `@linktogo/maggie-server` apps under `apps/` and the eight `@linktogo/maggie-*`
 libraries under `libs/` (the repository root is private, it only carries the version the
 tags follow). The packages depend on each other by caret range
 (`^0.1.0`), so a version that moves in one place must move everywhere.
@@ -251,8 +251,8 @@ pnpm run publish:verdaccio   # publishes every package to http://localhost:4873
 Check what a tarball would actually contain before releasing:
 
 ```bash
-pnpm --filter @lk/maggie-board pack --dry-run                    # the board / `maggie` command
-pnpm --filter @lk/maggie-renderers pack --dry-run        # one library
+pnpm --filter @linktogo/maggie-board pack --dry-run                    # the board / `maggie` command
+pnpm --filter @linktogo/maggie-renderers pack --dry-run        # one library
 ```
 
 ## Reporting bugs and requesting features

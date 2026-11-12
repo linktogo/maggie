@@ -1,4 +1,4 @@
-// Public surface of @lk/maggie-agent-runner.
+// Public surface of @linktogo/maggie-agent-runner.
 export { AgentError } from './errors.js';
 export {
   AGENT_PROVIDERS, DEFAULT_AGENT_PROVIDER, commandFor, detectProviders, findOnPath, resolveProvider, validateModel, validateSessionId,

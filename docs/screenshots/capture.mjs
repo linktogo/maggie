@@ -153,11 +153,103 @@ const history = [
   },
 ];
 
+// factory/*: the AI Factory page, served by a stub of /api/factory.
+const WORKTREE = '/Users/dev/workspace/example-org/example-api/.worktrees/fix-login-loop';
+const factoryThreads = [
+  {
+    id: 'th-login', repo: 'example-api', title: 'Fix the login redirect loop on logout',
+    status: 'idle', provider: 'claude-cli', model: 'sonnet', sessionId: 'sess-login',
+    updatedAt: ago(6 * MIN),
+    worktree: { branch: 'fix/login-loop', path: WORKTREE, base: 'main', ahead: 2, exists: true, dirty: true },
+  },
+  {
+    id: 'th-deps', repo: 'example-api', title: 'Bump minor and patch dependencies',
+    status: 'running', provider: 'claude-cli', model: 'sonnet', sessionId: 'sess-deps',
+    updatedAt: ago(1 * MIN),
+    worktree: { branch: 'chore/deps', path: `${WORKTREE}-deps`, base: 'main', ahead: 0, exists: true, dirty: false },
+  },
+  {
+    id: 'th-docs', repo: 'example-api', title: 'Document the rate-limit headers',
+    status: 'idle', provider: 'copilot-cli', model: '', sessionId: '',
+    updatedAt: ago(3 * H),
+  },
+];
+const step = (id, tool, summary) => ({ id, role: 'agent', kind: 'step', runId: 'run-1', content: { tool, summary } });
+const factoryMessages = [
+  { id: 1, role: 'user', kind: 'text', content: 'The logout flow redirects back to /login in an infinite loop. Track down the cause and fix it.' },
+  step(2, 'Grep', 'redirect in src/auth'),
+  step(3, 'Read', 'src/auth/session.ts'),
+  step(4, 'Read', 'src/auth/guard.ts'),
+  step(5, 'Edit', 'src/auth/guard.ts'),
+  step(6, 'Bash', 'pnpm test auth'),
+  {
+    id: 7, role: 'agent', kind: 'text', runId: 'run-1',
+    content: 'Found it: `guard.ts` re-read the session cookie **before** logout had cleared it, so every redirect to `/login` bounced straight back.\n\nI now clear the session first and redirect afterwards. The auth tests pass (14/14).\n\nShould I also add a regression test for the logout flow?',
+  },
+  { id: 8, role: 'agent', kind: 'status', runId: 'run-1', content: { outcome: 'succeeded', durationMs: 94_000, costUsd: 0.12 } },
+];
+const factory = {
+  health: {
+    providers: { available: ['claude-cli', 'copilot-cli'], default: 'claude-cli' },
+    repos: ['example-api', 'example-web', 'example-docs'],
+    terminal: { available: true },
+  },
+  skills: [{ id: 'nodejs/add-endpoint' }, { id: 'nodejs/write-tests' }, { id: 'vuejs/new-component' }],
+  projects: [
+    { repo: 'example-api', running: true, threads: 3 },
+    { repo: 'example-web', running: false, threads: 1 },
+    { repo: 'example-docs', running: false, threads: 0 },
+  ],
+  threads: factoryThreads,
+  messages: factoryMessages,
+  terminal: [
+    '\x1b[1m$\x1b[0m git status --short',
+    ' M src/auth/guard.ts',
+    '?? src/auth/guard.test.ts',
+    '',
+    '\x1b[1m$\x1b[0m pnpm test auth',
+    '',
+    ' \x1b[1mRUN\x1b[0m  v5.1.0 /Users/dev/workspace/example-org/example-api',
+    '',
+    '  ✓ src/auth/session.test.ts (6 tests)',
+    '  ✓ src/auth/guard.test.ts (8 tests)',
+    '',
+    ' \x1b[1mTest Files\x1b[0m  2 passed (2)',
+    '      \x1b[1mTests\x1b[0m  14 passed (14)',
+    '',
+    '\x1b[1m$\x1b[0m ',
+  ].join('\r\n'),
+};
+
 const EMPTY_CI = { generatedAt: new Date(now).toISOString(), repos: {} };
 
 // ─── stub server ──────────────────────────────────────────────────────────────
 
-let api = { board: { version: 2, repos: {} }, config: { repos: {} }, ci: EMPTY_CI, history: [] };
+let api = { board: { version: 2, repos: {} }, config: { repos: {} }, ci: EMPTY_CI, history: [], factory: null };
+
+// SSE for the console: the demo shell output is sent once, then the stream stays open.
+function factoryApi(req, res, url, json) {
+  const f = api.factory;
+  const route = url.pathname.slice('/api/factory'.length);
+  if (route === '/health') return json(f.health);
+  if (route === '/skills') return json({ skills: f.skills });
+  if (route === '/projects') return json({ projects: f.projects });
+  if (route === '/threads') {
+    const repo = url.searchParams.get('repo');
+    return json({ threads: f.threads.filter((t) => !repo || t.repo === repo) });
+  }
+  const one = /^\/threads\/([^/]+)$/.exec(route);
+  if (one) return json({ thread: f.threads.find((t) => t.id === one[1]), messages: f.messages });
+  if (route === '/terminals' && req.method === 'POST') {
+    return json({ terminal: { id: 'term-1', cwd: f.threads[0].worktree.path } });
+  }
+  if (route === '/terminals/term-1/events') {
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+    res.write(`event: data\ndata: ${Buffer.from(f.terminal).toString('base64')}\n\n`);
+    return undefined;
+  }
+  return json({});
+}
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -169,6 +261,7 @@ const server = createServer(async (req, res) => {
   if (url.pathname === '/api/config') return json(api.config);
   if (url.pathname === '/api/ci') return json(api.ci);
   if (url.pathname === '/api/history') return json(api.history);
+  if (url.pathname.startsWith('/api/factory/')) return factoryApi(req, res, url, json);
   const rel = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
   try {
     const data = await readFile(path.join(DIST, rel));
@@ -238,7 +331,36 @@ const scenes = [
     api: { board: worktree, config: { repos: {} }, ci: EMPTY_CI, history: [] },
     target: (page) => page.locator('[data-test="column-body"]').nth(1).locator('> div').first(),
   },
+  ...factoryScenes(),
 ];
+
+function factoryScenes() {
+  const base = { locale: 'en', width: 1360, height: 860, api: { board: localesBoard, config: { repos: {} }, ci: EMPTY_CI, history: [], factory }, target: 'main' };
+  return [
+    {
+      ...base, out: 'factory/conversation.png', height: 540, route: '/factory/example-api/th-login',
+      async prep(page) {
+        await page.locator('[data-test="factory-reply"]').fill('Yes, add a regression test that covers the logout redirect.');
+      },
+    },
+    {
+      ...base, out: 'factory/console.png', height: 760, route: '/factory/example-api/th-login',
+      async prep(page) {
+        await page.locator('[data-test="factory-console-button"]').click();
+        await page.locator('.xterm-rows').waitFor();
+        await page.waitForTimeout(1200);
+      },
+    },
+    {
+      ...base, out: 'factory/new-request.png', height: 480, route: '/factory/example-api',
+      async prep(page) {
+        await page.locator('[data-test="factory-new"]').click();
+        await page.locator('[data-test="factory-prompt"]')
+          .fill('Add rate limiting to the public endpoints and document the headers.');
+      },
+    },
+  ];
+}
 
 const browser = await chromium.launch();
 
@@ -281,4 +403,5 @@ for (const scene of scenes) {
 }
 
 await browser.close();
+server.closeAllConnections();
 server.close();

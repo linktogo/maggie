@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>maggie — une seule source de vérité pour vos skills d'agents IA</title>
+  <meta name="description" content="Écrivez vos skills d'agents IA une fois et rendez-les pour Claude Code, GitHub Copilot, Cursor et Windsurf dans tous les dépôts de votre organisation.">
+  <link rel="alternate" hreflang="en" href="/">
+  <link rel="alternate" hreflang="fr" href="/fr/">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/fr/">maggie</a>
+      <nav class="top">
+        <a href="#how">Fonctionnement</a>
+        <a href="#board">Board</a>
+        <a href="#teams">Pour les équipes</a>
+        <a href="#start">Démarrer</a>
+        <a href="https://github.com/linktogo/maggie">GitHub</a>
+        <a class="lang" href="/" hreflang="en">EN</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <h1>Écrivez vos skills d'agents une fois.<br>Déployez-les partout.</h1>
+      <p class="lead">maggie garde une source de vérité relue pour les consignes de vos agents IA, et les rend pour chaque outil et chaque dépôt de votre organisation, via des pull requests.</p>
+      <div class="cta">
+        <a class="btn primary" href="#start">Démarrer</a>
+        <a class="btn secondary" href="https://github.com/linktogo/maggie">Voir sur GitHub</a>
+      </div>
+      <pre>npm install -g @lk/maggie-board
+maggie sync --config repos.json --dry-run</pre>
+      <div class="platforms" style="margin-top:24px">
+        <span class="pill">Claude Code</span><span class="pill">GitHub Copilot</span><span class="pill">Cursor</span><span class="pill">Windsurf</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="alt" id="problem">
+    <div class="wrap">
+      <h2>Le problème : des consignes qui divergent</h2>
+      <p class="sub">Chaque dépôt finit par avoir sa propre copie des mêmes consignes : une pour Claude Code, une autre pour Copilot, une troisième pour Cursor. Elles divergent, personne ne les relit, et les bonnes pratiques restent coincées dans un seul dépôt.</p>
+      <div class="grid">
+        <div class="card"><h3>Des copies partout</h3><p>Les mêmes consignes collées dans N dépôts et M outils.</p></div>
+        <div class="card"><h3>Une dérive silencieuse</h3><p>Chaque copie évolue seule, et les pratiques de l'équipe ne sont plus cohérentes.</p></div>
+        <div class="card"><h3>Aucune relecture</h3><p>Des consignes qui pilotent vos agents changent sans que personne ne les valide.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>Comment ça marche</h2>
+      <p class="sub">Une bibliothèque de skills, un fichier de config, une commande.</p>
+      <div class="grid">
+        <div class="card"><div class="step">1</div><h3>Écrire une fois</h3><p>Rédigez <code>skills/&lt;techno&gt;/&lt;nom&gt;/SKILL.md</code> : un frontmatter et les consignes.</p></div>
+        <div class="card"><div class="step">2</div><h3>Déclarer les technologies</h3><p>Listez les technologies de chaque dépôt dans <code>repos.json</code> : nestjs, postgres, nextjs, vuejs, nx…</p></div>
+        <div class="card"><div class="step">3</div><h3>Rendre</h3><p>Les skills sont traduits dans le format natif de chaque plateforme, uniquement pour les dépôts concernés.</p></div>
+        <div class="card"><div class="step">4</div><h3>Ouvrir les pull requests</h3><p>Les changements arrivent en pull requests. Prévisualisez d'abord avec <code>--dry-run</code>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="board">
+    <div class="wrap">
+      <h2>Voyez ce que font vos agents</h2>
+      <p class="sub">Un board kanban local suit les sessions Claude Code et GitHub Copilot CLI dans vos dépôts. Depuis celui-ci, le serveur AI Factory lance des agents dans des worktrees git dédiés à chaque thread, avec un centre de messages et une console terminal.</p>
+      <figure class="shot">
+        <img src="/assets/img/send-message-board.png" alt="Le board maggie avec des sessions en cours et en attente d'une réponse" loading="lazy">
+        <figcaption>Sessions par état, tokens consommés, badges de worktree et messages envoyés à une session en cours.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="/assets/img/worktree-board.png" alt="Le board avec des sessions dans des worktrees git séparés" loading="lazy">
+        <figcaption>Chaque thread tourne dans son propre worktree : les agents ne se marchent pas dessus.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="/assets/img/factory-conversation.png" alt="Conversation AI Factory : l'agent pose une question et attend la réponse" loading="lazy">
+        <figcaption>AI Factory : lancez un agent depuis le board, suivez ses étapes et répondez quand il pose une question.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="/assets/img/factory-console.png" alt="Console terminal AI Factory dans le worktree du thread" loading="lazy">
+        <figcaption>Une console terminal s'ouvre directement dans le worktree du thread.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="/assets/img/factory-conversation.png" alt="La conversation de l'AI Factory : l'agent pose une question et la zone de réponse est prête" loading="lazy">
+        <figcaption>Mode conversation : discutez avec l'agent d'un thread, répondez à ses questions et suivez ses étapes.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="/assets/img/factory-console.png" alt="La console terminal de l'AI Factory ouverte dans le worktree du thread" loading="lazy">
+        <figcaption>Console : un shell ouvert directement dans le worktree du thread, à côté de la conversation.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="teams">
+    <div class="wrap">
+      <h2>Pensé pour les équipes</h2>
+      <div class="grid">
+        <div class="card"><h3>Source de vérité relue</h3><p>Les consignes vivent dans un seul dépôt et passent par la même revue que le code.</p></div>
+        <div class="card"><h3>Traçable</h3><p>Chaque changement arrive dans un dépôt par une pull request, avec historique et auteur.</p></div>
+        <div class="card"><h3>Indépendant de l'outil</h3><p>Changez ou mélangez les assistants sans réécrire vos pratiques.</p></div>
+        <div class="card"><h3>Open source</h3><p>Apache 2.0. La bibliothèque de skills et tous les paquets sont publiés sous le scope <code>@lk</code>.</p></div>
+        <div class="card"><h3>Local par défaut</h3><p>Le board et le serveur n'écoutent que sur l'interface loopback.</p></div>
+        <div class="card"><h3>Testé</h3><p>Chaque projet applique un seuil de couverture de 100 % en CI.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt" id="start">
+    <div class="wrap">
+      <h2>Démarrer</h2>
+      <p class="sub">Nécessite Node.js et git dans votre PATH.</p>
+<pre># installer la commande maggie, le board et le serveur
+npm install -g @lk/maggie-board
+
+# prévisualiser ce qui serait poussé, sans effet de bord
+maggie sync --config repos.json --dry-run
+
+# ouvrir le board et le serveur d'agents
+maggie</pre>
+      <div class="cta" style="justify-content:flex-start;margin-top:24px">
+        <a class="btn primary" href="https://github.com/linktogo/maggie/blob/main/docs/README.md">Lire la doc</a>
+        <a class="btn secondary" href="https://github.com/linktogo/maggie/blob/main/docs/configuration.md">Configuration</a>
+        <a class="btn secondary" href="https://github.com/linktogo/maggie/blob/main/CONTRIBUTING.md#adding-a-skill">Ajouter un skill</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>maggie · Apache 2.0 · par <a href="https://github.com/linktogo">linktogo</a></span>
+      <span><a href="https://github.com/linktogo/maggie">GitHub</a> · <a href="https://github.com/linktogo/maggie/blob/main/CHANGELOG.md">Changelog</a> · <a href="/">English</a></span>
+    </div>
+  </footer>
+</body>
+</html>

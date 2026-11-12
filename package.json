@@ -1,6 +1,6 @@
 {
   "name": "maggie",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Sync AI agent skills, practices, and workflows across repositories — author once, render for Claude Code, GitHub Copilot, Cursor, and Windsurf.",
   "license": "Apache-2.0",
   "type": "module",

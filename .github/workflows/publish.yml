@@ -43,8 +43,8 @@ jobs:
             const bad = [];
             for (const base of ["libs", "apps"]) {
               for (const dir of fs.readdirSync(base)) {
-                // Static sites such as apps/landing-page have no manifest and
-                // are not workspace packages, so there is nothing to check.
+                // A directory without a manifest is not a workspace package and
+                // has nothing to check.
                 const manifest = base + "/" + dir + "/package.json";
                 if (!fs.existsSync(manifest)) continue;
                 const pkg = JSON.parse(fs.readFileSync(manifest, "utf8"));

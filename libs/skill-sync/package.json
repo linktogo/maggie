@@ -1,6 +1,6 @@
 {
   "name": "@lk/maggie-skill-sync",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Resolve the skills that apply to a repository and drive the maggie render/commit/push pipeline.",
   "license": "Apache-2.0",
   "type": "module",
@@ -33,8 +33,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@lk/maggie-git": "^2.1.0",
-    "@lk/maggie-renderers": "^2.1.0",
+    "@lk/maggie-git": "^2.1.1",
+    "@lk/maggie-renderers": "^2.1.1",
     "gray-matter": "^4.0.3"
   }
 }

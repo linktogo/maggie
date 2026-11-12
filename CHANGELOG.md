@@ -10,6 +10,8 @@ changes in minor releases.
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-12
+
 ## [2.1.0] - 2026-11-12
 
 ## [2.0.0] - 2026-11-11
@@ -307,7 +309,8 @@ Initial release.
 - Starter skills library for NestJS, Postgres, Next.js, React, Angular, Vue, Nx,
   Firebase, and Cloudflare Workers.
 
-[Unreleased]: https://github.com/linktogo/maggie/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/linktogo/maggie/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/linktogo/maggie/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/linktogo/maggie/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/linktogo/maggie/compare/v1.3.1...v2.0.0
 [1.3.1]: https://github.com/linktogo/maggie/compare/v1.3.0...v1.3.1

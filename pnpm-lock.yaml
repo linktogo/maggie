@@ -84,25 +84,25 @@ importers:
         specifier: ^8.7.5
         version: 8.7.5(@types/node@26.6.6)
       '@lk/maggie-ci-status':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/ci-status
       '@lk/maggie-config':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/config
       '@lk/maggie-git':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/git
       '@lk/maggie-retro-doc':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/retro-doc
       '@lk/maggie-server':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../server
       '@lk/maggie-skill-sync':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/skill-sync
       '@lk/maggie-workspace-bootstrap':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/workspace-bootstrap
     devDependencies:
       '@fontsource/roboto':
@@ -160,16 +160,16 @@ importers:
   apps/server:
     dependencies:
       '@lk/maggie-agent-runner':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/agent-runner
       '@lk/maggie-config':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../../libs/config
 
   libs/agent-runner:
     dependencies:
       '@lk/maggie-retro-doc':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../retro-doc
     optionalDependencies:
       node-pty:
@@ -181,10 +181,10 @@ importers:
   libs/config:
     dependencies:
       '@lk/maggie-git':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../git
       '@lk/maggie-renderers':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../renderers
 
   libs/git: {}
@@ -200,10 +200,10 @@ importers:
   libs/skill-sync:
     dependencies:
       '@lk/maggie-git':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../git
       '@lk/maggie-renderers':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../renderers
       gray-matter:
         specifier: ^4.0.3
@@ -212,7 +212,7 @@ importers:
   libs/workspace-bootstrap:
     dependencies:
       '@lk/maggie-git':
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: link:../git
 
 packages:

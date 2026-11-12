@@ -6,6 +6,12 @@
 # CI runs the same two checks, so `git push --no-verify` only defers the failure.
 set -e
 
+# Pushing from a worktree, git exports GIT_DIR to this hook. Left in place, it
+# would redirect every `git -C <fixture>` call the test suites make to this
+# checkout (config, commits, even pushes to origin), so drop the variables that
+# locate a repository before running anything.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_COMMON_DIR GIT_PREFIX GIT_NAMESPACE
+
 echo "pre-push: checking that every project enforces a 100% coverage gate..."
 node scripts/check-coverage-gates.js
 

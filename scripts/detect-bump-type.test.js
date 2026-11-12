@@ -11,6 +11,12 @@ import {
   getCommitMessagesSince,
 } from './detect-bump-type.js';
 
+// Run from a git hook (a pre-push from a worktree exports GIT_DIR), these would
+// redirect every fixture repo's `git -C <tmp>` call to the real checkout.
+for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_COMMON_DIR', 'GIT_PREFIX', 'GIT_NAMESPACE']) {
+  delete process.env[name];
+}
+
 test('classifyCommits: feat-only commits produce a minor bump', () => {
   const { type, breaking } = classifyCommits(['feat: add thing', 'chore: tidy']);
   assert.equal(type, 'minor');

@@ -1,6 +1,6 @@
 {
   "name": "@lk/maggie-agent-runner",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Run local AI agent CLIs (Claude Code, GitHub Copilot) on a repository checkout, with streamed output, timeouts and cancellation.",
   "license": "Apache-2.0",
   "type": "module",
@@ -30,7 +30,7 @@
     "developer-tools"
   ],
   "dependencies": {
-    "@lk/maggie-retro-doc": "^2.1.0"
+    "@lk/maggie-retro-doc": "^2.1.1"
   },
   "optionalDependencies": {
     "node-pty": "1.1.0"

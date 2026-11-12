@@ -1,8 +1,8 @@
 import { readFile, writeFile, readdir, mkdir, rename } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { defaultExec } from '@lk/maggie-git';
-import { parseUpdate, buildState, normalizeState } from '@lk/maggie-ci-status';
+import { defaultExec } from '@linktogo/maggie-git';
+import { parseUpdate, buildState, normalizeState } from '@linktogo/maggie-ci-status';
 
 const EMPTY = { version: 1, lastSyncAt: null, lastSyncError: null, repos: {} };
 

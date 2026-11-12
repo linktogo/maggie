@@ -3,8 +3,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { resolveConfigSource } from '@lk/maggie-config';
-import { run as defaultRun } from '@lk/maggie-skill-sync';
+import { resolveConfigSource } from '@linktogo/maggie-config';
+import { run as defaultRun } from '@linktogo/maggie-skill-sync';
 
 // The skills library shipped inside the installed package (copied there by `prepack`), used
 // when the current directory has none of its own; from a clone it is the repository's own.

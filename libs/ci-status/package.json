@@ -1,5 +1,5 @@
 {
-  "name": "@lk/maggie-ci-status",
+  "name": "@linktogo/maggie-ci-status",
   "version": "2.1.1",
   "description": "CI status payloads for maggie: build them from a GitHub Actions run, validate them, and fold them into per-repo, per-contributor state.",
   "license": "Apache-2.0",

@@ -7,10 +7,10 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import {
   loadConfig as defaultLoadConfig, loadConfigFromRepo as defaultLoadConfigFromRepo, resolveConfigSource,
-} from '@lk/maggie-config';
+} from '@linktogo/maggie-config';
 import {
   DEFAULT_AGENT_PROVIDER, DEFAULT_MAX_ACTIVE, createRepoResolver, createRunManager, createTerminalManager, createWorktreeManager, createThreadService, createThreadStore, detectProviders, resolveProvider, trustDirectories, claudeStateFile,
-} from '@lk/maggie-agent-runner';
+} from '@linktogo/maggie-agent-runner';
 import { LOOPBACK, createAgentsServer } from './server.js';
 
 export const DEFAULT_PORT = 4318;

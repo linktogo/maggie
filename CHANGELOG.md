@@ -10,6 +10,12 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Changed
+
+- **Packages are published under the `@linktogo` scope again.** The `@lk` scope from 2.0.0 was
+  never published to npm, so `@lk/maggie-*` 2.x never shipped; install `@linktogo/maggie-board`,
+  `@linktogo/maggie-server` and the `@linktogo/maggie-*` libraries instead.
+
 ## [2.1.1] - 2026-11-12
 
 ## [2.1.0] - 2026-11-12

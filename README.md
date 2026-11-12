@@ -30,13 +30,13 @@ pull requests.
 Requires **Node.js >= 22** and `git` on your PATH.
 
 ```bash
-npm install -g @lk/maggie-board
+npm install -g @linktogo/maggie-board
 
 # See what would be pushed to the repos in your config — no side effects
 maggie sync --config repos.json --dry-run
 ```
 
-The same install gives you the board and the server (via `@lk/maggie-server`), both
+The same install gives you the board and the server (via `@linktogo/maggie-server`), both
 self-contained (the board's front-end ships pre-built, the skills library is bundled):
 
 ```bash
@@ -55,7 +55,7 @@ pointed at it. `--config-repo` / `--config-file` go to both. `--board <file>` (w
 value) still names the board file; a bare `--board` picks the mode.
 
 Both answer on the loopback interface only. Without a global install, use
-`npx -p @lk/maggie-board maggie` (the server alone: `npx @lk/maggie-server`).
+`npx -p @linktogo/maggie-board maggie` (the server alone: `npx @linktogo/maggie-server`).
 
 The installed packages bundle the skills library, so the commands work from any
 directory. A `skills/` folder in the current directory takes precedence, which
@@ -118,25 +118,25 @@ repo whose `technologies` include `<techno>` picks it up on the next sync — se
 
 ## Published packages
 
-Everything publishes under the single **`@lk`** scope. The `maggie` command ships in
-`@lk/maggie-board` (the package you install, with the board UI), which runs the agents
-server shipped in `@lk/maggie-server`; the libraries are published independently so they
+Everything publishes under the single **`@linktogo`** scope. The `maggie` command ships in
+`@linktogo/maggie-board` (the package you install, with the board UI), which runs the agents
+server shipped in `@linktogo/maggie-server`; the libraries are published independently so they
 can be reused on their own:
 
 | Package | What it gives you |
 |---|---|
-| [`@lk/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
-| [`@lk/maggie-git`](libs/git) | thin git/`gh` wrapper |
-| [`@lk/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
-| [`@lk/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
-| [`@lk/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
-| [`@lk/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
-| [`@lk/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
-| [`@lk/maggie-agent-runner`](libs/agent-runner) | run local agent CLIs on a checkout, with streamed output |
+| [`@linktogo/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
+| [`@linktogo/maggie-git`](libs/git) | thin git/`gh` wrapper |
+| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
+| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
+| [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
+| [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
+| [`@linktogo/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
+| [`@linktogo/maggie-agent-runner`](libs/agent-runner) | run local agent CLIs on a checkout, with streamed output |
 
 All are released in lockstep on the same version — see
 [Releasing](CONTRIBUTING.md#releasing). The two apps are published too:
-`@lk/maggie-board` (the `maggie` command and the board) and `@lk/maggie-server`.
+`@linktogo/maggie-board` (the `maggie` command and the board) and `@linktogo/maggie-server`.
 
 ## Tests
 

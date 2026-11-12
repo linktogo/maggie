@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { PROVIDERS, createComplete, describeProvider, runRetroDoc } from '@lk/maggie-retro-doc';
+import { PROVIDERS, createComplete, describeProvider, runRetroDoc } from '@linktogo/maggie-retro-doc';
 
 /**
  * Where a repository of the config is checked out. Same rule as hook

@@ -1,5 +1,5 @@
 {
-  "name": "@lk/maggie-server",
+  "name": "@linktogo/maggie-server",
   "version": "2.1.1",
   "description": "The maggie server: launches local Claude Code / Copilot agents for the board (AI Factory).",
   "license": "Apache-2.0",
@@ -37,7 +37,7 @@
     "postpack": "node ../../scripts/stage-skills.js . --clean"
   },
   "dependencies": {
-    "@lk/maggie-agent-runner": "^2.1.1",
-    "@lk/maggie-config": "^2.1.1"
+    "@linktogo/maggie-agent-runner": "^2.1.1",
+    "@linktogo/maggie-config": "^2.1.1"
   }
 }

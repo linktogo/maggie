@@ -81,6 +81,7 @@ export default {
   'factory.restore': 'restaurar',
   'factory.send': 'Enviar',
   'factory.reply': 'Responder…',
+  'factory.composerHint': 'Intro para enviar · Mayús+Intro para nueva línea',
   'factory.cannotResume': 'Esta solicitud no se puede continuar (no hay sesión reanudable).',
   'factory.restart': 'Reiniciar como nueva solicitud',
   'factory.thread.running': 'en curso',

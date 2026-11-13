@@ -81,6 +81,7 @@ export default {
   'factory.restore': 'restaurer',
   'factory.send': 'Envoyer',
   'factory.reply': 'Répondre…',
+  'factory.composerHint': 'Entrée pour envoyer · Maj+Entrée pour aller à la ligne',
   'factory.cannotResume': 'Cette demande ne peut pas être poursuivie (pas de session reprenable).',
   'factory.restart': 'Relancer comme nouvelle demande',
   'factory.thread.running': 'en cours',

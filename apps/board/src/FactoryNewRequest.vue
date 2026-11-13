@@ -53,23 +53,24 @@ function submit() {
   });
 }
 
-const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm text-ink-soft focus:border-accent focus:outline-hidden disabled:opacity-40';
+const FIELD = 'control min-w-[10rem] text-ink';
 </script>
 
 <template>
-  <form class="flex flex-col gap-3" @submit.prevent="submit">
+  <form class="mx-auto flex w-full max-w-3xl flex-col gap-4" @submit.prevent="submit">
+    <h3 class="text-base font-semibold text-ink-strong">{{ t('factory.newRequest') }}</h3>
     <div class="flex flex-wrap gap-3">
-      <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ t('factory.repo') }}
+      <label class="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">{{ t('factory.repo') }}
         <select data-test="factory-repo" :class="FIELD" :value="repo" :disabled="!available" @change="form.repo = $event.target.value">
           <option v-for="name in repos" :key="name" :value="name">{{ name }}</option>
         </select>
       </label>
-      <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ t('factory.provider') }}
+      <label class="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">{{ t('factory.provider') }}
         <select data-test="factory-provider" :class="FIELD" :value="provider" :disabled="!available" @change="form.provider = $event.target.value">
           <option v-for="name in providers" :key="name" :value="name">{{ name }}</option>
         </select>
       </label>
-      <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ t('factory.model') }}
+      <label class="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">{{ t('factory.model') }}
         <input v-model="form.model" data-test="factory-model" :class="FIELD" :placeholder="t('factory.modelPlaceholder')" :disabled="!available">
       </label>
     </div>
@@ -83,32 +84,32 @@ const FIELD = 'rounded-control border border-line bg-surface px-2 py-1 text-sm t
       </label>
     </div>
 
-    <label v-if="form.mode === 'skill'" class="flex flex-col gap-1 text-xs text-ink-muted">{{ t('factory.skill') }}
+    <label v-if="form.mode === 'skill'" class="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">{{ t('factory.skill') }}
       <select v-model="form.skill" data-test="factory-skill" :class="FIELD" :disabled="!available">
         <option value="">{{ t('factory.skillNone') }}</option>
         <option v-for="skill in skills" :key="skill.id" :value="skill.id">{{ skill.id }}</option>
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-xs text-ink-muted">{{ form.mode === 'skill' ? t('factory.extraPrompt') : t('factory.prompt') }}
-      <textarea v-model="form.prompt" data-test="factory-prompt" rows="4" :class="FIELD" :disabled="!available" @keydown.enter.exact.prevent="submit" />
+    <label class="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">{{ form.mode === 'skill' ? t('factory.extraPrompt') : t('factory.prompt') }}
+      <textarea v-model="form.prompt" data-test="factory-prompt" rows="6" :class="[FIELD, '!h-auto py-2 leading-relaxed']" :disabled="!available" @keydown.enter.exact.prevent="submit" />
     </label>
 
     <label class="flex items-center gap-1 text-sm text-ink-soft">
       <input v-model="form.worktree" data-test="factory-worktree" type="checkbox" :disabled="!available"> {{ t('factory.worktree.option') }}
     </label>
 
-    <p v-if="error" data-test="factory-error" class="text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ error }}</p>
+    <p v-if="error" data-test="factory-error" class="alert text-xs"><Icon name="warning" emoji="⚠" :size="16" /> {{ error }}</p>
 
-    <div>
+    <div class="flex justify-end">
       <button
         type="submit"
         data-test="factory-run"
         :disabled="!canRun"
         :aria-label="t('factory.run')"
         v-tooltip="t('factory.run')"
-        class="inline-flex items-center justify-center rounded-control bg-accent p-1.5 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
-      ><Icon name="play_arrow" emoji="▶" /></button>
+        class="inline-flex h-8 items-center justify-center gap-1 rounded-control bg-accent pl-2 pr-3 text-[13px] font-medium text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+      ><Icon name="play_arrow" emoji="▶" /> {{ t('factory.run') }}</button>
     </div>
   </form>
 </template>

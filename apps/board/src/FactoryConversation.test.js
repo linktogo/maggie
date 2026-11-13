@@ -1,6 +1,7 @@
 import { test, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FactoryConversation from './FactoryConversation.vue';
+import { nextTick } from 'vue';
 
 const THREAD = { id: 'th_1', repo: 'api', provider: 'claude-cli', model: 'opus', title: 'Fix it', status: 'idle' };
 let n = 0;
@@ -61,7 +62,7 @@ test('uses the singular for a single step and splits groups by run', () => {
   const messages = [step('Read'), msg('agent', 'text', 'mid'), step('Edit'), step('Edit')];
   const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
   const groups = w.findAll('[data-test=factory-steps] summary');
-  expect(groups.map((g) => g.text())).toEqual(['2 steps (Edit ×2)', '1 step (Read)']);
+  expect(groups.map((g) => g.text())).toEqual(['1 step (Read)', '2 steps (Edit ×2)']);
 });
 
 test('renders agent markdown and user text as plain text', () => {
@@ -120,26 +121,26 @@ test('the tabs slot sits under the header and the messages can be hidden', () =>
   w.unmount();
 });
 
-test('lists the newest message first, keeping the steps of a turn in order', () => {
+test('lists the messages oldest first, keeping the steps of a turn in order', () => {
   const messages = [msg('user', 'text', 'first'), step('Read'), step('Edit'), msg('agent', 'text', 'second')];
   const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
   const order = w.get('[data-test=factory-messages]').element.children;
-  expect([...order].map((el) => el.getAttribute('data-test'))).toEqual(['factory-agent', 'factory-steps', 'factory-user']);
+  expect([...order].map((el) => el.getAttribute('data-test'))).toEqual(['factory-user', 'factory-steps', 'factory-agent']);
   expect(w.findAll('[data-test=factory-steps] li').map((li) => li.text())).toEqual(['Read Read x', 'Edit Edit x']);
 });
 
-test('the composer slot sits above the messages', () => {
+test('the composer slot sits below the messages', () => {
   const w = mount(FactoryConversation, {
     props: { thread: THREAD, messages: [msg('user', 'text', 'go')] },
     slots: { composer: '<form data-test="composer-slot" />' },
   });
-  expect(w.get('[data-test=composer-slot]').element.nextElementSibling.getAttribute('data-test')).toBe('factory-messages');
+  expect(w.get('[data-test=composer-slot]').element.previousElementSibling.getAttribute('data-test')).toBe('factory-messages');
 });
 
 test('highlights an agent reply that ends on a question', () => {
   const messages = [msg('agent', 'text', 'Done.'), msg('agent', 'text', 'Two options:\n\n- A\n- B\n\n**Which one do you want?**')];
   const w = mount(FactoryConversation, { props: { thread: THREAD, messages } });
-  const [question, plain] = w.findAll('[data-test=factory-agent]');
+  const [plain, question] = w.findAll('[data-test=factory-agent]');
   expect(question.attributes('data-question')).toBeDefined();
   expect(question.text()).toContain('Question for you');
   expect(question.get('.markdown strong').text()).toBe('Which one do you want?');
@@ -160,4 +161,14 @@ test('the worktree tooltip shows ? when the commits ahead are unknown', async ()
 test('an agent message without content is not a question', () => {
   const w = mount(FactoryConversation, { props: { thread: THREAD, messages: [msg('agent', 'text', null)] } });
   expect(w.get('[data-test=factory-agent]').attributes('data-question')).toBeUndefined();
+});
+
+test('scrolls to the latest message when one arrives', async () => {
+  const w = mount(FactoryConversation, { props: { thread: THREAD, messages: [msg('user', 'text', 'go')] }, attachTo: document.body });
+  const el = w.get('[data-test=factory-messages]').element;
+  Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 640 });
+  await w.setProps({ messages: [msg('user', 'text', 'go'), msg('agent', 'text', 'done')] });
+  await nextTick();
+  expect(el.scrollTop).toBe(640);
+  w.unmount();
 });

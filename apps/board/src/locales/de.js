@@ -81,6 +81,7 @@ export default {
   'factory.restore': 'wiederherstellen',
   'factory.send': 'Senden',
   'factory.reply': 'Antworten…',
+  'factory.composerHint': 'Enter zum Senden · Umschalt+Enter für neue Zeile',
   'factory.cannotResume': 'Diese Anfrage kann nicht fortgesetzt werden (keine fortsetzbare Sitzung).',
   'factory.restart': 'Als neue Anfrage neu starten',
   'factory.thread.running': 'läuft',

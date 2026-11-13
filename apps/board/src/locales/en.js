@@ -83,6 +83,7 @@ export default {
   'factory.restore': 'restore',
   'factory.send': 'Send',
   'factory.reply': 'Reply…',
+  'factory.composerHint': 'Enter to send · Shift+Enter for a new line',
   'factory.cannotResume': 'This request cannot be continued (no resumable session).',
   'factory.restart': 'Restart as a new request',
   'factory.thread.running': 'running',

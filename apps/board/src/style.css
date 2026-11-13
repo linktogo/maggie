@@ -57,6 +57,12 @@
     background: var(--color-ground);
   }
 
+  /* Checkboxes and radios take the theme accent instead of the browser blue. */
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--color-accent);
+  }
+
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;

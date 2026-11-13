@@ -38,16 +38,16 @@ const noDoc = { storage: fakeStorage(), doc: null, media: fakeMedia() };
 
 afterEach(() => { theme.value = DEFAULT_THEME; mode.value = DEFAULT_MODE; });
 
-test('defaults to Material 3 tonal following the system mode', () => {
-  expect(DEFAULT_THEME).toBe('m3');
+test('defaults to the Claude theme following the system mode', () => {
+  expect(DEFAULT_THEME).toBe('claude');
   expect(DEFAULT_MODE).toBe('system');
-  expect(theme.value).toBe('m3');
+  expect(theme.value).toBe('claude');
   expect(mode.value).toBe('system');
 });
 
-test('offers exactly four themes and three modes', () => {
-  expect(THEMES.map((t) => t.code)).toEqual(['m3', 'expressive', 'classic', 'legacy']);
-  expect(THEMES.map((t) => t.labelKey)).toEqual(['theme.m3', 'theme.expressive', 'theme.classic', 'theme.legacy']);
+test('offers exactly five themes and three modes', () => {
+  expect(THEMES.map((t) => t.code)).toEqual(['claude', 'm3', 'expressive', 'classic', 'legacy']);
+  expect(THEMES.map((t) => t.labelKey)).toEqual(['theme.claude', 'theme.m3', 'theme.expressive', 'theme.classic', 'theme.legacy']);
   expect(MODES.map((m) => m.code)).toEqual(['light', 'dark', 'system']);
   expect(isSupportedTheme('classic')).toBe(true);
   expect(isSupportedTheme('neon')).toBe(false);
@@ -59,6 +59,7 @@ test('offers exactly four themes and three modes', () => {
 test('legacy is the only light-only theme', () => {
   expect(isLightOnly('legacy')).toBe(true);
   expect(isLightOnly('m3')).toBe(false);
+  expect(isLightOnly('claude')).toBe(false);
 });
 
 test('setTheme persists the choice and stamps the document', () => {
@@ -73,7 +74,7 @@ test('setTheme persists the choice and stamps the document', () => {
 test('setTheme ignores an unsupported theme', () => {
   const storage = fakeStorage();
   setTheme('neon', { storage, doc: null, media: fakeMedia() });
-  expect(theme.value).toBe('m3');
+  expect(theme.value).toBe('claude');
   expect(storage.getItem(THEME_STORAGE_KEY)).toBe(null);
 });
 
@@ -131,9 +132,9 @@ test('initTheme restores a stored theme and mode', () => {
 test('initTheme falls back to the defaults and overwrites a bogus stored value', () => {
   const storage = fakeStorage({ [THEME_STORAGE_KEY]: 'neon', [MODE_STORAGE_KEY]: 'sepia' });
   initTheme({ storage, doc: null, media: fakeMedia() });
-  expect(theme.value).toBe('m3');
+  expect(theme.value).toBe('claude');
   expect(mode.value).toBe('system');
-  expect(storage.getItem(THEME_STORAGE_KEY)).toBe('m3');
+  expect(storage.getItem(THEME_STORAGE_KEY)).toBe('claude');
   expect(storage.getItem(MODE_STORAGE_KEY)).toBe('system');
 });
 
@@ -147,7 +148,7 @@ test('initTheme resolves a stored legacy theme with a stored dark mode to a ligh
 
 test('survives a storage that throws, and a runtime with no matchMedia', () => {
   initTheme({ storage: throwingStorage(), doc: null, media: undefined });
-  expect(theme.value).toBe('m3');
+  expect(theme.value).toBe('claude');
   const doc = fakeDoc();
   setMode('system', { storage: throwingStorage(), doc, media: undefined });
   expect(doc.documentElement.attrs['data-mode']).toBe('light');
@@ -164,7 +165,7 @@ test('a matchMedia that throws when invoked is tolerated and reads as light', as
   const fresh = await import('./theme.js');
   const freshDoc = fakeDoc();
   fresh.initTheme({ storage: fakeStorage(), doc: freshDoc, media: throwingMedia() });
-  expect(fresh.theme.value).toBe('m3');
+  expect(fresh.theme.value).toBe('claude');
   expect(freshDoc.documentElement.attrs['data-mode']).toBe('light');
 });
 
@@ -180,7 +181,7 @@ test('initTheme registers the OS media-query listener at most once across repeat
 
 test('useTheme exposes the reactive state, the setters and the lists', () => {
   const api = useTheme();
-  expect(api.theme.value).toBe('m3');
+  expect(api.theme.value).toBe('claude');
   expect(api.mode.value).toBe('system');
   expect(api.themes).toBe(THEMES);
   expect(api.modes).toBe(MODES);

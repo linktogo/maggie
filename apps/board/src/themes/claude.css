@@ -1,0 +1,201 @@
+/*
+ * Claude — the board's default look, after Claude Code's own UI: a warm ivory
+ * ground (charcoal in dark), hairline borders instead of heavy elevation, a
+ * terracotta accent for anything active, and amber for "needs your input",
+ * the colour Claude Code gives a permission prompt.
+ *
+ * The brand terracotta (#d97757) is too light to carry white text in light
+ * mode, so the light accent is a darker tone of the same hue (#ad5330) that
+ * clears WCAG AA; dark mode uses the brand tone itself.
+ *
+ * Same discipline as every theme file: flat declarations, no nested rules,
+ * no braces inside comments (themes/contract.test.js parses this by regex).
+ */
+html[data-theme='claude'] {
+  /* Surfaces */
+  --color-ground: #faf9f5;
+  --color-surface: #ffffff;
+  --color-panel: #f3f1ea;
+  --color-surface-muted: #f6f5f0;
+  --color-surface-hover: #efede5;
+  --color-overlay: rgb(20 20 19 / 0.4);
+
+  /* Hairlines */
+  --color-line: #dedbd0;
+  --color-line-soft: #ebe9e1;
+
+  /* Text */
+  --color-ink-strong: #141413;
+  --color-ink: #262624;
+  --color-ink-soft: #3d3d3a;
+  --color-ink-muted: #5e5d59;
+  --color-ink-faint: #85837c;
+
+  /* Accent — terracotta */
+  --color-accent: #ad5330;
+  --color-accent-strong: #934528;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: #f7e4da;
+  --color-on-accent-soft: #5c2513;
+
+  /* Status */
+  --color-todo-solid: #6b6a64;
+  --color-todo-soft: #eeece5;
+  --color-todo-on-soft: #3d3d3a;
+  --color-inprogress-solid: #ad5330;
+  --color-inprogress-soft: #f7e4da;
+  --color-inprogress-on-soft: #5c2513;
+  --color-question-solid: #8f5b00;
+  --color-question-soft: #fbefd3;
+  --color-question-on-soft: #4a3000;
+  --color-done-solid: #2e7a4d;
+  --color-done-soft: #dcefe2;
+  --color-done-on-soft: #0f3d22;
+  --color-on-status: #ffffff;
+  --color-question-ring: #e8c068;
+  --color-drop-ring: #6fbf8a;
+
+  /* CI badges */
+  --color-ci-failure-soft: #fbe3df;
+  --color-ci-failure-on-soft: #8a1c12;
+  --color-ci-failure-line: #f0b7ae;
+  --color-ci-running-soft: #f7e4da;
+  --color-ci-running-on-soft: #5c2513;
+  --color-ci-running-line: #e8b9a3;
+  --color-ci-neutral-soft: #eeece5;
+  --color-ci-neutral-on-soft: #3d3d3a;
+  --color-ci-neutral-line: #dcd9cd;
+  --color-ci-success-soft: #dcefe2;
+  --color-ci-success-on-soft: #0f3d22;
+  --color-ci-success-line: #a8d5b5;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #f7e4da;
+  --color-agent-claude-on-soft: #5c2513;
+  --color-agent-copilot-soft: #e6e4f6;
+  --color-agent-copilot-on-soft: #26214d;
+  --color-worktree-soft: #dfecef;
+  --color-worktree-on-soft: #12393f;
+
+  /* Chart series */
+  --color-series-1: #ad5330;
+  --color-series-2: #2e7a4d;
+  --color-series-3: #5b5bd6;
+  --color-series-4: #85837c;
+  --color-series-5: #2b6cb0;
+  --color-series-6: #8f5b00;
+
+  /* Shape, spacing and type */
+  --radius-card: 0.75rem;
+  --radius-panel: 0.875rem;
+  --radius-control: 0.5rem;
+  --radius-badge: 0.375rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 0 0 1px rgb(20 20 19 / 0.07), 0 1px 2px 0 rgb(20 20 19 / 0.05);
+  --shadow-panel: 0 1px 2px 0 rgb(20 20 19 / 0.04);
+  --shadow-overlay: 0 0 0 1px rgb(20 20 19 / 0.06), 0 16px 40px -12px rgb(20 20 19 / 0.25);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.75rem;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --title-weight: 600;
+  --card-title-weight: 600;
+  --progress-fill: #ad5330;
+}
+
+/* Dark — Claude Code's charcoal, with the brand terracotta at full strength. */
+html[data-theme='claude'][data-mode='dark'] {
+  /* Surfaces */
+  --color-ground: #1a1918;
+  --color-surface: #262624;
+  --color-panel: #201f1d;
+  --color-surface-muted: #2e2d2a;
+  --color-surface-hover: #373631;
+  --color-overlay: rgb(0 0 0 / 0.55);
+
+  /* Hairlines */
+  --color-line: #3d3c37;
+  --color-line-soft: #31302c;
+
+  /* Text */
+  --color-ink-strong: #faf9f5;
+  --color-ink: #ebe9e1;
+  --color-ink-soft: #cdcabe;
+  --color-ink-muted: #aaa79c;
+  --color-ink-faint: #85837a;
+
+  /* Accent — terracotta */
+  --color-accent: #d97757;
+  --color-accent-strong: #e58f72;
+  --color-on-accent: #1a1918;
+  --color-accent-soft: #4a2a1d;
+  --color-on-accent-soft: #f6d5c6;
+
+  /* Status */
+  --color-todo-solid: #aaa79c;
+  --color-todo-soft: #35342f;
+  --color-todo-on-soft: #d9d6cb;
+  --color-inprogress-solid: #d97757;
+  --color-inprogress-soft: #4a2a1d;
+  --color-inprogress-on-soft: #f6d5c6;
+  --color-question-solid: #e5b454;
+  --color-question-soft: #4a3814;
+  --color-question-on-soft: #f7e3b5;
+  --color-done-solid: #6fbf8a;
+  --color-done-soft: #1d3a28;
+  --color-done-on-soft: #c4ebd0;
+  --color-on-status: #1a1918;
+  --color-question-ring: #8a6a1f;
+  --color-drop-ring: #6fbf8a;
+
+  /* CI badges */
+  --color-ci-failure-soft: #4a1d18;
+  --color-ci-failure-on-soft: #f6cfc9;
+  --color-ci-failure-line: #7a2e25;
+  --color-ci-running-soft: #4a2a1d;
+  --color-ci-running-on-soft: #f6d5c6;
+  --color-ci-running-line: #7a4430;
+  --color-ci-neutral-soft: #35342f;
+  --color-ci-neutral-on-soft: #d9d6cb;
+  --color-ci-neutral-line: #4a4943;
+  --color-ci-success-soft: #1d3a28;
+  --color-ci-success-on-soft: #c4ebd0;
+  --color-ci-success-line: #2f5e3f;
+
+  /* Agent and worktree badges */
+  --color-agent-claude-soft: #4a2a1d;
+  --color-agent-claude-on-soft: #f6d5c6;
+  --color-agent-copilot-soft: #2e2b4d;
+  --color-agent-copilot-on-soft: #dcd9f7;
+  --color-worktree-soft: #173a40;
+  --color-worktree-on-soft: #c2e6ec;
+
+  /* Chart series */
+  --color-series-1: #d97757;
+  --color-series-2: #6fbf8a;
+  --color-series-3: #9b9bf0;
+  --color-series-4: #aaa79c;
+  --color-series-5: #7fb3e8;
+  --color-series-6: #e5b454;
+
+  /* Shape, spacing and type */
+  --radius-card: 0.75rem;
+  --radius-panel: 0.875rem;
+  --radius-control: 0.5rem;
+  --radius-badge: 0.375rem;
+  --radius-chip: 999px;
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.05), 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-panel: none;
+  --shadow-overlay: 0 0 0 1px rgb(255 255 255 / 0.07), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --spacing-card: 0.875rem;
+  --spacing-gutter: 0.75rem;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --title-weight: 600;
+  --card-title-weight: 600;
+  --progress-fill: #d97757;
+}

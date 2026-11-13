@@ -12,7 +12,7 @@ const { theme, setTheme, themes } = useTheme();
     :value="theme"
     :aria-label="t('nav.theme')"
     :title="t('nav.theme')"
-    class="border border-line rounded-control shadow-panel px-3 py-1.5 text-sm bg-surface text-ink-muted focus:outline-hidden focus:ring-2 focus:ring-accent/30 focus:border-accent"
+    class="control w-36"
     @change="setTheme($event.target.value)"
   >
     <option v-for="th in themes" :key="th.code" :value="th.code">{{ t(th.labelKey) }}</option>

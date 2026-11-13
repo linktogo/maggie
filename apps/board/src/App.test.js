@@ -87,7 +87,7 @@ test('App groups repos into the four columns', async () => {
   const { wrapper } = await mountApp(routedFetch());
   const columns = wrapper.findAll('section');
   expect(columns).toHaveLength(4);
-  expect(columns[2].text()).toContain('(3)'); // repos b, c and d each have a session in "question"
+  expect(columns[2].get('[data-test=column-count]').text()).toBe('3'); // repos b, c and d each have a session in "question"
   expect(wrapper.text()).toContain('a');
   expect(wrapper.text()).toContain('b');
 });
@@ -264,7 +264,7 @@ test('renders in English by default, with the four columns in English', async ()
   const { wrapper } = await mountApp(routedFetch());
   expect(wrapper.get('[data-test=view-history]').text()).toBe('History');
   const columns = wrapper.findAll('section h2');
-  expect(columns.map((c) => c.text().replace(/\s*\(\d+\)$/, ''))).toEqual(['To do', 'In progress', 'Question', 'Done']);
+  expect(columns.map((c) => c.text().replace(/\s*\d+$/, ''))).toEqual(['To do', 'In progress', 'Question', 'Done']);
   expect(wrapper.text()).toContain('No active session');
 });
 
@@ -345,8 +345,8 @@ test('the AI Factory tab stays active on a thread deep link', async () => {
   await router.isReady();
   await flushPromises();
   expect(router.currentRoute.value.name).toBe('factory-thread');
-  expect(w.get('[data-test=view-factory]').classes()).toContain('bg-surface');
-  expect(w.get('[data-test=view-board]').classes()).not.toContain('bg-surface');
+  expect(w.get('[data-test=view-factory]').classes()).toContain('border-accent');
+  expect(w.get('[data-test=view-board]').classes()).not.toContain('border-accent');
 });
 
 test('the header carries the theme and mode pickers', async () => {
@@ -363,8 +363,8 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   const main = wrapper.get('main').classes();
   expect(main).not.toContain('bg-slate-100');
 
-  const container = wrapper.get('[data-test=view-board]').element.parentElement;
-  expect(container.className).toContain('bg-surface-muted');
+  const header = wrapper.get('header').classes();
+  expect(header).toEqual(expect.arrayContaining(['bg-ground/85', 'border-line']));
 
   const tabs = wrapper.findAll('[data-test^=view-]');
   expect(tabs).toHaveLength(4);
@@ -376,7 +376,7 @@ test('the shell paints from theme tokens, not literal Tailwind colors', async ()
   // The active tab (board, the default route) actually carries the
   // "selected" token trio — not just the absence of the old literals.
   const active = wrapper.get('[data-test=view-board]');
-  expect(active.classes()).toEqual(expect.arrayContaining(['bg-surface', 'shadow-panel', 'text-ink-strong']));
+  expect(active.classes()).toEqual(expect.arrayContaining(['border-accent', 'text-ink-strong']));
   const inactive = wrapper.get('[data-test=view-history]');
   expect(inactive.classes()).toContain('text-ink-muted');
 });

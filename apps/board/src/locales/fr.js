@@ -7,6 +7,7 @@ export default {
   'nav.theme': 'Thème',
   'nav.mode': 'Apparence',
 
+  'theme.claude': 'Claude',
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material classique',
@@ -116,11 +117,12 @@ export default {
   'status.done': 'Terminé',
 
   'summary.repos': 'dépôts',
+  'summary.progress': 'Progression',
   'summary.percentDone': '{percent} % terminé',
   'summary.today': 'aujourd\'hui {cost} sur {threshold}',
   'summary.todayPartial': 'sessions en cours seulement — historique indisponible',
 
-  'filter.searchRepo': '🔍 filtrer un dépôt…',
+  'filter.searchRepo': 'Filtrer les dépôts…',
   'filter.techAll': 'techno : toutes',
   'filter.ciAll': 'CI : tous',
   'filter.ciFailure': 'en échec',
@@ -192,6 +194,8 @@ export default {
   'time.daysAgo': 'il y a {n} j',
 
   'app.subtitle': 'tableau de bord',
+  'app.live': 'En direct',
+  'app.offline': 'Hors ligne',
   'app.docTitle': 'maggie · tableau de bord',
   'ci.reason.notConfigured': 'dépôt de statut non configuré',
   'ci.reason.unreachable': 'statut CI injoignable',

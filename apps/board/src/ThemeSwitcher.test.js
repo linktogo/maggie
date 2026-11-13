@@ -16,12 +16,12 @@ afterEach(() => {
   document.documentElement.removeAttribute('data-mode');
 });
 
-test('lists the four themes with the active one selected', () => {
+test('lists the five themes with the active one selected', () => {
   const w = mount(ThemeSwitcher);
   const select = w.get('[data-test=theme]');
   expect(select.findAll('option').map((o) => o.attributes('value')))
-    .toEqual(['m3', 'expressive', 'classic', 'legacy']);
-  expect(select.element.value).toBe('m3');
+    .toEqual(['claude', 'm3', 'expressive', 'classic', 'legacy']);
+  expect(select.element.value).toBe('claude');
 });
 
 test('translates the theme names', () => {

@@ -114,7 +114,7 @@ or not the server is running.
   in euros, with a browser notification when one is crossed.
 - **Language picker** in the header: English (the default), French, German and
   Spanish. See below.
-- **Theme picker** in the header: Material 3 (the default), Material 3
+- **Theme picker** in the header: Claude (the default), Material 3, Material 3
   Expressive, Material classic, and Legacy — the board's pre-Material look,
   kept selectable but frozen. A second picker sets light, dark or system.
   See [Themes](#themes).
@@ -226,11 +226,12 @@ invoice.
 
 ![The theme and mode pickers](images/board/theme-picker.png)
 
-The board ships four looks, chosen from the header:
+The board ships five looks, chosen from the header:
 
 | Theme | What it is |
 |---|---|
-| **Material 3** | Material 3's tonal surfaces on a violet seed. The default. |
+| **Claude** | After Claude Code's own UI: warm ivory (charcoal in dark) surfaces, hairline borders, a terracotta accent and amber for sessions waiting on you. The default. |
+| **Material 3** | Material 3's tonal surfaces on a violet seed. |
 | **Material 3 Expressive** | The expressive revision: full-colour column blocks, large radii, heavy titles. |
 | **Material classic** | Material of the M2 era — indigo app bar, 4px corners, elevation shadows. |
 | **Legacy (frozen)** | Exactly what the board looked like before themes existed. Still selectable, no longer maintained: new work targets the Material themes. |

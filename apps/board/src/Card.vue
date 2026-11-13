@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import SessionRow from './SessionRow.vue';
+import Icon from './Icon.vue';
 import { STATUS_STYLES } from './statusStyles.js';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
@@ -29,16 +30,16 @@ function open(sessionId) {
 
 <template>
   <div
-    :class="['rounded-card bg-surface shadow-card p-card border-l-4', style.border, isQuestion ? style.ring : '']"
+    :class="['rounded-card bg-surface shadow-card p-card transition-shadow hover:shadow-overlay', isQuestion ? style.ring : '']"
   >
     <div class="flex items-start justify-between gap-2">
       <button
         type="button"
         data-test="open-repo"
         :title="t('card.openRepo', { repo: name })"
-        class="text-ink card-title min-w-0 truncate text-left hover:text-accent hover:underline"
+        class="flex min-w-0 items-center gap-1.5 text-left font-mono text-[13px] text-ink-strong card-title hover:text-accent"
         @click="emit('open', { name, sessionId: null })"
-      >{{ name }}</button>
+      ><Icon name="branch" :size="14" class="shrink-0 text-ink-faint" /><span class="truncate">{{ name }}</span></button>
       <div class="flex items-center gap-1 shrink-0">
         <span
           v-for="b in badges.shown" :key="b.login"
@@ -59,7 +60,7 @@ function open(sessionId) {
       </div>
     </div>
     <p v-if="sessions.length === 0" class="mt-1 text-xs text-ink-faint">{{ t('card.noActiveSession') }}</p>
-    <div v-else class="mt-2 flex flex-col gap-1.5">
+    <div v-else class="mt-2.5 flex flex-col gap-2">
       <SessionRow v-for="s in sessions" :key="s.sessionId" :session="s" :repo-name="name" :now="now" @open="open" @send-message="$emit('send-message', $event)" />
     </div>
   </div>

@@ -26,22 +26,38 @@ const counts = computed(() => {
   return c;
 });
 const total = computed(() => Object.values(counts.value).reduce((a, b) => a + b, 0));
+const tiles = computed(() => ['todo', 'inprogress', 'question', 'done'].map((status) => ({
+  status, count: counts.value[status], label: t(`status.${status}`), dot: STATUS_STYLES[status].dot,
+})));
 const percentDone = computed(() => (total.value ? Math.round((counts.value.done / total.value) * 100) : 0));
 </script>
 
 <template>
-  <div class="bg-surface border border-line rounded-card shadow-panel px-4 py-3 mb-4">
-    <div class="flex flex-wrap gap-2 mb-2.5">
-      <span class="rounded-chip px-2 py-0.5 text-xs font-semibold bg-surface-muted text-ink-soft">{{ total }} {{ t('summary.repos') }}</span>
-      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.todo.chip]">{{ counts.todo }} {{ t('status.todo') }}</span>
-      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.inprogress.chip]">{{ counts.inprogress }} {{ t('status.inprogress') }}</span>
-      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.question.chip]">{{ counts.question }} {{ t('status.question') }}</span>
-      <span :class="['rounded-chip px-2 py-0.5 text-xs font-semibold', STATUS_STYLES.done.chip]">{{ counts.done }} {{ t('status.done') }}</span>
+  <div class="mb-5 grid grid-cols-2 gap-gutter sm:grid-cols-3 lg:grid-cols-6">
+    <div class="rounded-card border border-line-soft bg-surface px-4 py-3 shadow-panel">
+      <div class="eyebrow">{{ t('summary.repos') }}</div>
+      <div class="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-ink-strong">{{ total }}<span class="sr-only">{{ ' ' }}{{ t('summary.repos') }}</span></div>
     </div>
-    <div class="h-2.5 bg-surface-muted rounded-chip overflow-hidden">
-      <div data-test="progress" class="h-full progress-fill rounded-chip" :style="{ width: percentDone + '%' }"></div>
+    <div
+      v-for="tile in tiles" :key="tile.status"
+      :data-test="`summary-${tile.status}`"
+      class="rounded-card border border-line-soft bg-surface px-4 py-3 shadow-panel"
+    >
+      <div class="flex items-center gap-1.5">
+        <span :class="['size-2 rounded-full', tile.dot, tile.status === 'inprogress' && tile.count > 0 ? 'status-dot-live' : '']" aria-hidden="true"></span>
+        <span class="sr-only">{{ tile.count }}{{ ' ' }}</span><span class="eyebrow">{{ tile.label }}</span>
+      </div>
+      <div class="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-ink-strong" aria-hidden="true">{{ tile.count }}</div>
     </div>
-    <div class="text-xs text-ink-faint mt-1">{{ t('summary.percentDone', { percent: percentDone }) }}</div>
-    <div v-if="budget.day !== null && dayCost !== null" data-test="day-cost" class="text-xs text-ink-muted mt-1">{{ t('summary.today', { cost: formatChartValue(dayCost, 'cost'), threshold: formatChartValue(budget.day, 'cost') }) }}<template v-if="dayPartial"> · <span data-test="day-partial">{{ t('summary.todayPartial') }}</span></template></div>
+    <div class="col-span-2 rounded-card border border-line-soft bg-surface px-4 py-3 shadow-panel sm:col-span-3 lg:col-span-1">
+      <div class="flex items-baseline justify-between gap-2">
+        <span class="eyebrow">{{ t('summary.progress') }}</span>
+        <span class="text-xs tabular-nums text-ink-muted">{{ t('summary.percentDone', { percent: percentDone }) }}</span>
+      </div>
+      <div class="mt-3 h-1.5 overflow-hidden rounded-chip bg-surface-muted">
+        <div data-test="progress" class="h-full progress-fill rounded-chip transition-[width] duration-500" :style="{ width: percentDone + '%' }"></div>
+      </div>
+      <div v-if="budget.day !== null && dayCost !== null" data-test="day-cost" class="mt-2 text-xs tabular-nums text-ink-muted">{{ t('summary.today', { cost: formatChartValue(dayCost, 'cost'), threshold: formatChartValue(budget.day, 'cost') }) }}<template v-if="dayPartial"> · <span data-test="day-partial">{{ t('summary.todayPartial') }}</span></template></div>
+    </div>
   </div>
 </template>

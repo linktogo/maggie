@@ -236,6 +236,8 @@ The board ships five looks, chosen from the header:
 | **Material classic** | Material of the M2 era — indigo app bar, 4px corners, elevation shadows. |
 | **Legacy (frozen)** | Exactly what the board looked like before themes existed. Still selectable, no longer maintained: new work targets the Material themes. |
 
+![The board in the Claude theme, dark mode](images/board/board-dark.png)
+
 A second picker sets **light**, **dark** or **system** (the default, which
 follows the operating system). The legacy theme is light only, so the mode
 picker is disabled while it is active — the stored preference is kept and

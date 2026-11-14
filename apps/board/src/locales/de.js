@@ -7,6 +7,7 @@ export default {
   'nav.theme': 'Design',
   'nav.mode': 'Erscheinungsbild',
 
+  'theme.claude': 'Claude',
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material klassisch',
@@ -80,6 +81,7 @@ export default {
   'factory.restore': 'wiederherstellen',
   'factory.send': 'Senden',
   'factory.reply': 'Antworten…',
+  'factory.composerHint': 'Enter zum Senden · Umschalt+Enter für neue Zeile',
   'factory.cannotResume': 'Diese Anfrage kann nicht fortgesetzt werden (keine fortsetzbare Sitzung).',
   'factory.restart': 'Als neue Anfrage neu starten',
   'factory.thread.running': 'läuft',
@@ -116,11 +118,12 @@ export default {
   'status.done': 'Erledigt',
 
   'summary.repos': 'Repos',
+  'summary.progress': 'Fortschritt',
   'summary.percentDone': '{percent} % erledigt',
   'summary.today': 'heute {cost} von {threshold}',
   'summary.todayPartial': 'nur laufende Sitzungen — Verlauf nicht verfügbar',
 
-  'filter.searchRepo': '🔍 Repo filtern…',
+  'filter.searchRepo': 'Repo filtern…',
   'filter.techAll': 'Technologie: alle',
   'filter.ciAll': 'CI: alle',
   'filter.ciFailure': 'fehlgeschlagen',
@@ -192,6 +195,8 @@ export default {
   'time.daysAgo': 'vor {n} T.',
 
   'app.subtitle': 'Workspace-Board',
+  'app.live': 'Live',
+  'app.offline': 'Offline',
   'app.docTitle': 'maggie Board',
   'ci.reason.notConfigured': 'Status-Repo nicht konfiguriert',
   'ci.reason.unreachable': 'CI-Status nicht erreichbar',

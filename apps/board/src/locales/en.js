@@ -9,6 +9,7 @@ export default {
   'nav.theme': 'Theme',
   'nav.mode': 'Appearance',
 
+  'theme.claude': 'Claude',
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material classic',
@@ -82,6 +83,7 @@ export default {
   'factory.restore': 'restore',
   'factory.send': 'Send',
   'factory.reply': 'Reply…',
+  'factory.composerHint': 'Enter to send · Shift+Enter for a new line',
   'factory.cannotResume': 'This request cannot be continued (no resumable session).',
   'factory.restart': 'Restart as a new request',
   'factory.thread.running': 'running',
@@ -118,11 +120,12 @@ export default {
   'status.done': 'Done',
 
   'summary.repos': 'repos',
+  'summary.progress': 'Progress',
   'summary.percentDone': '{percent} % done',
   'summary.today': 'today {cost} of {threshold}',
   'summary.todayPartial': 'live sessions only — history unavailable',
 
-  'filter.searchRepo': '🔍 filter a repo…',
+  'filter.searchRepo': 'Filter repositories…',
   'filter.techAll': 'tech: all',
   'filter.ciAll': 'CI: all',
   'filter.ciFailure': 'failing',
@@ -194,6 +197,8 @@ export default {
   'time.daysAgo': '{n}d ago',
 
   'app.subtitle': 'workspace board',
+  'app.live': 'Live',
+  'app.offline': 'Offline',
   'app.docTitle': 'maggie board',
   'ci.reason.notConfigured': 'status repo not configured',
   'ci.reason.unreachable': 'CI status endpoint unreachable',

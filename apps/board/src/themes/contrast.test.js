@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const FILES = {
+  'claude light': ["claude.css", "html[data-theme='claude']"],
+  'claude dark': ["claude.css", "html[data-theme='claude'][data-mode='dark']"],
   'm3 light': ["m3.css", "html[data-theme='m3']"],
   'm3 dark': ["m3.css", "html[data-theme='m3'][data-mode='dark']"],
   'expressive light': ["expressive.css", "html[data-theme='expressive']"],

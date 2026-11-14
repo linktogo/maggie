@@ -1,9 +1,10 @@
 import { ref } from 'vue';
 
-// Material 3 tonal is the board's look from now on; `legacy` keeps the
-// pre-Material appearance selectable but frozen — no new work targets it,
-// which is also why it has no dark palette.
-export const DEFAULT_THEME = 'm3';
+// Claude (after Claude Code's own UI) is the board's default look; the
+// Material themes stay selectable. `legacy` keeps the pre-Material appearance
+// selectable but frozen — no new work targets it, which is also why it has no
+// dark palette.
+export const DEFAULT_THEME = 'claude';
 export const DEFAULT_MODE = 'system';
 
 export const THEME_STORAGE_KEY = 'maggie:theme';
@@ -12,6 +13,7 @@ export const MODE_STORAGE_KEY = 'maggie:mode';
 // Unlike languages, which are listed in their own language, a theme name is
 // translated — so these carry i18n keys rather than literal labels.
 export const THEMES = [
+  { code: 'claude', labelKey: 'theme.claude' },
   { code: 'm3', labelKey: 'theme.m3' },
   { code: 'expressive', labelKey: 'theme.expressive' },
   { code: 'classic', labelKey: 'theme.classic' },

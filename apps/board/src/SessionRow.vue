@@ -74,15 +74,15 @@ function onDragStart(e) {
     tabindex="0"
     data-test="session-row"
     draggable="true"
-    class="bg-surface-muted hover:bg-surface-hover rounded-[min(var(--radius-control),0.75rem)] p-2 cursor-grab focus-visible:outline-2 focus-visible:outline-accent active:cursor-grabbing transition-colors"
+    class="group rounded-[min(var(--radius-control),0.75rem)] border border-line-soft bg-surface-muted p-2.5 cursor-grab transition-colors hover:border-line hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent active:cursor-grabbing"
     @click="open"
     @keydown.enter="open"
     @keydown.space.prevent="open"
     @dragstart="onDragStart"
   >
-    <div class="font-medium text-ink text-sm truncate">{{ session.title ?? t('session.untitled') }}</div>
-    <div class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
-      <span :title="session.lastEvent">{{ eventLabel(session.lastEvent) }} · {{ when }}</span>
+    <div class="truncate text-[13px] font-medium text-ink-strong">{{ session.title ?? t('session.untitled') }}</div>
+    <div class="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-ink-muted">
+      <span :title="session.lastEvent" class="mr-0.5 font-mono">{{ eventLabel(session.lastEvent) }} · {{ when }}</span>
       <span
         data-test="agent-badge"
         :title="t('session.agentTooltip', { agent: agentLabel(agent) })"
@@ -97,7 +97,7 @@ function onDragStart(e) {
       <span v-if="described" data-test="cost-badge" :title="costTitle(described)" :class="['inline-flex items-center border font-medium px-1.5 py-0.5 rounded-badge', overBudget ? ['border-line-soft', STATUS_STYLES.question.chip] : 'bg-surface text-ink-soft border-line-soft']">{{ costText(described) }}</span>
       <span v-if="usage" data-test="token-badge" :title="usageTooltip" class="inline-flex items-center bg-surface text-ink-soft border border-line-soft font-medium px-1.5 py-0.5 rounded-badge">{{ t('session.tokens', { count: formatTokens(totalTokens) }) }}</span>
     </div>
-    <p v-if="prompt" class="mt-1 text-xs text-ink-soft whitespace-pre-wrap">
+    <p v-if="prompt" class="mt-2 border-l-2 border-line pl-2 text-xs leading-relaxed text-ink-soft whitespace-pre-wrap">
       {{ displayedPrompt }}
       <button
         v-if="overflows"
@@ -109,7 +109,7 @@ function onDragStart(e) {
     </p>
     <form
       data-test="message-form"
-      class="mt-2 flex items-center gap-1"
+      class="mt-2 flex items-center gap-1.5"
       draggable="false"
       @click.stop
       @mousedown.stop
@@ -121,7 +121,7 @@ function onDragStart(e) {
         data-test="message-input"
         type="text"
         :placeholder="t('session.messagePlaceholder')"
-        class="min-w-0 flex-1 rounded-control border border-line bg-surface px-2 py-1 text-xs text-ink-soft focus:border-accent focus:outline-hidden"
+        class="control !h-7 min-w-0 flex-1 !text-xs"
         @keydown.stop
       />
       <button
@@ -130,7 +130,7 @@ function onDragStart(e) {
         :disabled="!draft.trim()"
         :aria-label="t('session.send')"
         v-tooltip="t('session.send')"
-        class="inline-flex shrink-0 items-center justify-center rounded-control bg-accent p-1 text-on-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+        class="inline-flex size-7 shrink-0 items-center justify-center rounded-control bg-accent text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
       ><Icon name="send" emoji="➤" :size="16" /></button>
     </form>
   </div>

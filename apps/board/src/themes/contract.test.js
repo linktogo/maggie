@@ -28,7 +28,7 @@ function blocks(file) {
 const contract = blocks('contract.css');
 const CONTRACT = [...contract['@theme'], ...contract[':root']].sort();
 
-const THEMEABLE = ['m3', 'expressive', 'classic'];
+const THEMEABLE = ['claude', 'm3', 'expressive', 'classic'];
 
 test('the contract declares 73 variables', () => {
   expect(CONTRACT).toHaveLength(73);

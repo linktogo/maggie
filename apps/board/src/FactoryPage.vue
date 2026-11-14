@@ -47,9 +47,9 @@ const lastOutcome = computed(() => messages.value.findLast((m) => m.kind === 'st
 const shownError = computed(() => (available.value ? error.value : null));
 // Below md only the deepest selected pane shows.
 const depth = computed(() => (creating.value || threadId.value ? 3 : repo.value ? 2 : 1));
-const pane = (n, extra = '') => [`${depth.value === n ? 'flex' : 'hidden'} md:flex flex-col gap-3`, extra];
-const PANEL = 'bg-surface border border-line rounded-card shadow-panel p-3';
-const TAB = '-mb-px border-b-2 px-3 py-1';
+const pane = (n, extra = '') => [`${depth.value === n ? 'flex' : 'hidden'} md:flex flex-col`, extra];
+const PANEL = 'min-h-0 overflow-hidden bg-surface border border-line-soft rounded-card shadow-panel';
+const TAB = '-mb-px border-b-2 px-3 py-2';
 const TAB_ON = 'border-accent font-medium text-accent';
 const TAB_OFF = 'border-transparent text-ink-muted hover:text-ink';
 
@@ -118,13 +118,13 @@ async function archive(id) {
 
 <template>
   <div class="flex flex-col gap-4">
-    <p v-if="!available" data-test="factory-unavailable" class="text-xs text-question-on-soft">
+    <p v-if="!available" data-test="factory-unavailable" class="alert">
       <Icon name="warning" emoji="⚠" /> {{ t('factory.unavailable') }} {{ t('factory.startHint') }}
     </p>
-    <p v-else-if="providers.length === 0" data-test="factory-no-provider" class="text-xs text-question-on-soft">
+    <p v-else-if="providers.length === 0" data-test="factory-no-provider" class="alert">
       <Icon name="warning" emoji="⚠" /> {{ t('factory.noProvider') }}
     </p>
-    <p v-else-if="repos.length === 0" data-test="factory-no-repos" class="text-xs text-question-on-soft">
+    <p v-else-if="repos.length === 0" data-test="factory-no-repos" class="alert">
       <Icon name="warning" emoji="⚠" /> {{ t('factory.noRepos') }}
     </p>
 
@@ -132,7 +132,7 @@ async function archive(id) {
       ← {{ t('factory.back') }}
     </button>
 
-    <div class="grid gap-4 md:grid-cols-[14rem_18rem_minmax(0,1fr)]">
+    <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[15rem_20rem_minmax(0,1fr)]">
       <section :class="pane(1, PANEL)" :aria-label="t('factory.projects')">
         <FactoryProjects :projects="projects" :selected="repo" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
       </section>
@@ -144,25 +144,26 @@ async function archive(id) {
           @select="(id) => go(`/factory/${threads.find((x) => x.id === id)?.repo ?? repo}/${id}`)"
           @new="newRequest()" @toggle-archived="toggleArchived" @archive="archive" @restore="factory.restore"
         />
-        <p v-else data-test="factory-pick-project" class="text-xs text-ink-faint">{{ t('factory.pickProject') }}</p>
+        <p v-else data-test="factory-pick-project" class="m-auto max-w-[14rem] p-6 text-center text-xs text-ink-faint">{{ t('factory.pickProject') }}</p>
       </section>
 
       <section :class="pane(3, PANEL)" :aria-label="t('factory.conversation')">
+        <div v-if="creating" class="min-h-0 flex-1 overflow-y-auto p-4">
         <FactoryNewRequest
-          v-if="creating"
           :key="formKey"
           :repos="repos" :providers="providers" :skills="skills" :available="available" :busy="busy"
           :default-provider="health?.providers?.default ?? ''" :repo="repo" :prefill="prefill" :error="shownError"
           @submit="create"
         />
+        </div>
         <template v-else-if="current">
-          <p v-if="worktreeNotice" role="status" data-test="factory-worktree-notice" class="text-xs text-ink-muted">{{ worktreeNotice }}</p>
+          <p v-if="worktreeNotice" role="status" data-test="factory-worktree-notice" class="border-b border-line-soft px-4 py-2 text-xs text-ink-muted">{{ worktreeNotice }}</p>
           <FactoryConversation
             :thread="current" :messages="messages" :show-messages="tab === 'conversation'" :removing-worktree="removingWorktree"
             :console-available="consoleAvailable" :console-reason="consoleReason" @console="openConsole" @remove-worktree="removeWorktree"
           >
             <template v-if="consoleOpen" #tabs>
-              <div role="tablist" data-test="factory-tabs" class="flex items-end gap-1 border-b border-line text-sm">
+              <div role="tablist" data-test="factory-tabs" class="flex items-end gap-1 border-b border-line-soft px-2 text-sm">
                 <button
                   type="button" role="tab" data-test="factory-tab-conversation" :aria-selected="tab === 'conversation'"
                   :class="[TAB, tab === 'conversation' ? TAB_ON : TAB_OFF]" @click="tab = 'conversation'"
@@ -187,11 +188,14 @@ async function archive(id) {
             </template>
           </FactoryConversation>
           <FactoryConsole
-            v-if="consoleOpen" v-show="tab === 'console'" data-test="factory-console"
+            v-if="consoleOpen" v-show="tab === 'console'" data-test="factory-console" class="min-h-0 flex-1 p-3"
             :thread="current.id" :fetch-impl="fetchImpl" :EventSourceImpl="EventSourceImpl"
           />
         </template>
-        <p v-else data-test="factory-pick-thread" class="text-xs text-ink-faint">{{ t('factory.pickThread') }}</p>
+        <div v-else data-test="factory-pick-thread" class="m-auto flex max-w-xs flex-col items-center gap-2 p-6 text-center">
+          <span class="flex size-10 items-center justify-center rounded-full bg-accent-soft text-on-accent-soft" aria-hidden="true"><Icon name="terminal" :size="20" /></span>
+          <p class="text-xs text-ink-faint">{{ t('factory.pickThread') }}</p>
+        </div>
       </section>
     </div>
   </div>

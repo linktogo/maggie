@@ -7,6 +7,7 @@ export default {
   'nav.theme': 'Tema',
   'nav.mode': 'Apariencia',
 
+  'theme.claude': 'Claude',
   'theme.m3': 'Material 3',
   'theme.expressive': 'Material 3 Expressive',
   'theme.classic': 'Material clásico',
@@ -80,6 +81,7 @@ export default {
   'factory.restore': 'restaurar',
   'factory.send': 'Enviar',
   'factory.reply': 'Responder…',
+  'factory.composerHint': 'Intro para enviar · Mayús+Intro para nueva línea',
   'factory.cannotResume': 'Esta solicitud no se puede continuar (no hay sesión reanudable).',
   'factory.restart': 'Reiniciar como nueva solicitud',
   'factory.thread.running': 'en curso',
@@ -116,11 +118,12 @@ export default {
   'status.done': 'Hecho',
 
   'summary.repos': 'repos',
+  'summary.progress': 'Progreso',
   'summary.percentDone': '{percent} % completado',
   'summary.today': 'hoy {cost} de {threshold}',
   'summary.todayPartial': 'solo sesiones en curso — historial no disponible',
 
-  'filter.searchRepo': '🔍 filtrar un repo…',
+  'filter.searchRepo': 'Filtrar repositorios…',
   'filter.techAll': 'tecnología: todas',
   'filter.ciAll': 'CI: todos',
   'filter.ciFailure': 'con fallo',
@@ -192,6 +195,8 @@ export default {
   'time.daysAgo': 'hace {n} d',
 
   'app.subtitle': 'tablero de trabajo',
+  'app.live': 'En vivo',
+  'app.offline': 'Sin conexión',
   'app.docTitle': 'maggie · tablero',
   'ci.reason.notConfigured': 'repositorio de estado no configurado',
   'ci.reason.unreachable': 'estado de CI inaccesible',

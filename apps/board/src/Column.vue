@@ -35,20 +35,24 @@ function onDrop(e) {
 </script>
 
 <template>
-  <section class="min-w-0">
-    <h2 :class="['inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs col-title mb-2', style.pill]">
-      {{ title }} <span class="opacity-80">({{ entries.length }})</span>
-    </h2>
+  <section class="min-w-0 flex flex-col">
+    <div class="mb-2 flex items-center justify-between px-1">
+      <h2 class="flex items-center gap-2 text-sm text-ink-strong col-title">
+        <span :class="['size-2 rounded-full', style.dot, status === 'inprogress' && entries.length ? 'status-dot-live' : '']" aria-hidden="true"></span>
+        {{ title }}
+        <span data-test="column-count" class="rounded-chip bg-surface-muted px-1.5 py-px text-[11px] font-medium tabular-nums text-ink-muted">{{ entries.length }}</span>
+      </h2>
+    </div>
     <div
       data-test="column-body"
-      :class="['flex flex-col gap-gutter bg-panel rounded-panel p-2 min-h-[4rem]',
+      :class="['flex flex-1 flex-col gap-gutter rounded-panel border border-line-soft bg-panel p-2 min-h-[6rem] transition-shadow',
                dragOver ? 'ring-2 ring-drop-ring' : '']"
       v-on="isDropTarget ? { dragover: onDragOver, dragleave: onDragLeave, drop: onDrop } : {}"
     >
       <p
         v-if="entries.length === 0"
         data-test="column-empty"
-        :class="['m-auto px-2 py-3 text-center text-xs text-ink-faint', isDropTarget ? 'w-full rounded-control border border-dashed border-line' : '']"
+        :class="['m-auto px-2 py-4 text-center text-xs text-ink-faint', isDropTarget ? 'w-full rounded-control border border-dashed border-line' : '']"
       >{{ isDropTarget ? t('column.dropHint') : t('column.empty') }}</p>
       <Card v-for="e in entries" :key="e.name" :name="e.name" :sessions="e.sessions" :status="status" :now="now" :ci="ci[e.name] ?? null" @open="$emit('open', $event)" @send-message="$emit('send-message', $event)" />
     </div>

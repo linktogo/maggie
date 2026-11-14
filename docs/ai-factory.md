@@ -11,6 +11,10 @@ repo) and per request, reply to a thread, and the agent resumes its own session.
 | `apps/server` (`maggie-server`) | an independent Node.js server: HTTP + SSE, bearer token, loopback only |
 | the board's **AI Factory** tab | a three-pane message center (projects, requests, conversation); it relays to the server through `/api/factory/*` |
 
+![The AI Factory: projects, requests and a conversation](images/board/factory.png)
+
+![Starting a new request](images/board/factory-new-request.png)
+
 ## Start it
 
 ```bash

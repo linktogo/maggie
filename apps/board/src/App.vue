@@ -65,6 +65,13 @@ const ciUnavailable = computed(() => {
 
 const FACTORY_ROUTES = new Set(['factory', 'factory-repo', 'factory-thread']);
 
+const tabs = computed(() => [
+  { test: 'view-board', to: '/', label: 'nav.board', active: route.name === 'board' },
+  { test: 'view-history', to: '/history', label: 'nav.history', active: route.name === 'history' },
+  { test: 'view-retro-doc', to: '/retro-doc', label: 'nav.retroDoc', active: route.name === 'retro-doc' },
+  { test: 'view-factory', to: '/factory', label: 'nav.factory', active: FACTORY_ROUTES.has(route.name) },
+]);
+
 const routeProps = computed(() => {
   if (route.name === 'history') return { fetchImpl };
   if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
@@ -74,58 +81,61 @@ const routeProps = computed(() => {
 </script>
 
 <template>
-  <main class="min-h-screen p-4 sm:p-6">
-    <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-      <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="text-xl font-bold text-ink-strong whitespace-nowrap flex items-center gap-2">
-          <img data-test="logo" class="logo-light size-7" src="/maggie-mark-light.svg" alt="" />
-          <img data-test="logo-dark" class="logo-dark size-7" src="/maggie-mark-dark.svg" alt="" />
-          <span>maggie · {{ t('app.subtitle') }}</span>
-        </h1>
-        <div class="inline-flex items-center bg-surface-muted rounded-control p-0.5 gap-0.5 text-sm">
-          <router-link
-            data-test="view-board" to="/"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'board' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
-          >{{ t('nav.board') }}</router-link>
-          <router-link
-            data-test="view-history" to="/history"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'history' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
-          >{{ t('nav.history') }}</router-link>
-          <router-link
-            data-test="view-retro-doc" to="/retro-doc"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', route.name === 'retro-doc' ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
-          >{{ t('nav.retroDoc') }}</router-link>
-          <router-link
-            data-test="view-factory" to="/factory"
-            :class="['nav-tab rounded-control px-3 py-1 font-medium whitespace-nowrap transition-colors', FACTORY_ROUTES.has(route.name) ? 'bg-surface shadow-panel text-ink-strong' : 'text-ink-muted hover:text-ink-soft']"
-          >{{ t('nav.factory') }}</router-link>
+  <div class="min-h-screen flex flex-col">
+    <header class="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
+      <div class="mx-auto flex min-h-14 w-full max-w-[1680px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:py-0">
+        <div class="flex min-w-0 items-center gap-6 self-stretch">
+          <h1 class="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
+            <img data-test="logo" class="logo-light size-6" src="/maggie-mark-light.svg" alt="" />
+            <img data-test="logo-dark" class="logo-dark size-6" src="/maggie-mark-dark.svg" alt="" />
+            <span class="text-[15px] font-semibold tracking-tight text-ink-strong">maggie</span>
+            <span class="hidden h-4 w-px bg-line sm:block" aria-hidden="true"></span>
+            <span class="hidden text-sm text-ink-muted sm:inline">{{ t('app.subtitle') }}</span>
+          </h1>
+          <nav class="-mb-px flex items-stretch self-stretch gap-1 overflow-x-auto text-sm">
+            <router-link
+              v-for="tab in tabs" :key="tab.test"
+              :data-test="tab.test" :to="tab.to"
+              :class="['nav-tab inline-flex items-center border-b-2 px-2.5 font-medium whitespace-nowrap transition-colors',
+                       tab.active ? 'border-accent text-ink-strong' : 'border-transparent text-ink-muted hover:text-ink-strong']"
+            >{{ t(tab.label) }}</router-link>
+          </nav>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span
+            data-test="live-indicator"
+            :class="['mr-1 hidden items-center gap-1.5 text-xs md:inline-flex', connected ? 'text-ink-muted' : 'text-question-solid']"
+          ><span :class="['size-1.5 rounded-full', connected ? 'bg-done-solid status-dot-live' : 'bg-question-solid']"></span>{{ connected ? t('app.live') : t('app.offline') }}</span>
+          <button
+            v-if="permission !== 'granted'"
+            class="btn"
+            @click="requestPermission"
+          ><Icon name="notifications" emoji="🔔" :size="16" /> {{ t('notifications.enable') }}</button>
+          <button
+            class="btn"
+            :class="soundOn ? 'text-ink-soft' : 'text-ink-faint'"
+            @click="toggleSound"
+          ><Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" :size="16" /> {{ t('notifications.sound') }}</button>
+          <BudgetSettings />
+          <span class="mx-1 hidden h-5 w-px bg-line lg:block" aria-hidden="true"></span>
+          <ThemeSwitcher />
+          <ModeSwitcher />
+          <LocaleSwitcher />
         </div>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <ThemeSwitcher />
-        <ModeSwitcher />
-        <LocaleSwitcher />
-        <button
-          v-if="permission !== 'granted'"
-          class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
-          @click="requestPermission"
-        ><Icon name="notifications" emoji="🔔" /> {{ t('notifications.enable') }}</button>
-        <BudgetSettings />
-        <button
-          class="border border-line rounded-control shadow-panel hover:shadow-card hover:bg-surface-hover px-3 py-1.5 text-sm bg-surface"
-          :class="soundOn ? 'text-ink-soft' : 'text-ink-faint'"
-          @click="toggleSound"
-        ><Icon :name="soundOn ? 'volume_up' : 'volume_off'" :emoji="soundOn ? '🔊' : '🔇'" /> {{ t('notifications.sound') }}</button>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1680px] flex-1 px-4 py-5 sm:px-6">
+      <div v-if="!connected || ciError || ciUnavailable || permission === 'denied'" class="mb-4 flex flex-col gap-2">
+        <p v-if="!connected" class="alert"><Icon name="warning" emoji="⚠" :size="16" /> {{ t('banner.disconnected') }}</p>
+        <p v-if="ciError" data-test="ci-desync" class="alert"><Icon name="warning" emoji="⚠" :size="16" /> {{ t('banner.ciDesync', { reason: ciReasonLabel(ciError) }) }}</p>
+        <p v-if="ciUnavailable" data-test="ci-unavailable-banner" class="alert"><Icon name="warning" emoji="⚠" :size="16" /> {{ t('banner.ciUnavailable', { reason: ciReasonLabel(ciUnavailable) }) }}</p>
+        <p v-if="permission === 'denied'" class="text-xs text-ink-muted">{{ t('notifications.blocked') }}</p>
       </div>
-    </div>
 
-    <p v-if="!connected" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.disconnected') }}</p>
-    <p v-if="ciError" data-test="ci-desync" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.ciDesync', { reason: ciReasonLabel(ciError) }) }}</p>
-    <p v-if="ciUnavailable" data-test="ci-unavailable-banner" class="mb-3 text-xs text-question-on-soft"><Icon name="warning" emoji="⚠" /> {{ t('banner.ciUnavailable', { reason: ciReasonLabel(ciUnavailable) }) }}</p>
-    <p v-if="permission === 'denied'" class="mb-3 text-xs text-ink-muted">{{ t('notifications.blocked') }}</p>
-
-    <router-view v-slot="{ Component }">
-      <component :is="Component" v-bind="routeProps" />
-    </router-view>
-  </main>
+      <router-view v-slot="{ Component }">
+        <component :is="Component" v-bind="routeProps" />
+      </router-view>
+    </main>
+  </div>
 </template>

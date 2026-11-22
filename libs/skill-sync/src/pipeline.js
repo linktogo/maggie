@@ -228,3 +228,7 @@ function report(results, logger) {
 }
 
 export { RULES as LINT_RULES, formatFindings, lintLibrary, lintText } from './lint.js';
+export {
+  DEFAULT_EVAL_TIMEOUT_MS, EVAL_AGENTS, evaluateSkill, formatReport, loadEvals, parseEvalCase,
+} from './eval.js';
+export { resolveSkills, loadResources } from './skills.js';

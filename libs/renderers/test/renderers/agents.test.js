@@ -38,3 +38,8 @@ test('agents indexes the skills in an AGENTS.md block, sorted, with table-safe d
     '| [`zeta`](.agents/skills/zeta/SKILL.md) | Last \\| one wrapped |',
   ]);
 });
+
+test('agents escapes backslashes in descriptions, so none can un-escape a pipe or the column separator', () => {
+  const index = agents.renderIndex([{ name: 'a', description: 'C:\\path \\| x \\' }]);
+  assert.equal(index.content.split('\n').at(-1), '| [`a`](.agents/skills/a/SKILL.md) | C:\\\\path \\\\\\| x \\\\ |');
+});

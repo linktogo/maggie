@@ -5,8 +5,10 @@ import { buildDocument } from '../frontmatter.js';
 // that follow it. The standard wants the directory named after the skill.
 export const SKILLS_DIR = '.agents/skills';
 
+// A Markdown table cell: one line, with backslashes escaped before the pipes they
+// would otherwise un-escape (a trailing `\` would swallow the column separator).
 function cell(text) {
-  return String(text).replace(/\s+/g, ' ').replace(/\|/g, '\\|').trim();
+  return String(text).replace(/\s+/g, ' ').trim().replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 }
 
 export default {

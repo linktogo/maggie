@@ -226,3 +226,5 @@ function report(results, logger) {
   }, {});
   logger.log(`\nSummary: ${JSON.stringify(counts)}`);
 }
+
+export { RULES as LINT_RULES, formatFindings, lintLibrary, lintText } from './lint.js';

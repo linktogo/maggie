@@ -39,6 +39,7 @@
     "build": "nx run-many -t build",
     "start": "node apps/board/bin/maggie.js --config-repo https://github.com/linktogo-org/lk-config.git",
     "sync": "node apps/board/bin/maggie.js sync",
+    "lint:skills": "node apps/board/bin/maggie.js lint --strict",
     "wk": "node apps/board/bin/maggie.js workspace --workspace wk",
     "board:build": "nx run board:build",
     "test:board": "nx run board:test",

@@ -15,6 +15,8 @@ function setup() {
     runServer: async (args) => { calls.push(['server', args]); return agents; },
     runSync: async (args) => { calls.push(['sync', args]); },
     runWorkspace: async (args) => { calls.push(['workspace', args]); },
+    runLint: async (args) => { calls.push(['lint', args]); },
+    runEval: async (args) => { calls.push(['eval', args]); },
     log: (line) => logs.push(line),
     proc: { once: (signal, handler) => signals.push([signal, handler]), exit: (code) => exits.push(code) },
   };
@@ -34,6 +36,13 @@ test('sync and workspace run their command with the remaining arguments', async 
   await main(['sync', '--dry-run', '--config', 'a.json'], deps);
   await main(['workspace', '--workspace', 'wk'], deps);
   assert.deepEqual(calls, [['sync', ['--dry-run', '--config', 'a.json']], ['workspace', ['--workspace', 'wk']]]);
+});
+
+test('lint and eval run their command with the remaining arguments', async () => {
+  const { calls, deps } = setup();
+  await main(['lint', '--strict'], deps);
+  await main(['eval', '--skill', 'x'], deps);
+  assert.deepEqual(calls, [['lint', ['--strict']], ['eval', ['--skill', 'x']]]);
 });
 
 test('--board starts the board only, with every argument as given', async () => {

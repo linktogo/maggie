@@ -111,6 +111,9 @@ export default {
   'banner.disconnected': 'desconectado — nuevo intento en el próximo sondeo…',
   'banner.ciDesync': 'CI desincronizado — {reason}',
   'banner.ciUnavailable': 'Estado de CI no disponible — {reason}',
+  'banner.syncDrift': '{count} repo(s) desincronizado(s) con la biblioteca de skills',
+  'banner.syncError': 'comprobación de skills fallida para {count} repo(s)',
+  'banner.syncShow': 'Mostrarlos',
 
   'status.todo': 'Por hacer',
   'status.inprogress': 'En curso',
@@ -129,10 +132,17 @@ export default {
   'filter.ciFailure': 'con fallo',
   'filter.ciOk': 'OK',
   'filter.ciUnknown': 'desconocido',
+  'filter.syncAll': 'skills: todos',
+  'filter.syncDrift': 'desincronizados',
+  'filter.syncOk': 'sincronizados',
+  'filter.syncError': 'comprobación fallida',
+  'filter.syncUnknown': 'sin comprobar',
 
   'column.empty': 'Nada aquí',
   'column.dropHint': 'Arrastra una sesión aquí para cerrarla',
   'card.noActiveSession': 'Ninguna sesión activa',
+  'card.syncDrift': '{count} archivo(s) de skills desincronizado(s) con la biblioteca',
+  'card.syncError': 'La comprobación de sincronización de skills falló para este repo',
   'card.openRepo': 'Abrir {repo} — detalles, CI, retro-documentación',
   'card.confirmClose': '¿Marcar la sesión «{title}» de {repo} como terminada?',
 

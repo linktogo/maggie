@@ -111,6 +111,9 @@ export default {
   'banner.disconnected': 'getrennt — neuer Versuch beim nächsten Poll…',
   'banner.ciDesync': 'CI nicht synchron — {reason}',
   'banner.ciUnavailable': 'CI-Status nicht verfügbar — {reason}',
+  'banner.syncDrift': '{count} Repo(s) nicht synchron mit der Skill-Bibliothek',
+  'banner.syncError': 'Skill-Prüfung für {count} Repo(s) fehlgeschlagen',
+  'banner.syncShow': 'Anzeigen',
 
   'status.todo': 'Zu erledigen',
   'status.inprogress': 'In Arbeit',
@@ -129,10 +132,17 @@ export default {
   'filter.ciFailure': 'fehlgeschlagen',
   'filter.ciOk': 'OK',
   'filter.ciUnknown': 'unbekannt',
+  'filter.syncAll': 'Skills: alle',
+  'filter.syncDrift': 'nicht synchron',
+  'filter.syncOk': 'synchron',
+  'filter.syncError': 'Prüfung fehlgeschlagen',
+  'filter.syncUnknown': 'nicht geprüft',
 
   'column.empty': 'Nichts hier',
   'column.dropHint': 'Session hierher ziehen, um sie zu schließen',
   'card.noActiveSession': 'Keine aktive Session',
+  'card.syncDrift': '{count} Skill-Datei(en) nicht synchron mit der Bibliothek',
+  'card.syncError': 'Die Skill-Sync-Prüfung ist für dieses Repo fehlgeschlagen',
   'card.openRepo': '{repo} öffnen — Details, CI, Retro-Dokumentation',
   'card.confirmClose': 'Session „{title}“ von {repo} als erledigt markieren?',
 

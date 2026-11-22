@@ -113,6 +113,9 @@ export default {
   'banner.disconnected': 'disconnected — retrying at the next poll…',
   'banner.ciDesync': 'CI out of sync — {reason}',
   'banner.ciUnavailable': 'CI status unavailable — {reason}',
+  'banner.syncDrift': '{count} repo(s) out of sync with the skills library',
+  'banner.syncError': 'skills check failed for {count} repo(s)',
+  'banner.syncShow': 'Show them',
 
   'status.todo': 'To do',
   'status.inprogress': 'In progress',
@@ -131,10 +134,17 @@ export default {
   'filter.ciFailure': 'failing',
   'filter.ciOk': 'OK',
   'filter.ciUnknown': 'unknown',
+  'filter.syncAll': 'skills: all',
+  'filter.syncDrift': 'out of sync',
+  'filter.syncOk': 'in sync',
+  'filter.syncError': 'check failed',
+  'filter.syncUnknown': 'not checked',
 
   'column.empty': 'Nothing here',
   'column.dropHint': 'Drag a session here to close it',
   'card.noActiveSession': 'No active session',
+  'card.syncDrift': '{count} skill file(s) out of sync with the library',
+  'card.syncError': 'The skills sync check failed for this repo',
   'card.openRepo': 'Open {repo} — details, CI, retro-documentation',
   'card.confirmClose': 'Mark session “{title}” of {repo} as done?',
 

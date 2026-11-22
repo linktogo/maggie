@@ -8,9 +8,10 @@ defineProps({
   name: { type: String, default: '' },
   tech: { type: String, default: '' },
   ci: { type: String, default: '' },
+  sync: { type: String, default: '' },
   technologies: { type: Array, default: () => [] },
 });
-defineEmits(['update:name', 'update:tech', 'update:ci']);
+defineEmits(['update:name', 'update:tech', 'update:ci', 'update:sync']);
 </script>
 
 <template>
@@ -45,6 +46,18 @@ defineEmits(['update:name', 'update:tech', 'update:ci']);
       <option value="failure">{{ t('filter.ciFailure') }}</option>
       <option value="ok">{{ t('filter.ciOk') }}</option>
       <option value="unknown">{{ t('filter.ciUnknown') }}</option>
+    </select>
+    <select
+      data-test="sync"
+      :value="sync"
+      @change="$emit('update:sync', $event.target.value)"
+      class="control"
+    >
+      <option value="">{{ t('filter.syncAll') }}</option>
+      <option value="drift">{{ t('filter.syncDrift') }}</option>
+      <option value="in-sync">{{ t('filter.syncOk') }}</option>
+      <option value="error">{{ t('filter.syncError') }}</option>
+      <option value="unknown">{{ t('filter.syncUnknown') }}</option>
     </select>
   </div>
 </template>

@@ -12,6 +12,7 @@ const props = defineProps({
   entries: { type: Array, required: true }, // [{ name, sessions }]
   now: { type: Number, default: () => Date.now() },
   ci: { type: Object, default: () => ({}) },
+  sync: { type: Object, default: () => ({}) },
 });
 const emit = defineEmits(['open', 'close-session', 'send-message']);
 
@@ -54,7 +55,7 @@ function onDrop(e) {
         data-test="column-empty"
         :class="['m-auto px-2 py-4 text-center text-xs text-ink-faint', isDropTarget ? 'w-full rounded-control border border-dashed border-line' : '']"
       >{{ isDropTarget ? t('column.dropHint') : t('column.empty') }}</p>
-      <Card v-for="e in entries" :key="e.name" :name="e.name" :sessions="e.sessions" :status="status" :now="now" :ci="ci[e.name] ?? null" @open="$emit('open', $event)" @send-message="$emit('send-message', $event)" />
+      <Card v-for="e in entries" :key="e.name" :name="e.name" :sessions="e.sessions" :status="status" :now="now" :ci="ci[e.name] ?? null" :sync="sync[e.name] ?? null" @open="$emit('open', $event)" @send-message="$emit('send-message', $event)" />
     </div>
   </section>
 </template>

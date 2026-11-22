@@ -931,3 +931,57 @@ test('running server.js directly starts the board from the command line', async 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('GET /api/sync-status answers an empty status until a check has written one', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/api/sync-status`);
+  assert.deepEqual(await res.json(), { generatedAt: null, repos: {} });
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('GET /api/sync-status serves the sync-status.json next to the board file', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  await writeFile(path.join(dir, 'sync-status.json'), JSON.stringify({
+    generatedAt: '2026-11-22T10:00:00.000Z', repos: { api: { status: 'drift', drift: [{ path: 'a', state: 'missing' }] } },
+  }));
+  const server = createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir });
+  const port = await listen(server);
+  const body = await (await fetch(`http://127.0.0.1:${port}/api/sync-status`)).json();
+  assert.equal(body.generatedAt, '2026-11-22T10:00:00.000Z');
+  assert.equal(body.repos.api.status, 'drift');
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('GET /api/sync-status reports an unreadable file, and defaults missing fields', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const bad = path.join(dir, 'bad.json');
+  const partial = path.join(dir, 'partial.json');
+  await writeFile(bad, '{ nope');
+  await writeFile(partial, '{}');
+  const servers = [bad, partial].map((syncStatusPath) => createBoardServer({ boardPath: path.join(dir, 'board.json'), distDir: dir, syncStatusPath }));
+  const [badBody, partialBody] = await Promise.all(servers.map(async (server) => {
+    const port = await listen(server);
+    return (await fetch(`http://127.0.0.1:${port}/api/sync-status`)).json();
+  }));
+  assert.match(badBody.error, /could not read bad\.json/);
+  assert.deepEqual(badBody.repos, {});
+  assert.deepEqual(partialBody, { generatedAt: null, repos: {} });
+  for (const server of servers) server.close();
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('startFromArgv reads the sync status from --sync-status', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'board-'));
+  const file = path.join(dir, 'elsewhere.json');
+  await writeFile(file, JSON.stringify({ generatedAt: 'T', repos: { x: { status: 'in-sync' } } }));
+  const server = await startFromArgv(['--board', path.join(dir, 'board.json'), '--port', '0', '--dist', dir, '--sync-status', file], { log: () => {} });
+  const port = await listening(server);
+  const body = await (await fetch(`http://127.0.0.1:${port}/api/sync-status`)).json();
+  assert.equal(body.repos.x.status, 'in-sync');
+  server.close();
+  await rm(dir, { recursive: true, force: true });
+});

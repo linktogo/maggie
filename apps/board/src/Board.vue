@@ -15,6 +15,7 @@ const props = defineProps({
   repos: { type: Object, required: true },
   config: { type: Object, required: true },
   ci: { type: Object, default: () => ({}) },
+  sync: { type: Object, default: () => ({}) },
   now: { type: Number, required: true },
   fetchImpl: { type: Function, required: true },
   refresh: { type: Function, required: true },
@@ -103,6 +104,7 @@ const selectedRepo = computed(() => (selected.value ? props.repos[selected.value
 const selectedSession = computed(() => selectedRepo.value?.sessions?.[selected.value?.sessionId] ?? null);
 const selectedMeta = computed(() => (selected.value ? props.config[selected.value.name] ?? null : null));
 const selectedCi = computed(() => (selected.value ? props.ci[selected.value.name] ?? null : null));
+const selectedSync = computed(() => (selected.value ? props.sync[selected.value.name] ?? null : null));
 // Reading retroDocJobs here is what makes the panel follow a running job:
 // latestFor() alone would not be a reactive dependency.
 const selectedRetroDoc = computed(() => (selected.value && retroDocJobs.value ? latestRetroDoc(selected.value.name) : null));
@@ -131,7 +133,7 @@ const selectedRetroDoc = computed(() => (selected.value && retroDocJobs.value ? 
 
     <RepoDetail
       :name="selected?.name ?? null" :session-id="selected?.sessionId ?? null"
-      :session="selectedSession" :meta="selectedMeta" :ci="selectedCi" :now="now"
+      :session="selectedSession" :meta="selectedMeta" :ci="selectedCi" :sync="selectedSync" :now="now"
       :retro-doc="selectedRetroDoc" :retro-doc-available="retroDocAvailable"
       @close="selected = null"
       @send-message="onSendMessage"

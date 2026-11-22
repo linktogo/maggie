@@ -224,3 +224,39 @@ test('a running job that has logged nothing yet shows the generic progress text'
     expect(w.get('[data-test=retro-doc-progress]').text()).toContain(translate('detail.retroDocRunning'));
   }
 });
+
+test('the skills sync section says when no check has run', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now } });
+  expect(w.get('[data-test=sync-unknown]').text()).toBe(translate('detail.syncUnknown'));
+});
+
+test('the skills sync section shows an in-sync repo with its file count', () => {
+  const sync = { status: 'in-sync', files: 6, drift: [], checkedAt: '2026-06-21T09:58:00.000Z' };
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now, sync } });
+  expect(w.get('[data-test=sync-in-sync]').text()).toContain(translate('detail.syncInSync', { files: 6 }));
+});
+
+test('the skills sync section lists each drifted file, with its block', () => {
+  const sync = {
+    status: 'drift', files: 3, checkedAt: '2026-06-21T09:58:00.000Z',
+    drift: [{ path: '.claude/skills/a/SKILL.md', state: 'modified' }, { path: 'AGENTS.md', block: 'skills', state: 'missing' }],
+  };
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now, sync } });
+  expect(w.get('[data-test=sync-drift]').text()).toContain(translate('detail.syncDrift', { count: 2 }));
+  const rows = w.findAll('[data-test=sync-drift-file]').map((r) => r.text());
+  expect(rows[0]).toContain(translate('detail.syncState.modified'));
+  expect(rows[0]).toContain('.claude/skills/a/SKILL.md');
+  expect(rows[1]).toContain('AGENTS.md (skills)');
+});
+
+test('the skills sync section treats a drift entry without a list as empty', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now, sync: { status: 'drift', checkedAt: '2026-06-21T09:58:00.000Z' } } });
+  expect(w.get('[data-test=sync-drift]').text()).toContain(translate('detail.syncDrift', { count: 0 }));
+});
+
+test('the skills sync section reports a failed check, with or without a reason', () => {
+  const w = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now, sync: { status: 'error', error: 'clone failed' } } });
+  expect(w.get('[data-test=sync-error]').text()).toContain('clone failed');
+  const bare = mount(RepoDetail, { props: { name: 'oc-auth', session: null, meta, now, sync: { status: 'weird' } } });
+  expect(bare.get('[data-test=sync-error]').text()).toContain('weird');
+});

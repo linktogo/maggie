@@ -106,3 +106,20 @@ test('a message sent from a column is posted to the API, then the board refreshe
   }));
   expect(refresh).toHaveBeenCalled();
 });
+
+test('the detail panel gets the selected repo sync status, or null', async () => {
+  const { wrapper } = mountBoard({ sync: { api: { status: 'in-sync', files: 1, drift: [] } } });
+  wrapper.findAllComponents(Column)[0].vm.$emit('open', { name: 'api', sessionId: 's1' });
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toEqual({ status: 'in-sync', files: 1, drift: [] });
+  wrapper.findComponent(RepoDetail).vm.$emit('close');
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toBeNull();
+});
+
+test('the detail panel has no sync status for an unchecked repo', async () => {
+  const { wrapper } = mountBoard();
+  wrapper.findAllComponents(Column)[0].vm.$emit('open', { name: 'api', sessionId: 's1' });
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toBeNull();
+});

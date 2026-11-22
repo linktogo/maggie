@@ -18,6 +18,7 @@ const OPTIONS = new Map(Object.entries({
   'ci-cache': { to: 'board', value: true },
   'agents-url': { to: 'board', value: true },
   'agents-token-file': { to: 'board', value: true },
+  'sync-status': { to: 'board', value: true },
   // server
   provider: { to: 'server', value: true },
   repos: { to: 'server', value: true },

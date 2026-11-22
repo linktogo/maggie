@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useBoard } from './useBoard.js';
 import { useConfig } from './useConfig.js';
 import { useCi } from './useCi.js';
+import { useSyncStatus } from './useSyncStatus.js';
 import { useNotifications } from './useNotifications.js';
 import { useDayHistory } from './useDayHistory.js';
 import { useBudgetAlerts } from './useBudgetAlerts.js';
@@ -29,6 +30,7 @@ const fetchImpl = props.fetchImpl ?? fetch;
 const { repos, transitions, connected, loaded: boardLoaded, refresh } = useBoard({ intervalMs: props.intervalMs, fetchImpl });
 const { repos: config } = useConfig({ fetchImpl });
 const { repos: ci, syncError: ciError } = useCi({ fetchImpl });
+const { repos: skillSync } = useSyncStatus({ fetchImpl });
 const now = useNow();
 const route = useRoute();
 
@@ -76,7 +78,7 @@ const routeProps = computed(() => {
   if (route.name === 'history') return { fetchImpl };
   if (route.name === 'retro-doc') return { config: config.value, now: now.value, fetchImpl };
   if (FACTORY_ROUTES.has(route.name)) return { fetchImpl };
-  return { repos: repos.value, config: config.value, ci: ci.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value, dayPartial: dayEnabled.value && !historyLoaded.value };
+  return { repos: repos.value, config: config.value, ci: ci.value, sync: skillSync.value, now: now.value, fetchImpl, refresh, dayCost: dayCost.value, dayPartial: dayEnabled.value && !historyLoaded.value };
 });
 </script>
 

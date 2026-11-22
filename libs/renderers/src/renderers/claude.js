@@ -2,6 +2,9 @@ import { buildDocument } from '../frontmatter.js';
 
 export default {
   id: 'claude',
+  resourceRoot(skill) {
+    return `.claude/skills/${skill.name}`;
+  },
   render(skill) {
     const content = buildDocument(
       { name: skill.name, description: skill.description },

@@ -22,3 +22,7 @@ test('claude renders SKILL.md path and name/description frontmatter', () => {
 test('claude id is "claude"', () => {
   assert.equal(claude.id, 'claude');
 });
+
+test('claude keeps supporting files next to SKILL.md', () => {
+  assert.equal(claude.resourceRoot(skill), '.claude/skills/nestjs-module-structure');
+});

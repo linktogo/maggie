@@ -81,6 +81,8 @@ and that falls out of the design for free.
 
 ## P2 — `maggie --check`: drift detection without a push
 
+> **Status:** implemented as `maggie sync --check` (with `--out`) — see [the CLI docs](../sync-cli.md#drift-detection---check). The text below is the original proposal, kept as history.
+
 **Problem.** There are two modes today, and neither answers the question an
 organization actually asks.
 
@@ -300,6 +302,8 @@ land on its own.
 
 ## P7 — `maggie lint` for the skills library
 
+> **Status:** implemented as `maggie lint`, extended with supply-chain rules (secrets, pipe-to-shell, prompt injection, hidden Unicode…) — see [Linting the library](../skills-library.md#linting-the-library). The text below is the original proposal, kept as history.
+
 **Problem.** [`skill.js`](../../libs/skill-sync/src/skill.js) checks three
 things: `name` present, `description` present, `globs` an array if given. That
 is all the validation a skill ever gets, and it happens during a sync — in the
@@ -340,6 +344,8 @@ the command before they open the PR.
 ---
 
 ## P8 — Sync status on the board
+
+> **Status:** implemented: the repository detail panel shows the last `--check` result — see [Skills sync status](../board-dashboard.md#skills-sync-status). The text below is the original proposal, kept as history.
 
 **Problem.** The board answers "what are my agents doing?" — four columns of
 session status, CI per contributor, token usage, history. It has nothing to say

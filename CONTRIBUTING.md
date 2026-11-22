@@ -128,8 +128,14 @@ Guidance body in Markdown…
 - Keep guidance concrete and reviewable — a skill is read by an agent about to
   edit someone's production code.
 
-Renderers translate the same source into each target format (Claude Code, GitHub
-Copilot, Cursor, Windsurf); you do not need to write per-platform variants.
+Renderers translate the same source into each target format (Agent Skills /
+`AGENTS.md`, Claude Code, GitHub Copilot, Cursor, Windsurf); you do not need to
+write per-platform variants. Supporting files (`scripts/`, `references/`…) go next
+to the `SKILL.md`.
+
+Before opening the PR, run `pnpm run lint:skills` (CI runs it with `--strict`), and
+consider adding an eval under `evals/` so the skill's effect can be measured with
+`maggie eval` — see [Skills library](docs/skills-library.md#skill-evals).
 
 ## Architecture boundaries
 

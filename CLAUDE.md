@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-`maggie` is an open-source toolkit for synchronizing AI agent skills, practices, and workflows across the repositories of an organization. Skills are authored once under `skills/<techno>/<name>/SKILL.md` and rendered into each target platform's format (Claude Code, GitHub Copilot, Cursor, Windsurf).
+`maggie` is an open-source toolkit for synchronizing AI agent skills, practices, and workflows across the repositories of an organization. Skills are authored once under `skills/<techno>/<name>/SKILL.md` and rendered into each target platform's format (Agent Skills / `AGENTS.md`, Claude Code, GitHub Copilot, Cursor, Windsurf).
 
 Contributor-facing conventions — dev setup, the 100% coverage gate, commit format, and how to add a skill — live in [CONTRIBUTING.md](CONTRIBUTING.md). Keep it in sync when workflows change.
 

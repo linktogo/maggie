@@ -8,8 +8,11 @@
 Tools to sync AI agent skills, practices, and workflows across repositories.
 
 Skills are authored once under `skills/<techno>/<name>/SKILL.md` and translated
-into each target platform's format (Claude Code, GitHub Copilot, Cursor,
-Windsurf).
+into each target platform's format: the [Agent Skills](https://agentskills.io) standard
+with an `AGENTS.md` index (Codex, Gemini CLI, OpenCode…), Claude Code, GitHub Copilot,
+Cursor and Windsurf. The library is linted for secrets and injection patterns before
+anything is synced, `maggie sync --check` reports which repos drifted, and
+`maggie eval` measures what each skill actually changes.
 
 It ships the `maggie` command (render skills into repos, bootstrap a local
 workspace, run the board and the agents server) — a kanban dashboard and the
@@ -45,6 +48,9 @@ maggie --board                      # the board only (reads ./wk/.maggie/board.j
 maggie --server --repos repos.json  # the server only
 maggie --repos repos.json --port 5000 --server-port 5100   # options go to the part they belong to
 maggie sync --config repos.json     # render the skills into the repos
+maggie sync --config repos.json --check   # which repos drifted? (pushes nothing)
+maggie lint                         # scan the skills library
+maggie eval --skill nestjs-module-structure   # with vs without the skill
 maggie workspace --config repos.json --workspace wk   # bootstrap a local workspace
 ```
 
@@ -112,7 +118,8 @@ against each repo's `technologies` list: `nestjs`, `postgres`, `nextjs`,
 `reactjs`, `angular`, `vuejs`, `nx`, `firebase`, `cloudflare`.
 
 Add one by creating `skills/<techno>/<name>/SKILL.md` with YAML frontmatter
-(`name`, `description`, optional `globs`) followed by the guidance body. Any
+(`name`, `description`, optional `globs`) followed by the guidance body, plus any
+supporting files and `evals/` next to it. Any
 repo whose `technologies` include `<techno>` picks it up on the next sync — see
 [Skills library](docs/skills-library.md).
 
@@ -127,8 +134,8 @@ can be reused on their own:
 |---|---|
 | [`@linktogo/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
 | [`@linktogo/maggie-git`](libs/git) | thin git/`gh` wrapper |
-| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
-| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
+| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for agents/claude/copilot/cursor/windsurf |
+| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution, the sync pipeline, drift check, lint and evals |
 | [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
 | [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
 | [`@linktogo/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |

@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { run } from '../src/pipeline.js';
+import { renderRepo } from '@linktogo/maggie-renderers';
 
 function silentLogger() {
   return { log() {}, warn() {}, error() {} };
@@ -396,7 +397,6 @@ test('lint warnings alone do not stop the run', async () => {
 // --- check (drift detection) ---
 
 async function renderedFiles(targets) {
-  const { renderRepo } = await import('@linktogo/maggie-renderers');
   return Object.fromEntries(renderRepo(targets, [skill]).map((f) => [f.path, f]));
 }
 

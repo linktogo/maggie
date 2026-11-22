@@ -11,8 +11,8 @@ An [Nx](https://nx.dev) monorepo on pnpm workspaces. Applications live in
 | `apps/server` | `@linktogo/maggie-server` | `maggie-server` — the AI Factory agents server (`maggie --server`) |
 | `libs/config` | `@linktogo/maggie-config` | load and validate the config, from a file or a git repo |
 | `libs/git` | `@linktogo/maggie-git` | thin git/`gh` wrapper (clone, branch, commit, push, PR) |
-| `libs/renderers` | `@linktogo/maggie-renderers` | per-target renderers (claude, copilot, cursor, windsurf) |
-| `libs/skill-sync` | `@linktogo/maggie-skill-sync` | resolve skills for a repo and drive the sync pipeline |
+| `libs/renderers` | `@linktogo/maggie-renderers` | per-target renderers (agents, claude, copilot, cursor, windsurf) and the managed-block helpers |
+| `libs/skill-sync` | `@linktogo/maggie-skill-sync` | resolve skills for a repo and drive the sync pipeline, the drift check, the library lint and the skill evals |
 | `libs/workspace-bootstrap` | `@linktogo/maggie-workspace-bootstrap` | clone/install, Claude Code & Copilot CLI hooks, board state model |
 | `libs/ci-status` | `@linktogo/maggie-ci-status` | CI status payloads, validation, state mapping and folding |
 | `libs/retro-doc` | `@linktogo/maggie-retro-doc` | read a repo's specs and plans, ask an LLM, write the retro-documentation |

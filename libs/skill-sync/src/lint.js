@@ -55,7 +55,7 @@ const LINE_RULES = [
     /\bwithout\s+(telling|informing|asking|notifying|alerting)\s+the\s+user\b/i,
     /\byou\s+are\s+now\s+in\s+(developer|jailbreak|god|dan)\s+mode\b/i,
   ]],
-  ['hidden-unicode', [/[​-‏‪-‮⁠-⁤⁦-⁩﻿]|[\u{E0000}-\u{E007F}]/u]],
+  ['hidden-unicode', [/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/u]],
   ['credential-access', [
     /~\/\.ssh\b|\bid_(rsa|ecdsa|ed25519)\b/,
     /~\/\.aws\/credentials\b|~\/\.config\/gcloud\b|~\/\.netrc\b|\.git-credentials\b|\/etc\/shadow\b/,
@@ -89,7 +89,7 @@ export function lintText(text, file, { markdown = false } = {}) {
   const lines = text.split('\n');
   lines.forEach((line, index) => {
     const ignored = new Set([...ignoredOn(line), ...ignoredOn(lines[index - 1])]);
-    const scanned = index === 0 ? line.replace(/^﻿/, '') : line;
+    const scanned = index === 0 ? line.replace(/^\uFEFF/, '') : line;
     for (const [rule, patterns] of LINE_RULES) {
       if (ignored.has(rule)) continue;
       const hit = patterns.find((pattern) => pattern.test(scanned));

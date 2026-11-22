@@ -10,6 +10,42 @@ changes in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- **`agents` target: the Agent Skills standard and an `AGENTS.md` index.** Skills render to
+  `.agents/skills/<name>/SKILL.md`, the layout read by Codex, Gemini CLI, OpenCode, Goose and the
+  other agents of the [Agent Skills](https://agentskills.io) standard, and the repo's `AGENTS.md`
+  gets an index of them in a managed block (`<!-- maggie:begin skills -->` … `<!-- maggie:end skills -->`).
+  Only the block is rewritten: what the team wrote around it is kept. The manifest tracks the
+  block, so dropping the target removes it.
+- **Skills with supporting files.** Everything next to a `SKILL.md` (scripts, references, assets)
+  is synced: next to the skill for the `agents` and `claude` targets, once under
+  `.maggie/skills/<name>/` for `copilot`, `cursor` and `windsurf`, whose rendered rule lists them.
+- **`maggie lint`.** Scans the skills library for structure errors (Agent Skills name and
+  description rules, duplicates), secrets, remote code piped into a shell, prompt-injection
+  phrasing, hidden Unicode, credential access, destructive commands and insecure URLs, in
+  `SKILL.md` and supporting files. Per-rule `maggie-lint-ignore` comments silence a legitimate
+  match. `maggie sync` lints first and refuses to run on errors (`--skip-lint` to bypass); CI
+  lints the bundled library with `--strict`.
+- **`maggie sync --check`.** Reports, per repo, the files that are missing, modified or stale on
+  the default branch compared with the current render, without pushing; exits 1 on drift.
+  `--out <file>` writes the result as JSON.
+- **Skills sync status on the board.** The repository detail panel shows the last `--check`
+  result, read from `sync-status.json` next to the board file (`--sync-status` to override) and
+  served on `GET /api/sync-status`.
+- **`maggie eval`.** Runs a skill's `evals/*.json` cases with Claude Code or Copilot CLI, once
+  without the skill and once with it, grades both with the same assertions (files, output,
+  commands) and reports the pass-rate delta. `--runs`, `--model`, `--timeout`, `--json`,
+  `--fail-on-regression`. `evals/` is never synced. `nestjs-module-structure` ships an example.
+
+### Changed
+
+- `.maggie/manifest.json` gains a `blocks` list; manifests written by older versions are read as
+  owning no block.
+- `@linktogo/maggie-renderers` exports `renderRepo(targets, skills)` (every file a repo gets,
+  including supporting files and index blocks) and the managed-block helpers; `getRenderer` is
+  unchanged. The sync pipeline takes a `renderRepo` option instead of `getRenderer`.
+
 ## [2.1.2] - 2026-11-12
 
 ### Changed

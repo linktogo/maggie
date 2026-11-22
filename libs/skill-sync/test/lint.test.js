@@ -70,7 +70,7 @@ test('lintText finds prompt-injection phrasing', () => {
 });
 
 test('lintText finds hidden characters, but not a leading byte-order mark', () => {
-  const findings = lintText('﻿title\nzero​width\nbidi‮flip\ntag\u{E0041}', 'f.md');
+  const findings = lintText('\uFEFFtitle\nzero\u200Bwidth\nbidi\u202Eflip\ntag\u{E0041}', 'f.md');
   assert.deepEqual(findings.map((f) => [f.rule, f.line]), [['hidden-unicode', 2], ['hidden-unicode', 3], ['hidden-unicode', 4]]);
   assert.match(findings[0].message, /U\+200B$/);
 });

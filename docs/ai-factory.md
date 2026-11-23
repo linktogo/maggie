@@ -67,6 +67,15 @@ that resumes the agent session.
   `idle`, or `failed` when they have no session, with an "interrupted by a restart" message; the server logs
   `recovered N interrupted thread(s)`.
 - **Limits.** A message is at most 32 KB, a stored tool input 4 KB, a list page 50 threads.
+- **Quick replies.** When the agent's last message is a question that lists options (a numbered or bulleted
+  list), the board shows one chip per option above the reply box (at most 6, labelled by the option's bold
+  text or the words before its dash or colon); a click sends `2. <option>` (the number when the list is
+  numbered) at once. A closed question without a list (*Should I…?*, *Faut-il…?*) gets Yes / No in the board's
+  language. *Other…* puts the cursor in the reply box. Detection happens on the board; the agent is not told
+  anything new.
+- **Layout.** From 1280 px wide the page has three columns (projects, requests, conversation). Between 768
+  and 1280 px the projects become a select at the top of the requests, so the conversation keeps the room;
+  below 768 px one pane shows at a time, with Back.
 
 Providers are `claude-cli` (`claude -p --permission-mode acceptEdits`) and `copilot` (`copilot --allow-all-tools`); the CLI must be
 installed and logged in. A request may override the provider, but only among those two; if its CLI is

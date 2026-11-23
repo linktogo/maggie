@@ -39,6 +39,15 @@ changes in minor releases.
   without the skill and once with it, grades both with the same assertions (files, output,
   commands) and reports the pass-rate delta. `--runs`, `--model`, `--timeout`, `--json`,
   `--fail-on-regression`. `evals/` is never synced. `nestjs-module-structure` ships an example.
+- **Quick replies in the AI Factory.** When the agent ends its turn on a question that lists options,
+  the board shows one chip per option above the reply box, and a click sends it (`2. <option>`). A
+  closed question without a list gets Yes / No; *Other…* focuses the reply box.
+
+### Fixed
+
+- **The AI Factory conversation is no longer squeezed between 768 and 1280 px.** The projects column
+  folds into a select at the top of the requests there, so the conversation goes from ~190 px to
+  ~440 px wide at 820 px; the header wraps its badges instead of cutting them.
 
 ### Changed
 

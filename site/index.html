@@ -80,7 +80,7 @@ maggie sync --config repos.json --dry-run</pre>
   <section id="board">
     <div class="wrap">
       <h2>See what your agents are doing</h2>
-      <p class="sub">A local kanban board tracks Claude Code and GitHub Copilot CLI sessions across your repositories. From it, the AI Factory server launches agents in per-thread git worktrees, with a message center and a terminal console.</p>
+      <p class="sub">A local kanban board tracks Claude Code and GitHub Copilot CLI sessions across your repositories. From it, the AI Factory server launches agents in per-thread git worktrees, with a message center, a terminal console and one-click quick replies when the agent asks you to choose.</p>
       <figure class="shot">
         <img src="/assets/img/skills-sync-board-en.png" alt="The maggie board flagging repositories out of sync with the skills library" loading="lazy">
         <figcaption>Skills drift at a glance: a banner, a badge on each affected card, and a filter.</figcaption>
@@ -94,20 +94,12 @@ maggie sync --config repos.json --dry-run</pre>
         <figcaption>Each thread runs in its own worktree, so agents never step on each other.</figcaption>
       </figure>
       <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="AI Factory conversation: the agent asks a question and waits for the answer" loading="lazy">
-        <figcaption>AI Factory: launch an agent from the board, follow its steps and answer when it asks a question.</figcaption>
+        <img src="/assets/img/factory-quick-replies-en.png" alt="AI Factory conversation: the agent offers three options and quick reply buttons appear above the reply box" loading="lazy">
+        <figcaption>AI Factory: when the agent asks a choice question, each option becomes a button; one click sends the answer.</figcaption>
       </figure>
       <figure class="shot">
         <img src="/assets/img/factory-console.png" alt="AI Factory terminal console in the thread's worktree" loading="lazy">
         <figcaption>A terminal console opens directly in the thread's worktree.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="The AI Factory conversation: an agent asks a question and the reply box is ready" loading="lazy">
-        <figcaption>Conversation mode: talk to the agent of a thread, answer its questions and follow its steps.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-console.png" alt="The AI Factory terminal console opened in the thread worktree" loading="lazy">
-        <figcaption>Console: a shell opened right in the thread worktree, next to the conversation.</figcaption>
       </figure>
     </div>
   </section>

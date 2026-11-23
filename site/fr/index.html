@@ -80,7 +80,7 @@ maggie sync --config repos.json --dry-run</pre>
   <section id="board">
     <div class="wrap">
       <h2>Voyez ce que font vos agents</h2>
-      <p class="sub">Un board kanban local suit les sessions Claude Code et GitHub Copilot CLI dans vos dépôts. Depuis celui-ci, le serveur AI Factory lance des agents dans des worktrees git dédiés à chaque thread, avec un centre de messages et une console terminal.</p>
+      <p class="sub">Un board kanban local suit les sessions Claude Code et GitHub Copilot CLI dans vos dépôts. Depuis celui-ci, le serveur AI Factory lance des agents dans des worktrees git dédiés à chaque thread, avec un centre de messages, une console terminal et des réponses rapides en un clic quand l'agent vous demande de choisir.</p>
       <figure class="shot">
         <img src="/assets/img/skills-sync-board-fr.png" alt="Le board maggie signale les dépôts désynchronisés avec la bibliothèque de skills" loading="lazy">
         <figcaption>La dérive des skills d'un coup d'œil : un bandeau, un badge sur chaque carte concernée, et un filtre.</figcaption>
@@ -94,20 +94,12 @@ maggie sync --config repos.json --dry-run</pre>
         <figcaption>Chaque thread tourne dans son propre worktree : les agents ne se marchent pas dessus.</figcaption>
       </figure>
       <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="Conversation AI Factory : l'agent pose une question et attend la réponse" loading="lazy">
-        <figcaption>AI Factory : lancez un agent depuis le board, suivez ses étapes et répondez quand il pose une question.</figcaption>
+        <img src="/assets/img/factory-quick-replies-fr.png" alt="Conversation AI Factory : l'agent propose trois options et des boutons de réponse rapide apparaissent au-dessus de la zone de réponse" loading="lazy">
+        <figcaption>AI Factory : quand l'agent pose une question à choix, chaque option devient un bouton ; un clic envoie la réponse.</figcaption>
       </figure>
       <figure class="shot">
         <img src="/assets/img/factory-console.png" alt="Console terminal AI Factory dans le worktree du thread" loading="lazy">
         <figcaption>Une console terminal s'ouvre directement dans le worktree du thread.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="La conversation de l'AI Factory : l'agent pose une question et la zone de réponse est prête" loading="lazy">
-        <figcaption>Mode conversation : discutez avec l'agent d'un thread, répondez à ses questions et suivez ses étapes.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-console.png" alt="La console terminal de l'AI Factory ouverte dans le worktree du thread" loading="lazy">
-        <figcaption>Console : un shell ouvert directement dans le worktree du thread, à côté de la conversation.</figcaption>
       </figure>
     </div>
   </section>

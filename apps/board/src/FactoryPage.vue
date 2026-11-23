@@ -50,6 +50,12 @@ const shownError = computed(() => (available.value ? error.value : null));
 // Below md only the deepest selected pane shows.
 const depth = computed(() => (creating.value || threadId.value ? 3 : repo.value ? 2 : 1));
 const pane = (n, extra = '') => [`${depth.value === n ? 'flex' : 'hidden'} md:flex flex-col`, extra];
+// Between md and xl the projects fold into a select at the top of the requests: the
+// conversation gets the room a third column would take.
+const projectsPane = computed(() => [`${depth.value === 1 ? 'flex' : 'hidden'} md:hidden xl:flex flex-col`, PANEL]);
+function pickProject(event) {
+  if (event.target.value) void go(`/factory/${event.target.value}`);
+}
 const PANEL = 'min-h-0 overflow-hidden bg-surface border border-line-soft rounded-card shadow-panel';
 const TAB = '-mb-px border-b-2 px-3 py-2';
 const TAB_ON = 'border-accent font-medium text-accent';
@@ -134,12 +140,19 @@ async function archive(id) {
       ← {{ t('factory.back') }}
     </button>
 
-    <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[15rem_20rem_minmax(0,1fr)]">
-      <section :class="pane(1, PANEL)" :aria-label="t('factory.projects')">
+    <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[15rem_20rem_minmax(0,1fr)]">
+      <section :class="projectsPane" :aria-label="t('factory.projects')">
         <FactoryProjects :projects="projects" :selected="repo" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
       </section>
 
       <section :class="pane(2, PANEL)" :aria-label="t('factory.requests')">
+        <label class="hidden border-b border-line-soft p-3 md:block xl:hidden">
+          <span class="eyebrow">{{ t('factory.projectSelect') }}</span>
+          <select data-test="factory-project-select" :value="repo" class="control mt-1 w-full font-mono" @change="pickProject">
+            <option value="">—</option>
+            <option v-for="p in projects" :key="p.repo" :value="p.repo">{{ p.repo }}{{ p.threads ? ` (${p.threads})` : '' }}</option>
+          </select>
+        </label>
         <FactoryThreads
           v-if="repo || search"
           :threads="threads" :selected="threadId" :archived="archived"

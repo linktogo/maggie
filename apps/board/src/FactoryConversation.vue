@@ -78,11 +78,11 @@ const BUBBLE = 'rounded-card border px-3.5 py-2.5 text-sm';
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
     <header class="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-line-soft px-4 py-2">
-      <h3 class="min-w-0 truncate text-sm font-semibold text-ink-strong">{{ thread.title }}</h3>
-      <span class="flex flex-wrap items-center gap-2">
-        <span class="whitespace-nowrap rounded-badge bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] text-ink-muted">{{ [thread.provider, thread.model].filter(Boolean).join(' · ') }}</span>
-        <span v-if="worktree" v-tooltip="worktreeTooltip" data-test="factory-worktree-badge" :aria-label="`${t('factory.worktree.badge')} ${worktree.branch}`" class="inline-flex items-center gap-1 whitespace-nowrap rounded-badge bg-worktree-soft px-1.5 py-0.5 font-mono text-[11px] text-worktree-on-soft">
-          <Icon name="branch" emoji="⎇" :size="14" /> {{ worktree.branch }}
+      <h3 class="min-w-0 flex-[1_1_12rem] truncate text-sm font-semibold text-ink-strong">{{ thread.title }}</h3>
+      <span class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+        <span class="max-w-full truncate whitespace-nowrap rounded-badge bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] text-ink-muted">{{ [thread.provider, thread.model].filter(Boolean).join(' · ') }}</span>
+        <span v-if="worktree" v-tooltip="worktreeTooltip" data-test="factory-worktree-badge" :aria-label="`${t('factory.worktree.badge')} ${worktree.branch}`" class="inline-flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap rounded-badge bg-worktree-soft px-1.5 py-0.5 font-mono text-[11px] text-worktree-on-soft">
+          <Icon name="branch" emoji="⎇" :size="14" class="shrink-0" /> <span class="min-w-0 truncate">{{ worktree.branch }}</span>
           <span v-if="worktree.exists === false" class="text-question-on-soft">{{ t('factory.worktree.missing') }}</span>
           <span v-if="worktree.dirty === true" data-test="factory-worktree-dirty" class="rounded-control border border-line px-1 text-ink-muted">{{ t('factory.worktree.dirty') }}</span>
           <!-- A disabled button gets no pointer events: the tooltip sits on its wrapper. -->

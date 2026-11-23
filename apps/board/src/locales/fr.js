@@ -52,6 +52,7 @@ export default {
   'factory.search': 'Rechercher des demandes…',
   'factory.noProjects': 'Aucun projet.',
   'factory.projects': 'Projets',
+  'factory.projectSelect': 'Projet',
   'factory.requests': 'Demandes',
   'factory.conversation': 'Conversation',
   'factory.newRequest': 'Nouvelle demande',

@@ -522,3 +522,36 @@ test('a closed agent question offers Yes and No in the board language', async ()
   const { w } = await page(fetchWith({ messages: [...MESSAGES, question] }), `/factory/api/${THREAD.id}`);
   expect(w.findAll('[data-test=factory-quick-reply]').map((c) => c.text())).toEqual(['Oui', 'Non']);
 });
+
+test('between md and xl the projects fold into the requests pane: two columns, three from xl', async () => {
+  const { w } = await page(fetchWith(), `/factory/api/${THREAD.id}`);
+  const grid = w.get('[aria-label="Projects"]').element.parentElement;
+  expect(grid.className).toContain('md:grid-cols-[20rem_minmax(0,1fr)]');
+  expect(grid.className).toContain('xl:grid-cols-[15rem_20rem_minmax(0,1fr)]');
+  const projects = w.get('[aria-label="Projects"]').classes();
+  expect(projects).toContain('md:hidden');
+  expect(projects).toContain('xl:flex');
+});
+
+test('the project select lists every project and navigates like the projects pane', async () => {
+  const { w, router } = await page(fetchWith(), '/factory/api');
+  const select = w.get('[data-test=factory-project-select]');
+  expect(select.findAll('option').map((o) => o.element.value)).toEqual(['', 'api', 'web']);
+  expect(select.element.value).toBe('api');
+  await select.setValue('web');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/web');
+});
+
+test('the project select is there before any project is picked', async () => {
+  const { w } = await page(fetchWith());
+  expect(w.get('[data-test=factory-project-select]').element.value).toBe('');
+  expect(w.find('[data-test=factory-pick-project]').exists()).toBe(true);
+});
+
+test('picking the empty entry of the project select goes nowhere', async () => {
+  const { w, router } = await page(fetchWith(), '/factory/api');
+  await w.get('[data-test=factory-project-select]').setValue('');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+});

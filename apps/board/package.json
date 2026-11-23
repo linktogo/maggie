@@ -51,7 +51,7 @@
     "postpack": "node ../../scripts/stage-skills.js . --clean"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.7.5",
+    "@inquirer/prompts": "^8.8.0",
     "@linktogo/maggie-ci-status": "^2.2.0",
     "@linktogo/maggie-config": "^2.2.0",
     "@linktogo/maggie-git": "^2.2.0",

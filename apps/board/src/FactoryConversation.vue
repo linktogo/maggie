@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { renderMarkdown } from './markdown.js';
+// An agent turn that ends on a question is waiting for the user: it gets the question colours.
+import { asksQuestion } from './quickReplies.js';
 import Icon from './Icon.vue';
 import { vTooltip } from './tooltip.js';
 import { useI18n } from './i18n.js';
@@ -50,11 +52,6 @@ watch(() => [props.thread.id, props.messages.length], async () => {
   if (el) el.scrollTop = el.scrollHeight;
 }, { immediate: true });
 
-// An agent turn that ends on a question is waiting for the user: it gets the question colours.
-function asksQuestion(text) {
-  const lastLine = String(text ?? '').trim().split('\n').at(-1);
-  return /\?[\s*_`)"»]*$/.test(lastLine);
-}
 
 function stepsLabel(steps) {
   const counts = new Map();

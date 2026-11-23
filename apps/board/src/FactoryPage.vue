@@ -142,17 +142,24 @@ async function archive(id) {
 
     <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[15rem_20rem_minmax(0,1fr)]">
       <section :class="projectsPane" :aria-label="t('factory.projects')">
-        <FactoryProjects :projects="projects" :selected="repo" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
+        <FactoryProjects :projects="projects" :selected="repo" :query="search" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
       </section>
 
       <section :class="pane(2, PANEL)" :aria-label="t('factory.requests')">
-        <label class="hidden border-b border-line-soft p-3 md:block xl:hidden">
-          <span class="eyebrow">{{ t('factory.projectSelect') }}</span>
-          <select data-test="factory-project-select" :value="repo" class="control mt-1 w-full font-mono" @change="pickProject">
-            <option value="">—</option>
-            <option v-for="p in projects" :key="p.repo" :value="p.repo">{{ p.repo }}{{ p.threads ? ` (${p.threads})` : '' }}</option>
-          </select>
-        </label>
+        <div class="hidden flex-col gap-2 border-b border-line-soft p-3 md:flex xl:hidden">
+          <label>
+            <span class="eyebrow">{{ t('factory.projectSelect') }}</span>
+            <select data-test="factory-project-select" :value="repo" class="control mt-1 w-full font-mono" @change="pickProject">
+              <option value="">—</option>
+              <option v-for="p in projects" :key="p.repo" :value="p.repo">{{ p.repo }}{{ p.threads ? ` (${p.threads})` : '' }}</option>
+            </select>
+          </label>
+          <input
+            data-test="factory-search-compact" type="search" :value="search"
+            :placeholder="t('factory.search')" :aria-label="t('factory.search')"
+            class="control w-full text-ink" @input="onSearch($event.target.value)"
+          >
+        </div>
         <FactoryThreads
           v-if="repo || search"
           :threads="threads" :selected="threadId" :archived="archived"

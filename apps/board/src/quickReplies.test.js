@@ -67,3 +67,27 @@ test('asksQuestion: a turn ending on a question, markdown closers allowed', () =
   expect(asksQuestion('Ok.')).toBe(false);
   expect(asksQuestion(null)).toBe(false);
 });
+
+test('list-like lines inside a fenced code block are not choices', () => {
+  expect(quickReplies([agent('Here is the diff:\n```diff\n- const a = 1;\n+ const a = 2;\n```\nShould I apply it?')], words).map((c) => c.text)).toEqual(['Yes', 'No']);
+  expect(quickReplies([agent('Run:\n~~~\n1. npm i\n2. npm test\n~~~\nWhich step first?')], words)).toEqual([]);
+});
+
+test('nested sub-items are not choices: only the first level of the list', () => {
+  const text = '1. **Postgres** — robust\n   - pro: mature\n   - con: heavier\n2. **SQLite** — light\n   - pro: simple\n\nWhich one?';
+  expect(quickReplies([agent(text)], words).map((c) => c.text)).toEqual(['1. Postgres', '2. SQLite']);
+});
+
+test('a closed question after a summary list gets yes and no, not the summary items', () => {
+  expect(quickReplies([agent('I changed:\n- x\n- y\n\nIs it OK?')], words).map((c) => c.text)).toEqual(['Yes', 'No']);
+});
+
+test('an either-or question is not a yes-no question', () => {
+  expect(quickReplies([agent('Do you prefer tabs or spaces?')], words)).toEqual([]);
+  expect(quickReplies([agent('Should I use:\n\n1. **Tabs**\n2. **Spaces**\n\nShould I use tabs or spaces?')], words).map((c) => c.text)).toEqual(['1. Tabs', '2. Spaces']);
+});
+
+test('identical choices appear once, and a colon only separates when followed by a space', () => {
+  expect(quickReplies([agent('- Keep: the old one\n- Keep: the new one\n- https://a.example/x\n- Meet at 10:30\n- : nothing\n\nWhich?')], words).map((c) => c.text))
+    .toEqual(['Keep', 'https://a.example/x', 'Meet at 10:30']);
+});

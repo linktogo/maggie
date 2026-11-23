@@ -555,3 +555,15 @@ test('picking the empty entry of the project select goes nowhere', async () => {
   await flushPromises();
   expect(router.currentRoute.value.fullPath).toBe('/factory/api');
 });
+
+test('between md and xl the requests pane has its own search, bound to the same query', async () => {
+  const fetchImpl = fetchWith();
+  const { w } = await page(fetchImpl, '/factory/api');
+  const search = w.get('[data-test=factory-search-compact]');
+  await search.setValue('flaky');
+  await flushPromises();
+  expect(fetchImpl.calls).toContainEqual(['GET', '/api/factory/threads?q=flaky']);
+  expect(w.get('[data-test=factory-search-compact]').element.value).toBe('flaky');
+  // Back above xl, the projects pane shows the same query, so it can be cleared there.
+  expect(w.get('[data-test=factory-search]').element.value).toBe('flaky');
+});

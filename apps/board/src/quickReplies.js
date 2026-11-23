@@ -1,14 +1,18 @@
 // One-click answers to an agent's choice question: the items of the last list in its
-// final message, or Yes / No for a closed question without a list.
+// final message, or Yes / No for a closed question.
 
 const MAX_CHOICES = 6;
 const MAX_LABEL = 60;
-const ORDERED = /^\s*(\d+)[.)]\s+(.+)$/;
-const BULLET = /^\s*[-*+]\s+(.+)$/;
+const ORDERED = /^(\s*)(\d+)[.)]\s+(.+)$/;
+const BULLET = /^(\s*)[-*+]\s+(.+)$/;
+const FENCE = /^\s*(```|~~~)/;
 const BOLD = /^(\*\*|__)(.+?)\1/;
-const SEPARATOR = / [—–-] |:/;
+// A dash between spaces, or a colon followed by a space: not the colon of a URL or a time.
+const SEPARATOR = / [—–-] |: /;
 // How a closed question starts, in English and in French.
 const AUXILIARY = /^(should|shall|do|does|can|could|would|will|is|are|may|dois-je|faut-il|veux-tu|voulez-vous|souhaites-tu|souhaitez-vous|est-ce)\b/;
+// "Tabs or spaces?" is a choice, not a yes / no.
+const ALTERNATIVE = /\s(or|ou)\s/;
 
 /** An agent turn that ends on a question is waiting for the user. */
 export function asksQuestion(text) {
@@ -16,19 +20,34 @@ export function asksQuestion(text) {
   return /\?[\s*_`)"»]*$/.test(lastLine);
 }
 
-// The items of the last list: consecutive list lines, blank lines between them allowed.
+function listItem(line) {
+  const ordered = ORDERED.exec(line);
+  if (ordered) return { indent: ordered[1].length, n: ordered[2], text: ordered[3] };
+  const bullet = BULLET.exec(line);
+  return bullet ? { indent: bullet[1].length, n: null, text: bullet[2] } : null;
+}
+
+// The first-level items of the last list outside code fences; blank lines and deeper
+// (nested) items inside a list keep it open.
 function lastList(lines) {
   let list = [];
-  let open = false;
+  let indent = null;
+  let fenced = false;
   for (const line of lines) {
-    const ordered = ORDERED.exec(line);
-    const bullet = ordered ? null : BULLET.exec(line);
-    if (ordered || bullet) {
-      if (!open) list = [];
-      open = true;
-      list.push(ordered ? { n: ordered[1], text: ordered[2] } : { n: null, text: bullet[1] });
+    if (FENCE.test(line)) {
+      fenced = !fenced;
+      indent = null;
+      continue;
+    }
+    const item = fenced ? null : listItem(line);
+    if (item) {
+      if (indent === null) {
+        list = [];
+        indent = item.indent;
+      }
+      if (item.indent <= indent) list.push(item);
     } else if (line.trim() !== '') {
-      open = false;
+      indent = null;
     }
   }
   return list;
@@ -43,19 +62,27 @@ function label(text) {
 function closedQuestion(content) {
   const lastLine = content.trim().split('\n').filter((line) => line.includes('?')).at(-1);
   const sentence = lastLine.split(/(?<=[.!])\s+/).at(-1).trim().toLowerCase();
-  return AUXILIARY.test(sentence);
+  return AUXILIARY.test(sentence) && !ALTERNATIVE.test(sentence);
+}
+
+function choices(items) {
+  const seen = new Set();
+  const out = [];
+  for (const { n, text } of items) {
+    const name = label(text);
+    const sent = n ? `${n}. ${name}` : name;
+    if (!name || seen.has(sent)) continue;
+    seen.add(sent);
+    out.push({ label: name, text: sent });
+  }
+  return out.slice(0, MAX_CHOICES);
 }
 
 /** The quick replies for `messages`, or [] when its last message is not a choice question. */
 export function quickReplies(messages, { yes, no }) {
   const last = messages.at(-1);
   if (!last || last.role !== 'agent' || last.kind !== 'text' || !asksQuestion(last.content)) return [];
-  const items = lastList(last.content.split('\n'));
-  if (items.length > 0) {
-    return items.slice(0, MAX_CHOICES).map(({ n, text }) => {
-      const name = label(text);
-      return { label: name, text: n ? `${n}. ${name}` : name };
-    });
-  }
-  return closedQuestion(last.content) ? [{ label: yes, text: yes }, { label: no, text: no }] : [];
+  // A closed question wins over a list: the list is then what was done, not what to choose.
+  if (closedQuestion(last.content)) return [{ label: yes, text: yes }, { label: no, text: no }];
+  return choices(lastList(last.content.split('\n')));
 }

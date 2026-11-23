@@ -25,7 +25,7 @@ const MESSAGES = [
   { id: 'm2', threadId: THREAD.id, role: 'agent', kind: 'text', content: 'Done, **really**.', runId: 'r1', createdAt: NOW },
 ];
 
-function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ status: 201, body: { thread: THREAD } }), onMessage = () => ({ status: 202, body: { thread: { ...THREAD, status: 'running' } } }) } = {}) {
+function fetchWith({ messages = MESSAGES, health = { status: 200, body: HEALTH }, onPost = () => ({ status: 201, body: { thread: THREAD } }), onMessage = () => ({ status: 202, body: { thread: { ...THREAD, status: 'running' } } }) } = {}) {
   const calls = [];
   const fetchImpl = vi.fn(async (url, init = {}) => {
     calls.push([init.method ?? 'GET', url]);
@@ -37,7 +37,7 @@ function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ s
     if (url === '/api/factory/health') return answer(health.status, health.body);
     if (url === '/api/factory/skills') return answer(200, { skills: SKILLS });
     if (url === '/api/factory/projects') return answer(200, { projects: PROJECTS });
-    if (url.startsWith(`/api/factory/threads/${THREAD.id}`)) return answer(200, { thread: THREAD, messages: MESSAGES });
+    if (url.startsWith(`/api/factory/threads/${THREAD.id}`)) return answer(200, { thread: THREAD, messages });
     if (url.startsWith('/api/factory/threads')) return answer(200, { threads: [THREAD] });
     return answer(404, {});
   });
@@ -508,4 +508,17 @@ test('a worktree removal finishing after leaving the thread does not touch the n
   await flushPromises();
   expect(router.currentRoute.value.fullPath).toBe('/factory/api');
   expect(w.find('[data-test=factory-worktree-notice]').exists()).toBe(false);
+});
+
+test('an agent question with options offers them as quick replies above the composer', async () => {
+  const question = { id: 'm3', threadId: THREAD.id, role: 'agent', kind: 'text', runId: 'r1', createdAt: NOW, content: 'How?\n\n1. **Fast** — cheap\n2. **Safe** — slow\n\nWhich one?' };
+  const { w } = await page(fetchWith({ messages: [...MESSAGES, question] }), `/factory/api/${THREAD.id}`);
+  expect(w.findAll('[data-test=factory-quick-reply]').map((c) => c.text())).toEqual(['1. Fast', '2. Safe']);
+});
+
+test('a closed agent question offers Yes and No in the board language', async () => {
+  setLocale('fr');
+  const question = { id: 'm3', threadId: THREAD.id, role: 'agent', kind: 'text', runId: 'r1', createdAt: NOW, content: 'Should I push?' };
+  const { w } = await page(fetchWith({ messages: [...MESSAGES, question] }), `/factory/api/${THREAD.id}`);
+  expect(w.findAll('[data-test=factory-quick-reply]').map((c) => c.text())).toEqual(['Oui', 'Non']);
 });

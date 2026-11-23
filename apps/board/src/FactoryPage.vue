@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThreads } from './useThreads.js';
+import { quickReplies } from './quickReplies.js';
 import FactoryProjects from './FactoryProjects.vue';
 import FactoryThreads from './FactoryThreads.vue';
 import FactoryConversation from './FactoryConversation.vue';
@@ -44,6 +45,7 @@ const consoleAvailable = computed(() => health.value?.terminal?.available === tr
 const consoleReason = computed(() => health.value?.terminal?.reason ?? '');
 const current = computed(() => (thread.value?.id === threadId.value ? thread.value : null));
 const lastOutcome = computed(() => messages.value.findLast((m) => m.kind === 'status')?.content?.outcome ?? null);
+const choices = computed(() => quickReplies(messages.value, { yes: t('factory.quick.yes'), no: t('factory.quick.no') }));
 const shownError = computed(() => (available.value ? error.value : null));
 // Below md only the deepest selected pane shows.
 const depth = computed(() => (creating.value || threadId.value ? 3 : repo.value ? 2 : 1));
@@ -183,7 +185,7 @@ async function archive(id) {
               <FactoryComposer
                 v-show="tab === 'conversation'"
                 :thread="current" :resumable="resumable" :error="shownError" :last-outcome="lastOutcome"
-                :busy="busy" :send="factory.reply" @stop="factory.stop" @restart="restart"
+                :busy="busy" :send="factory.reply" :choices="choices" @stop="factory.stop" @restart="restart"
               />
             </template>
           </FactoryConversation>

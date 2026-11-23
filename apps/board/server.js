@@ -133,6 +133,19 @@ async function serveCi(ciReader, config, res) {
   res.end(JSON.stringify(body));
 }
 
+// Written by `maggie sync --check --out`: absent until a first check has run.
+async function serveSyncStatus(syncStatusPath, res) {
+  let body = { generatedAt: null, repos: {} };
+  try {
+    const parsed = JSON.parse(await readFile(syncStatusPath, 'utf8'));
+    body = { generatedAt: parsed.generatedAt ?? null, repos: parsed.repos ?? {} };
+  } catch (err) {
+    if (err.code !== 'ENOENT') body = { ...body, error: `could not read ${path.basename(syncStatusPath)}: ${err.message}` };
+  }
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
 async function readJSONBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -224,7 +237,10 @@ export async function serveStatic(distDir, pathname, res) {
   }
 }
 
-export function createBoardServer({ boardPath, distDir, config = null, ciReader = null, retroDoc = undefined, agentsProxy = createAgentsProxy() }) {
+export function createBoardServer({
+  boardPath, distDir, config = null, ciReader = null, retroDoc = undefined, agentsProxy = createAgentsProxy(),
+  syncStatusPath = path.join(path.dirname(boardPath), 'sync-status.json'),
+}) {
   const historyPath = resolveHistoryPath(boardPath);
   // Without a config the board cannot know where a repo is checked out, so the
   // endpoint answers 503 rather than guessing a directory to write into.
@@ -242,6 +258,7 @@ export function createBoardServer({ boardPath, distDir, config = null, ciReader 
       if (url.pathname === '/api/history') return await serveHistory(historyPath, res);
       if (url.pathname === '/api/config') return serveConfig(config, res);
       if (url.pathname === '/api/ci') return await serveCi(ciReader, config, res);
+      if (url.pathname === '/api/sync-status') return await serveSyncStatus(syncStatusPath, res);
       if (url.pathname === '/api/sessions/close' && req.method === 'POST') return await serveCloseSession(boardPath, req, res);
       if (url.pathname === '/api/sessions/message' && req.method === 'POST') return await serveQueueMessage(boardPath, req, res);
       if (url.pathname === '/api/retro-doc' && (req.method === 'GET' || req.method === 'POST')) return await serveRetroDoc(retroDocRunner, req, res, url);
@@ -269,6 +286,7 @@ export async function startFromArgv(argv, {
       'config-repo': { type: 'string' }, 'config-file': { type: 'string' },
       'agents-url': { type: 'string', default: DEFAULT_AGENTS_URL },
       'agents-token-file': { type: 'string' },
+      'sync-status': { type: 'string' },
     },
   });
   const boardPath = resolveServerBoardPath({ board: values.board });
@@ -313,7 +331,10 @@ export async function startFromArgv(argv, {
     url: values['agents-url'],
     ...(values['agents-token-file'] ? { tokenFile: path.resolve(values['agents-token-file']) } : {}),
   });
-  const server = createBoardServer({ boardPath, distDir, config, ciReader, agentsProxy });
+  const server = createBoardServer({
+    boardPath, distDir, config, ciReader, agentsProxy,
+    ...(values['sync-status'] ? { syncStatusPath: path.resolve(values['sync-status']) } : {}),
+  });
 
   // Like the Angular CLI: if the port is taken, fall back to the next one.
   const maxAttempts = 10;

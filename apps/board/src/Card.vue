@@ -6,6 +6,7 @@ import { STATUS_STYLES } from './statusStyles.js';
 import { visibleBadges, pillClass } from './ciBadge.js';
 import { useI18n } from './i18n.js';
 import { ciStateLabel } from './labels.js';
+import { syncState } from './syncStatus.js';
 
 const { t } = useI18n();
 
@@ -15,12 +16,17 @@ const props = defineProps({
   status: { type: String, required: true },
   now: { type: Number, default: () => Date.now() },
   ci: { type: Object, default: null },
+  sync: { type: Object, default: null },
 });
 const emit = defineEmits(['open', 'send-message']);
 
 const isQuestion = computed(() => props.status === 'question');
 const style = computed(() => STATUS_STYLES[props.status]);
 const badges = computed(() => visibleBadges(props.ci?.users));
+const skills = computed(() => syncState(props.sync));
+const skillsTitle = computed(() => (skills.value === 'drift'
+  ? t('card.syncDrift', { count: props.sync.drift?.length ?? 0 })
+  : t('card.syncError')));
 const overflowTitle = computed(() => badges.value.overflow.map((b) => `${b.login} — ${ciStateLabel(b.state)}`).join('\n'));
 
 function open(sessionId) {
@@ -41,6 +47,14 @@ function open(sessionId) {
         @click="emit('open', { name, sessionId: null })"
       ><Icon name="branch" :size="14" class="shrink-0 text-ink-faint" /><span class="truncate">{{ name }}</span></button>
       <div class="flex items-center gap-1 shrink-0">
+        <span
+          v-if="skills === 'drift' || skills === 'error'"
+          data-test="sync-badge"
+          role="img"
+          :title="skillsTitle"
+          :aria-label="skillsTitle"
+          class="inline-flex items-center gap-0.5 text-[10px] leading-none font-semibold border rounded-badge px-1 py-0.5 border-question-ring text-question-on-soft bg-question-soft"
+        ><Icon name="warning" emoji="⚠" :size="10" />{{ skills === 'drift' ? (sync.drift?.length ?? 0) : '!' }}</span>
         <span
           v-for="b in badges.shown" :key="b.login"
           data-test="ci-badge"

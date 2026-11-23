@@ -18,6 +18,14 @@ main([...only, ...process.argv.slice(2)], {
     const { main: sync } = await import('../cli/sync/src/main.js');
     process.exitCode = await sync(args);
   },
+  runLint: async (args) => {
+    const { lintMain } = await import('../cli/sync/src/lint.js');
+    process.exitCode = await lintMain(args);
+  },
+  runEval: async (args) => {
+    const { evalMain } = await import('../cli/sync/src/eval.js');
+    process.exitCode = await evalMain(args);
+  },
   runWorkspace: async (args) => {
     const { run } = await import('../cli/workspace/bin/workspace.js');
     await run(args);

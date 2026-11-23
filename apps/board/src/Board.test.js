@@ -106,3 +106,50 @@ test('a message sent from a column is posted to the API, then the board refreshe
   }));
   expect(refresh).toHaveBeenCalled();
 });
+
+test('the detail panel gets the selected repo sync status, or null', async () => {
+  const { wrapper } = mountBoard({ sync: { api: { status: 'in-sync', files: 1, drift: [] } } });
+  wrapper.findAllComponents(Column)[0].vm.$emit('open', { name: 'api', sessionId: 's1' });
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toEqual({ status: 'in-sync', files: 1, drift: [] });
+  wrapper.findComponent(RepoDetail).vm.$emit('close');
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toBeNull();
+});
+
+test('the detail panel has no sync status for an unchecked repo', async () => {
+  const { wrapper } = mountBoard();
+  wrapper.findAllComponents(Column)[0].vm.$emit('open', { name: 'api', sessionId: 's1' });
+  await flushPromises();
+  expect(wrapper.findComponent(RepoDetail).props('sync')).toBeNull();
+});
+
+test('the sync banner counts drifted and failed repos and filters on the drifted ones', async () => {
+  const { wrapper } = mountBoard({ sync: { api: { status: 'drift', drift: [{ path: 'x', state: 'missing' }] }, web: { status: 'error', error: 'e' } } });
+  const banner = wrapper.get('[data-test=sync-banner]');
+  expect(banner.text()).toContain('1 repo(s) out of sync with the skills library');
+  expect(banner.text()).toContain('skills check failed for 1 repo(s)');
+  await wrapper.get('[data-test=sync-banner-show]').trigger('click');
+  expect(cardNames(wrapper)).toEqual(['api']);
+  expect(wrapper.find('[data-test=sync-banner-show]').exists()).toBe(false);
+});
+
+test('the sync banner shows drift alone, or failures alone without a filter button', () => {
+  const drift = mountBoard({ sync: { api: { status: 'drift', drift: [] } } }).wrapper;
+  expect(drift.get('[data-test=sync-banner]').text()).not.toContain('failed');
+  const failed = mountBoard({ sync: { web: { status: 'error' } } }).wrapper;
+  expect(failed.get('[data-test=sync-banner]').text()).not.toContain('out of sync');
+  expect(failed.find('[data-test=sync-banner-show]').exists()).toBe(false);
+});
+
+test('no sync banner when every checked repo is in sync, or a drifted repo is not on the board', () => {
+  const { wrapper } = mountBoard({ sync: { api: { status: 'in-sync', drift: [] }, gone: { status: 'drift', drift: [] } } });
+  expect(wrapper.find('[data-test=sync-banner]').exists()).toBe(false);
+});
+
+test('the sync filter keeps the repos in the chosen state', async () => {
+  const { wrapper } = mountBoard({ sync: { api: { status: 'in-sync', drift: [] } } });
+  wrapper.findComponent(FilterBar).vm.$emit('update:sync', 'unknown');
+  await flushPromises();
+  expect(cardNames(wrapper)).toEqual(['web']);
+});

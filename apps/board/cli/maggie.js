@@ -1,6 +1,7 @@
 // The `maggie` command: `maggie` starts the board and the server, `maggie --board` the board only,
 // `maggie --server` the server only. Every other option is passed on to whichever of them it belongs to;
-// `maggie sync` and `maggie workspace` run the skill sync and the workspace bootstrap.
+// `maggie sync`, `maggie lint`, `maggie eval` and `maggie workspace` run the skill sync, the skills
+// library linter, the skill evals and the workspace bootstrap.
 //
 // Everything that touches the outside (the board, the server, the sync, the workspace) is injected,
 // bin/maggie.js wires the real ones.
@@ -17,6 +18,7 @@ const OPTIONS = new Map(Object.entries({
   'ci-cache': { to: 'board', value: true },
   'agents-url': { to: 'board', value: true },
   'agents-token-file': { to: 'board', value: true },
+  'sync-status': { to: 'board', value: true },
   // server
   provider: { to: 'server', value: true },
   repos: { to: 'server', value: true },
@@ -40,13 +42,15 @@ export const USAGE = `Usage:
   maggie [options]            start the board and the server
   maggie --board [options]    start the board only
   maggie --server [options]   start the server only
-  maggie sync [options]       render the skills into the repositories
+  maggie sync [options]       render the skills into the repositories (--check: report drift only)
+  maggie lint [options]       scan the skills library (structure, secrets, injection patterns)
+  maggie eval [options]       measure what a skill changes, with and without it
   maggie workspace [options]  bootstrap a local workspace
 
 Options go to the part they belong to (see docs/board-dashboard.md and docs/ai-factory.md).
 With both running, --port is the board's and --server-port the server's.`;
 
-const SUBCOMMANDS = new Set(['sync', 'workspace']);
+const SUBCOMMANDS = { sync: 'runSync', lint: 'runLint', eval: 'runEval', workspace: 'runWorkspace' };
 
 // A bare `--board` / `--server` picks what to start. `--board <file>` and `--board=<file>` keep
 // their older meaning (the board file), so only a `--board` with no value is a flag.
@@ -97,14 +101,15 @@ function wire(board, server) {
   return wired;
 }
 
-export async function main(argv, { runBoard, runServer, runSync, runWorkspace, log = console.log, proc = process }) {
+export async function main(argv, deps) {
+  const { runBoard, runServer, log = console.log, proc = process } = deps;
   const [first, ...others] = argv;
   if (first === '--help' || first === '-h') {
     log(USAGE);
     return;
   }
-  if (SUBCOMMANDS.has(first)) {
-    await (first === 'sync' ? runSync : runWorkspace)(others);
+  if (Object.hasOwn(SUBCOMMANDS, first)) {
+    await deps[SUBCOMMANDS[first]](others);
     return;
   }
 

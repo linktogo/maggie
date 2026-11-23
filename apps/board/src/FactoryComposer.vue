@@ -15,6 +15,8 @@ const props = defineProps({
   // Sends the reply and resolves true once the server accepted it: the draft is
   // only cleared then, so a refused reply (409, network error) can be sent again.
   send: { type: Function, required: true },
+  // One-click answers to the agent's last question: [{ label, text }].
+  choices: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['stop', 'restart']);
 
@@ -23,16 +25,23 @@ const sending = ref(false);
 const running = computed(() => props.thread.status === 'running');
 const showRestart = computed(() => !running.value && (!props.resumable || props.lastOutcome === 'failed'));
 const blocked = computed(() => sending.value || props.busy);
+const showChoices = computed(() => props.choices.length > 0 && props.resumable && !running.value);
+const reply = ref(null);
 
-async function submit() {
-  const text = prompt.value.trim();
-  if (!text || !props.resumable || blocked.value) return;
+// Resolves true once the server accepted `text`.
+async function sendText(text) {
+  if (!props.resumable || blocked.value) return false;
   sending.value = true;
   try {
-    if (await props.send(text)) prompt.value = '';
+    return await props.send(text);
   } finally {
     sending.value = false;
   }
+}
+
+async function submit() {
+  const text = prompt.value.trim();
+  if (text && await sendText(text)) prompt.value = '';
 }
 </script>
 
@@ -40,12 +49,26 @@ async function submit() {
   <div class="flex flex-col gap-2 border-t border-line-soft px-4 py-3">
     <p v-if="error" data-test="factory-error" class="alert text-xs"><Icon name="warning" emoji="⚠" :size="16" /> {{ error }}</p>
     <p v-if="!running && !resumable" data-test="factory-cannot-resume" class="text-xs text-ink-muted">{{ t('factory.cannotResume') }}</p>
+    <div v-if="showChoices" role="group" data-test="factory-quick-replies" :aria-label="t('factory.quick.label')" class="flex flex-wrap gap-1.5">
+      <button
+        v-for="choice in choices" :key="choice.text"
+        type="button" data-test="factory-quick-reply" :disabled="blocked" :title="choice.text"
+        class="max-w-full truncate rounded-chip border border-line bg-surface-muted px-2.5 py-1 text-xs text-ink-soft transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        @click="sendText(choice.text)"
+      >{{ choice.text }}</button>
+      <button
+        type="button" data-test="factory-quick-other"
+        class="rounded-chip border border-dashed border-line px-2.5 py-1 text-xs text-ink-muted hover:text-ink"
+        @click="reply.focus()"
+      >{{ t('factory.quick.other') }}</button>
+    </div>
     <form
       :class="['flex flex-col rounded-card border bg-surface transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_18%,transparent)]',
                running || !resumable ? 'border-line-soft' : 'border-line']"
       @submit.prevent="submit"
     >
       <textarea
+        ref="reply"
         v-model="prompt"
         data-test="factory-reply"
         rows="2"

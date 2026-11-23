@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useThreads } from './useThreads.js';
+import { quickReplies } from './quickReplies.js';
 import FactoryProjects from './FactoryProjects.vue';
 import FactoryThreads from './FactoryThreads.vue';
 import FactoryConversation from './FactoryConversation.vue';
@@ -44,10 +45,17 @@ const consoleAvailable = computed(() => health.value?.terminal?.available === tr
 const consoleReason = computed(() => health.value?.terminal?.reason ?? '');
 const current = computed(() => (thread.value?.id === threadId.value ? thread.value : null));
 const lastOutcome = computed(() => messages.value.findLast((m) => m.kind === 'status')?.content?.outcome ?? null);
+const choices = computed(() => quickReplies(messages.value, { yes: t('factory.quick.yes'), no: t('factory.quick.no') }));
 const shownError = computed(() => (available.value ? error.value : null));
 // Below md only the deepest selected pane shows.
 const depth = computed(() => (creating.value || threadId.value ? 3 : repo.value ? 2 : 1));
 const pane = (n, extra = '') => [`${depth.value === n ? 'flex' : 'hidden'} md:flex flex-col`, extra];
+// Between md and xl the projects fold into a select at the top of the requests: the
+// conversation gets the room a third column would take.
+const projectsPane = computed(() => [`${depth.value === 1 ? 'flex' : 'hidden'} md:hidden xl:flex flex-col`, PANEL]);
+function pickProject(event) {
+  if (event.target.value) void go(`/factory/${event.target.value}`);
+}
 const PANEL = 'min-h-0 overflow-hidden bg-surface border border-line-soft rounded-card shadow-panel';
 const TAB = '-mb-px border-b-2 px-3 py-2';
 const TAB_ON = 'border-accent font-medium text-accent';
@@ -132,12 +140,26 @@ async function archive(id) {
       ← {{ t('factory.back') }}
     </button>
 
-    <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[15rem_20rem_minmax(0,1fr)]">
-      <section :class="pane(1, PANEL)" :aria-label="t('factory.projects')">
-        <FactoryProjects :projects="projects" :selected="repo" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
+    <div class="grid gap-gutter md:h-[calc(100vh-9rem)] md:min-h-[32rem] md:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[15rem_20rem_minmax(0,1fr)]">
+      <section :class="projectsPane" :aria-label="t('factory.projects')">
+        <FactoryProjects :projects="projects" :selected="repo" :query="search" @select="(name) => go(`/factory/${name}`)" @search="onSearch" />
       </section>
 
       <section :class="pane(2, PANEL)" :aria-label="t('factory.requests')">
+        <div class="hidden flex-col gap-2 border-b border-line-soft p-3 md:flex xl:hidden">
+          <label>
+            <span class="eyebrow">{{ t('factory.projectSelect') }}</span>
+            <select data-test="factory-project-select" :value="repo" class="control mt-1 w-full font-mono" @change="pickProject">
+              <option value="">—</option>
+              <option v-for="p in projects" :key="p.repo" :value="p.repo">{{ p.repo }}{{ p.threads ? ` (${p.threads})` : '' }}</option>
+            </select>
+          </label>
+          <input
+            data-test="factory-search-compact" type="search" :value="search"
+            :placeholder="t('factory.search')" :aria-label="t('factory.search')"
+            class="control w-full text-ink" @input="onSearch($event.target.value)"
+          >
+        </div>
         <FactoryThreads
           v-if="repo || search"
           :threads="threads" :selected="threadId" :archived="archived"
@@ -183,7 +205,7 @@ async function archive(id) {
               <FactoryComposer
                 v-show="tab === 'conversation'"
                 :thread="current" :resumable="resumable" :error="shownError" :last-outcome="lastOutcome"
-                :busy="busy" :send="factory.reply" @stop="factory.stop" @restart="restart"
+                :busy="busy" :send="factory.reply" :choices="choices" @stop="factory.stop" @restart="restart"
               />
             </template>
           </FactoryConversation>

@@ -25,6 +25,7 @@ pnpm run board:build                                # build only, no server
 | `--config <path>` | `AI_SYNC_CONFIG` | none — degraded mode |
 | `--port <n>` | — | `4180` |
 | `--dist <path>` | — | the built front-end next to the server |
+| `--sync-status <path>` | — | `sync-status.json` next to the board file — see [Skills sync status](#skills-sync-status) |
 
 CI status adds five more flags — see [CI status](ci-status.md).
 
@@ -52,6 +53,7 @@ and prints where it settled, so avoid starting a second instance by accident.
 | `GET /api/board` | The raw `board.json`. Returns an empty board when the file does not exist. |
 | `GET /api/config` | Repo metadata (url, technologies, targets) when started with `--config`. |
 | `GET /api/ci` | Per-contributor CI status — see [CI status](ci-status.md). |
+| `GET /api/sync-status` | The last `maggie sync --check --out` result — see [Skills sync status](#skills-sync-status). `{ generatedAt: null, repos: {} }` until a check has run. |
 | `POST /api/sessions/close` | Closes a session: removes it from the board and appends a history entry. Body: `{ repo, sessionId }`. |
 | `POST /api/sessions/message` | Queues a message for a session (see [Messaging a session](#messaging-a-session)). Body: `{ repo, sessionId, message }`. |
 | `POST /api/retro-doc` | Starts a retro-documentation of a repo (see [Generating a retro-documentation](#generating-a-retro-documentation)). Body: `{ repo, provider, model }`. |
@@ -118,6 +120,21 @@ or not the server is running.
   Expressive, Material classic, and Legacy — the board's pre-Material look,
   kept selectable but frozen. A second picker sets light, dark or system.
   See [Themes](#themes).
+
+## Skills sync status
+
+The repository detail panel has a **Skills sync** section: whether the repo's
+default branch matches what the skills library renders, and if not, each file that
+is missing, modified or stale. It shows the last
+[drift check](sync-cli.md#drift-detection---check), which the board does not run
+itself — schedule it (cron, CI) and write it next to the board file:
+
+```bash
+maggie sync --config repos.json --check --out wk/.maggie/sync-status.json
+```
+
+`--sync-status <path>` points the board at a file elsewhere. A repo that was never
+checked says so; a check that failed for a repo shows the reason.
 
 ## Messaging a session
 

@@ -38,7 +38,8 @@ across everyone's machine without committing its repo list into this project.
 | `repos[].path` | no | Path to an existing local checkout — see below. |
 | `defaultTargets` | no | Applied to every repo that omits `targets`. A repo that ends up with zero targets is a validation error. |
 
-Known targets: `claude`, `copilot`, `cursor`, `windsurf`. An unknown target is
+Known targets: `agents` (the Agent Skills standard: Codex, Gemini CLI, OpenCode…),
+`claude`, `copilot`, `cursor`, `windsurf`. An unknown target is
 rejected at load time with the list of valid ones.
 
 ### `path`

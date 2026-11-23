@@ -85,3 +85,62 @@ test('shows an error', () => {
   const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, error: 'a run is already active on api' } });
   expect(w.get('[data-test=factory-error]').text()).toContain('already active');
 });
+
+const CHOICES = [
+  { label: 'In memory', text: '1. In memory' },
+  { label: 'PostgreSQL with TypeORM', text: '2. PostgreSQL with TypeORM' },
+];
+
+test('quick replies show one chip per choice plus Other, and a click sends that choice', async () => {
+  const send = sender(true);
+  const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, send, choices: CHOICES } });
+  const chips = w.findAll('[data-test=factory-quick-reply]');
+  expect(chips.map((c) => c.text())).toEqual(['1. In memory', '2. PostgreSQL with TypeORM']);
+  expect(w.get('[data-test=factory-quick-other]').text()).toBe('Other…');
+  expect(w.get('[data-test=factory-quick-replies]').attributes('aria-label')).toBe('Quick replies');
+  await chips[1].trigger('click');
+  await flushPromises();
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenCalledWith('2. PostgreSQL with TypeORM');
+});
+
+test('a quick reply is sent once while it is pending, and the draft is left alone', async () => {
+  let release;
+  const send = vi.fn(() => new Promise((resolve) => { release = resolve; }));
+  const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, send, choices: CHOICES } });
+  await w.get('[data-test=factory-reply]').setValue('half-written');
+  const chip = w.get('[data-test=factory-quick-reply]');
+  await chip.trigger('click');
+  await chip.trigger('click');
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(chip.element.disabled).toBe(true);
+  release(true);
+  await flushPromises();
+  expect(w.get('[data-test=factory-reply]').element.value).toBe('half-written');
+});
+
+test('a refused quick reply leaves the chips usable', async () => {
+  const send = sender(false);
+  const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, send, choices: CHOICES } });
+  await w.get('[data-test=factory-quick-reply]').trigger('click');
+  await flushPromises();
+  expect(w.get('[data-test=factory-quick-reply]').element.disabled).toBe(false);
+});
+
+test('Other focuses the reply box and sends nothing', async () => {
+  const send = sender(true);
+  const w = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, send, choices: CHOICES }, attachTo: document.body });
+  await w.get('[data-test=factory-quick-other]').trigger('click');
+  expect(document.activeElement).toBe(w.get('[data-test=factory-reply]').element);
+  expect(send).not.toHaveBeenCalled();
+  w.unmount();
+});
+
+test('no quick replies while the agent runs, when the thread cannot resume, or without choices', () => {
+  const running = mount(FactoryComposer, { props: { thread: { ...THREAD, status: 'running' }, resumable: true, send: sender(true), choices: CHOICES } });
+  expect(running.find('[data-test=factory-quick-replies]').exists()).toBe(false);
+  const stuck = mount(FactoryComposer, { props: { thread: THREAD, resumable: false, send: sender(true), choices: CHOICES } });
+  expect(stuck.find('[data-test=factory-quick-replies]').exists()).toBe(false);
+  const none = mount(FactoryComposer, { props: { thread: THREAD, resumable: true, send: sender(true) } });
+  expect(none.find('[data-test=factory-quick-replies]').exists()).toBe(false);
+});

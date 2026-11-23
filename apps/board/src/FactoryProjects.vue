@@ -7,6 +7,8 @@ const { t } = useI18n();
 defineProps({
   projects: { type: Array, required: true },
   selected: { type: String, default: '' },
+  // The current search, shared with the compact search of the requests pane.
+  query: { type: String, default: '' },
 });
 const emit = defineEmits(['select', 'search']);
 </script>
@@ -20,6 +22,7 @@ const emit = defineEmits(['select', 'search']);
         <input
           data-test="factory-search"
           type="search"
+          :value="query"
           :placeholder="t('factory.search')"
           :aria-label="t('factory.search')"
           class="control w-full pl-8 text-ink"

@@ -1,0 +1,12 @@
+{
+  "name": "orders-feature-module",
+  "prompt": "Add an orders feature to this NestJS app: a GET /orders endpoint that returns the list of orders from an in-memory array. Edit the files directly, do not run npm install.",
+  "fixture": "starter",
+  "assert": [
+    { "type": "file-exists", "path": "src/orders/orders.module.ts" },
+    { "type": "file-contains", "path": "src/orders/orders.module.ts", "pattern": "@Module\\(" },
+    { "type": "file-exists", "path": "src/orders/orders.service.ts" },
+    { "type": "file-not-contains", "path": "src/orders/orders.controller.ts", "pattern": "\\[\\s*\\{" },
+    { "type": "file-contains", "path": "src/app.module.ts", "pattern": "OrdersModule" }
+  ]
+}

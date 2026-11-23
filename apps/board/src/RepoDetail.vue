@@ -19,6 +19,7 @@ const props = defineProps({
   meta: { type: Object, default: null },
   now: { type: Number, default: () => Date.now() },
   ci: { type: Object, default: null },
+  sync: { type: Object, default: null },
   retroDoc: { type: Object, default: null },
   retroDocAvailable: { type: Boolean, default: true },
 });
@@ -32,6 +33,8 @@ const retroLog = computed(() => props.retroDoc?.log ?? []);
 function generateRetroDoc() {
   emit('generate-retro-doc', { repo: props.name, provider: provider.value });
 }
+
+const syncDrift = computed(() => props.sync?.drift ?? []);
 
 const ciUsers = computed(() => visibleBadges(props.ci?.users, Infinity).shown);
 
@@ -153,6 +156,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
           · {{ relativeTime(ci.users[u.login].run.startedAt, now) }}
         </li>
       </ul>
+
+      <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.sync') }}</h3>
+      <p v-if="!sync" data-test="sync-unknown" class="mt-1 text-xs text-ink-muted">{{ t('detail.syncUnknown') }}</p>
+      <p v-else-if="sync.status === 'in-sync'" data-test="sync-in-sync" class="mt-1 text-xs text-ink-soft">
+        ✓ {{ t('detail.syncInSync', { files: sync.files }) }} · {{ relativeTime(sync.checkedAt, now) }}
+      </p>
+      <template v-else-if="sync.status === 'drift'">
+        <p data-test="sync-drift" class="mt-1 text-xs text-question-on-soft">
+          <Icon name="warning" emoji="⚠" /> {{ t('detail.syncDrift', { count: syncDrift.length }) }} · {{ relativeTime(sync.checkedAt, now) }}
+        </p>
+        <ul class="mt-1 space-y-0.5">
+          <li v-for="d in syncDrift" :key="`${d.path}#${d.block ?? ''}`" data-test="sync-drift-file" class="text-xs text-ink-soft break-all">
+            <span class="font-medium">{{ t(`detail.syncState.${d.state}`) }}</span> · <code>{{ d.path }}</code><span v-if="d.block"> ({{ d.block }})</span>
+          </li>
+        </ul>
+      </template>
+      <p v-else data-test="sync-error" class="mt-1 text-xs text-question-on-soft">
+        <Icon name="warning" emoji="⚠" /> {{ t('detail.syncFailed', { reason: sync.error ?? sync.status }) }}
+      </p>
 
       <h3 class="mt-4 text-xs font-semibold text-ink-muted uppercase">{{ t('detail.history') }}</h3>
       <ul class="mt-1 space-y-1">

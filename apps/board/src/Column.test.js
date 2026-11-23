@@ -81,3 +81,11 @@ test('a column with cards shows no empty hint', () => {
   const w = mount(Column, { props: { title: 'To do', status: 'todo', entries: [{ name: 'oc-be', sessions: [] }] } });
   expect(w.find('[data-test=column-empty]').exists()).toBe(false);
 });
+
+test('a card gets its repo sync status, or null', () => {
+  const entries = [{ name: 'a', sessions: [] }, { name: 'b', sessions: [] }];
+  const w = mount(Column, { props: { title: 'To do', status: 'todo', entries, now: 0, sync: { a: { status: 'drift', drift: [] } } } });
+  const cards = w.findAllComponents({ name: 'Card' });
+  expect(cards[0].props('sync')).toEqual({ status: 'drift', drift: [] });
+  expect(cards[1].props('sync')).toBeNull();
+});

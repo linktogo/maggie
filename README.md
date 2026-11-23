@@ -2,14 +2,17 @@
 
 [![CI](https://github.com/linktogo/maggie/actions/workflows/ci.yml/badge.svg)](https://github.com/linktogo/maggie/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Node >= 22](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org)
+[![Node >= 24.22.1](https://img.shields.io/badge/node-%3E%3D24.22.1-brightgreen.svg)](https://nodejs.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 Tools to sync AI agent skills, practices, and workflows across repositories.
 
 Skills are authored once under `skills/<techno>/<name>/SKILL.md` and translated
-into each target platform's format (Claude Code, GitHub Copilot, Cursor,
-Windsurf).
+into each target platform's format: the [Agent Skills](https://agentskills.io) standard
+with an `AGENTS.md` index (Codex, Gemini CLI, OpenCode…), Claude Code, GitHub Copilot,
+Cursor and Windsurf. The library is linted for secrets and injection patterns before
+anything is synced, `maggie sync --check` reports which repos drifted, and
+`maggie eval` measures what each skill actually changes.
 
 It ships the `maggie` command (render skills into repos, bootstrap a local
 workspace, run the board and the agents server) — a kanban dashboard and the
@@ -25,9 +28,21 @@ Cursor. `maggie` keeps one reviewed source of truth: write the guidance once,
 declare which technologies each repo uses, and let the tool render and open the
 pull requests.
 
+## What it does
+
+| | |
+|---|---|
+| **Render everywhere** | One `SKILL.md` becomes an [Agent Skills](https://agentskills.io) directory (`.agents/skills/`, read by Codex, Gemini CLI, OpenCode, Goose…), a Claude Code skill, a Copilot instructions file, a Cursor rule and a Windsurf rule. |
+| **Keep `AGENTS.md` yours** | The `agents` target lists the repo's skills in a managed block of `AGENTS.md`; everything the team wrote around it is left alone. |
+| **Ship more than Markdown** | Scripts, references and assets next to a `SKILL.md` are synced with it. |
+| **Lint before you sync** | `maggie lint` checks structure and scans for secrets, `curl \| sh`, prompt injection and hidden Unicode — a skill runs with the agent's permissions in every repo it reaches. `maggie sync` refuses a library with errors. |
+| **Know what drifted** | `maggie sync --check` compares every repo's default branch with the current render, pushes nothing, and feeds the board. |
+| **Measure each skill** | `maggie eval` runs a skill's cases with a real agent, without and with the skill, and reports the difference. |
+| **Watch the agents** | The board tracks local Claude Code and Copilot CLI sessions, CI, cost and budget, and the AI Factory launches agents from it. |
+
 ## Quick start
 
-Requires **Node.js >= 22** and `git` on your PATH.
+Requires **Node.js >= 24.22.1** and `git` on your PATH (the agent CLIs, `claude` or `copilot`, for `maggie eval` and the AI Factory).
 
 ```bash
 npm install -g @linktogo/maggie-board
@@ -45,6 +60,9 @@ maggie --board                      # the board only (reads ./wk/.maggie/board.j
 maggie --server --repos repos.json  # the server only
 maggie --repos repos.json --port 5000 --server-port 5100   # options go to the part they belong to
 maggie sync --config repos.json     # render the skills into the repos
+maggie sync --config repos.json --check   # which repos drifted? (pushes nothing)
+maggie lint                         # scan the skills library
+maggie eval --skill nestjs-module-structure   # with vs without the skill
 maggie workspace --config repos.json --workspace wk   # bootstrap a local workspace
 ```
 
@@ -71,7 +89,12 @@ node apps/board/bin/maggie.js sync --config repos.example.json --dry-run
 ```
 
 Then copy `repos.example.json`, point it at your own repositories, and drop the
-`--dry-run` when the preview looks right.
+`--dry-run` when the preview looks right. To see which repos have drifted — and get
+the result on the board — schedule a check:
+
+```bash
+maggie sync --config repos.json --check --out wk/.maggie/sync-status.json
+```
 
 ```bash
 pnpm run wk     # clone those repos into ./wk and print the command to open them
@@ -92,11 +115,11 @@ Full reference lives in [`docs/`](docs/README.md):
 
 | Page | What it covers |
 |---|---|
-| [Configuration](docs/configuration.md) | The `repos.json` schema, and the two ways both CLIs resolve it |
-| [Skills library](docs/skills-library.md) | Authoring skills, how they map to each target platform |
-| [`maggie` CLI](docs/sync-cli.md) | Rendering skills into repos and pushing them |
+| [Configuration](docs/configuration.md) | The `repos.json` schema, the targets, and the two ways both CLIs resolve it |
+| [Skills library](docs/skills-library.md) | Authoring skills and their supporting files, how they map to each target, the `AGENTS.md` index, `maggie lint` and `maggie eval` |
+| [`maggie` CLI](docs/sync-cli.md) | Rendering skills into repos and pushing them, pruning, drift detection with `--check` |
 | [`maggie workspace` CLI](docs/workspace-cli.md) | Bootstrapping a workspace, worktrees, status tracking |
-| [Board dashboard](docs/board-dashboard.md) | The kanban dashboard, its server and endpoints |
+| [Board dashboard](docs/board-dashboard.md) | The kanban dashboard, its server and endpoints, the skills sync status |
 | [CI status](docs/ci-status.md) | Per-contributor CI badges on the board, and how to enable them |
 | [Retro-documentation](docs/retro-doc.md) | Folding a repository's specs and plans into one document an agent can read |
 | [AI Factory](docs/ai-factory.md) | Launching local Claude Code / Copilot agents from the board through an independent server |
@@ -111,10 +134,27 @@ kept as history rather than maintained.
 against each repo's `technologies` list: `nestjs`, `postgres`, `nextjs`,
 `reactjs`, `angular`, `vuejs`, `nx`, `firebase`, `cloudflare`.
 
-Add one by creating `skills/<techno>/<name>/SKILL.md` with YAML frontmatter
-(`name`, `description`, optional `globs`) followed by the guidance body. Any
-repo whose `technologies` include `<techno>` picks it up on the next sync — see
-[Skills library](docs/skills-library.md).
+A skill is a directory:
+
+```
+skills/nestjs/module-structure/
+├── SKILL.md              # frontmatter (name, description, optional globs) + guidance
+├── scripts/…             # optional supporting files, synced with the skill
+└── evals/                # optional cases for maggie eval, never synced
+    ├── feature-module.json
+    └── starter/          # the checkout the agent starts from
+```
+
+Any repo whose `technologies` include `<techno>` picks it up on the next sync.
+Before opening a pull request, check it and measure it:
+
+```bash
+maggie lint --strict                          # what CI runs on this library
+maggie eval --skill nestjs-module-structure   # pass rate without vs with the skill
+```
+
+See [Skills library](docs/skills-library.md) for the frontmatter, the rendering per
+target, the lint rules and the eval format.
 
 ## Published packages
 
@@ -127,8 +167,8 @@ can be reused on their own:
 |---|---|
 | [`@linktogo/maggie-config`](libs/config) | load/validate the repo config from a file or a git repo |
 | [`@linktogo/maggie-git`](libs/git) | thin git/`gh` wrapper |
-| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for claude/copilot/cursor/windsurf |
-| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution + the sync pipeline |
+| [`@linktogo/maggie-renderers`](libs/renderers) | render a skill for agents/claude/copilot/cursor/windsurf |
+| [`@linktogo/maggie-skill-sync`](libs/skill-sync) | skill resolution, the sync pipeline, drift check, lint and evals |
 | [`@linktogo/maggie-workspace-bootstrap`](libs/workspace-bootstrap) | clone/install, Claude Code & Copilot CLI hooks, board state |
 | [`@linktogo/maggie-ci-status`](libs/ci-status) | CI status payloads, validation and state mapping |
 | [`@linktogo/maggie-retro-doc`](libs/retro-doc) | fold a repo's specs and plans into one agent-facing document |
@@ -144,9 +184,10 @@ All are released in lockstep on the same version — see
 pnpm test          # nx run-many -t test: every lib/app, 100% coverage gate each
 pnpm run test:board # apps/board suite only: server (node:test) + front-end (vitest)
 pnpm run check:coverage # fails if any project no longer enforces 100% coverage
+pnpm run lint:skills    # maggie lint --strict on skills/
 ```
 
-CI runs `nx run-many -t lint test build`. Because Nx detects the package
+CI runs `nx run-many -t lint test build` and lints the skills library. Because Nx detects the package
 manager from the lockfile, keep `pnpm-lock.yaml` as the only lockfile — a
 `package-lock.json` breaks the Nx project graph. Layout, testing conventions and
 the reasons behind them are in [Architecture](docs/architecture.md).
@@ -169,7 +210,12 @@ Release notes live in [CHANGELOG.md](CHANGELOG.md).
 The CLIs run git and package-manager commands on your machine: they clone the
 repositories named in the config, install their dependencies, and shell out to
 `gh` when `--pr` is passed. Treat the config file — and any repository you pass
-to `--config-repo` — as trusted input. The board server is a local development
+to `--config-repo` — as trusted input. The same goes for the skills library: what it
+says is followed by the agents of every repository it is synced to. `maggie lint`
+catches the known shapes of a malicious or leaky skill (secrets, remote code piped
+to a shell, injection phrasing, hidden characters) but does not replace review.
+`maggie eval` runs a real agent with edit rights, and the commands its cases name,
+in temporary directories. The board server is a local development
 tool with no authentication and should not be exposed to a network. See
 [SECURITY.md](SECURITY.md) for the full scope and reporting process.
 

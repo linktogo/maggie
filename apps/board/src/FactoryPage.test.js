@@ -25,7 +25,7 @@ const MESSAGES = [
   { id: 'm2', threadId: THREAD.id, role: 'agent', kind: 'text', content: 'Done, **really**.', runId: 'r1', createdAt: NOW },
 ];
 
-function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ status: 201, body: { thread: THREAD } }), onMessage = () => ({ status: 202, body: { thread: { ...THREAD, status: 'running' } } }) } = {}) {
+function fetchWith({ messages = MESSAGES, health = { status: 200, body: HEALTH }, onPost = () => ({ status: 201, body: { thread: THREAD } }), onMessage = () => ({ status: 202, body: { thread: { ...THREAD, status: 'running' } } }) } = {}) {
   const calls = [];
   const fetchImpl = vi.fn(async (url, init = {}) => {
     calls.push([init.method ?? 'GET', url]);
@@ -37,7 +37,7 @@ function fetchWith({ health = { status: 200, body: HEALTH }, onPost = () => ({ s
     if (url === '/api/factory/health') return answer(health.status, health.body);
     if (url === '/api/factory/skills') return answer(200, { skills: SKILLS });
     if (url === '/api/factory/projects') return answer(200, { projects: PROJECTS });
-    if (url.startsWith(`/api/factory/threads/${THREAD.id}`)) return answer(200, { thread: THREAD, messages: MESSAGES });
+    if (url.startsWith(`/api/factory/threads/${THREAD.id}`)) return answer(200, { thread: THREAD, messages });
     if (url.startsWith('/api/factory/threads')) return answer(200, { threads: [THREAD] });
     return answer(404, {});
   });
@@ -508,4 +508,62 @@ test('a worktree removal finishing after leaving the thread does not touch the n
   await flushPromises();
   expect(router.currentRoute.value.fullPath).toBe('/factory/api');
   expect(w.find('[data-test=factory-worktree-notice]').exists()).toBe(false);
+});
+
+test('an agent question with options offers them as quick replies above the composer', async () => {
+  const question = { id: 'm3', threadId: THREAD.id, role: 'agent', kind: 'text', runId: 'r1', createdAt: NOW, content: 'How?\n\n1. **Fast** — cheap\n2. **Safe** — slow\n\nWhich one?' };
+  const { w } = await page(fetchWith({ messages: [...MESSAGES, question] }), `/factory/api/${THREAD.id}`);
+  expect(w.findAll('[data-test=factory-quick-reply]').map((c) => c.text())).toEqual(['1. Fast', '2. Safe']);
+});
+
+test('a closed agent question offers Yes and No in the board language', async () => {
+  setLocale('fr');
+  const question = { id: 'm3', threadId: THREAD.id, role: 'agent', kind: 'text', runId: 'r1', createdAt: NOW, content: 'Should I push?' };
+  const { w } = await page(fetchWith({ messages: [...MESSAGES, question] }), `/factory/api/${THREAD.id}`);
+  expect(w.findAll('[data-test=factory-quick-reply]').map((c) => c.text())).toEqual(['Oui', 'Non']);
+});
+
+test('between md and xl the projects fold into the requests pane: two columns, three from xl', async () => {
+  const { w } = await page(fetchWith(), `/factory/api/${THREAD.id}`);
+  const grid = w.get('[aria-label="Projects"]').element.parentElement;
+  expect(grid.className).toContain('md:grid-cols-[20rem_minmax(0,1fr)]');
+  expect(grid.className).toContain('xl:grid-cols-[15rem_20rem_minmax(0,1fr)]');
+  const projects = w.get('[aria-label="Projects"]').classes();
+  expect(projects).toContain('md:hidden');
+  expect(projects).toContain('xl:flex');
+});
+
+test('the project select lists every project and navigates like the projects pane', async () => {
+  const { w, router } = await page(fetchWith(), '/factory/api');
+  const select = w.get('[data-test=factory-project-select]');
+  expect(select.findAll('option').map((o) => o.element.value)).toEqual(['', 'api', 'web']);
+  expect(select.element.value).toBe('api');
+  await select.setValue('web');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/web');
+});
+
+test('the project select is there before any project is picked', async () => {
+  const { w } = await page(fetchWith());
+  expect(w.get('[data-test=factory-project-select]').element.value).toBe('');
+  expect(w.find('[data-test=factory-pick-project]').exists()).toBe(true);
+});
+
+test('picking the empty entry of the project select goes nowhere', async () => {
+  const { w, router } = await page(fetchWith(), '/factory/api');
+  await w.get('[data-test=factory-project-select]').setValue('');
+  await flushPromises();
+  expect(router.currentRoute.value.fullPath).toBe('/factory/api');
+});
+
+test('between md and xl the requests pane has its own search, bound to the same query', async () => {
+  const fetchImpl = fetchWith();
+  const { w } = await page(fetchImpl, '/factory/api');
+  const search = w.get('[data-test=factory-search-compact]');
+  await search.setValue('flaky');
+  await flushPromises();
+  expect(fetchImpl.calls).toContainEqual(['GET', '/api/factory/threads?q=flaky']);
+  expect(w.get('[data-test=factory-search-compact]').element.value).toBe('flaky');
+  // Back above xl, the projects pane shows the same query, so it can be cleared there.
+  expect(w.get('[data-test=factory-search]').element.value).toBe('flaky');
 });

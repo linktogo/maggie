@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { main, packagedSkillsDir, resolveSkillsDir } from '../src/main.js';
+import { main, packagedSkillsDir, resolveSkillsDir, syncStatus } from '../src/main.js';
 
 function silentLogger() {
   return { log() {}, warn() {}, error() {} };
@@ -127,4 +127,94 @@ test('packagedSkillsDir prefers the skills shipped inside the package, then the 
     packagedSkillsDir(() => false, 'file:///repo/apps/board/cli/sync/src/main.js'),
     path.resolve('/repo/skills'),
   );
+});
+
+test('main lints the library before syncing, unless --skip-lint', async () => {
+  const fakeLint = async () => [];
+  let received;
+  const deps = {
+    loadConfig: async () => fakeConfig,
+    runPipeline: async (config, opts) => { received = opts; return []; },
+    lint: fakeLint,
+    logger: silentLogger(),
+  };
+  await main(['--config', 'repos.json'], deps);
+  assert.equal(received.lint, fakeLint);
+  await main(['--config', 'repos.json', '--skip-lint'], deps);
+  assert.equal(received.lint, null);
+});
+
+test('main lints with the real linter by default', async () => {
+  let received;
+  await main(['--config', 'repos.json'], {
+    loadConfig: async () => fakeConfig,
+    runPipeline: async (config, opts) => { received = opts; return []; },
+    logger: silentLogger(),
+  });
+  assert.equal(typeof received.lint, 'function');
+});
+
+test('--check returns 1 on drift and 0 when every repo is in sync', async () => {
+  let received;
+  const deps = (results) => ({
+    loadConfig: async () => fakeConfig,
+    runPipeline: async (config, opts) => { received = opts; return results; },
+    logger: silentLogger(),
+  });
+  assert.equal(await main(['--config', 'r.json', '--check'], deps([{ status: 'in-sync' }])), 0);
+  assert.equal(received.check, true);
+  assert.equal(await main(['--config', 'r.json', '--check'], deps([{ status: 'in-sync' }, { status: 'drift' }])), 1);
+});
+
+test('--check refuses --pr, --dry-run, and --out needs --check', async () => {
+  const deps = { loadConfig: async () => fakeConfig, runPipeline: async () => [], logger: silentLogger() };
+  await assert.rejects(() => main(['--config', 'r.json', '--check', '--pr'], deps), /cannot be combined with --pr or --dry-run/);
+  await assert.rejects(() => main(['--config', 'r.json', '--check', '--dry-run'], deps), /cannot be combined/);
+  await assert.rejects(() => main(['--config', 'r.json', '--out', 's.json'], deps), /pass --check too/);
+});
+
+test('--check --out writes the sync status for the board, resolved against the cwd', async () => {
+  const writes = [];
+  const logs = [];
+  await main(['--config', 'r.json', '--check', '--out', 'wk/.maggie/sync-status.json'], {
+    loadConfig: async () => fakeConfig,
+    runPipeline: async () => [{ repo: 'a', status: 'in-sync', files: 2, drift: [] }],
+    write: async (file, value) => writes.push([file, value]),
+    now: () => new Date('2026-11-22T10:00:00Z'),
+    cwd: '/ws',
+    exists: () => true,
+    logger: { log: (m) => logs.push(m), warn() {}, error() {} },
+  });
+  assert.equal(writes[0][0], path.resolve('/ws', 'wk/.maggie/sync-status.json'));
+  assert.equal(writes[0][1].repos.a.status, 'in-sync');
+  assert.ok(logs.some((l) => l.startsWith('sync status written to')));
+});
+
+test('--out writes a real file by default, creating its directory', async () => {
+  const { mkdtemp, readFile } = await import('node:fs/promises');
+  const os = await import('node:os');
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sync-out-'));
+  const out = path.join(dir, 'nested', 'status.json');
+  await main(['--config', 'r.json', '--check', '--out', out], {
+    loadConfig: async () => fakeConfig,
+    runPipeline: async () => [{ repo: 'a', status: 'drift', files: 1, drift: [{ path: 'x', state: 'missing' }] }],
+    logger: silentLogger(),
+  });
+  const written = JSON.parse(await readFile(out, 'utf8'));
+  assert.deepEqual(written.repos.a.drift, [{ path: 'x', state: 'missing' }]);
+});
+
+test('syncStatus keys the results by repo, with defaults and errors', () => {
+  const status = syncStatus([
+    { repo: 'a', status: 'in-sync', files: 3, drift: [] },
+    { repo: 'b', status: 'error', error: 'clone failed' },
+  ], new Date('2026-11-22T10:00:00Z'));
+  assert.deepEqual(status, {
+    generatedAt: '2026-11-22T10:00:00.000Z',
+    repos: {
+      a: { status: 'in-sync', checkedAt: '2026-11-22T10:00:00.000Z', files: 3, drift: [] },
+      b: { status: 'error', checkedAt: '2026-11-22T10:00:00.000Z', files: 0, drift: [], error: 'clone failed' },
+    },
+  });
+  assert.match(syncStatus([]).generatedAt, /^\d{4}-/);
 });

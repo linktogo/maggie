@@ -29,6 +29,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm exec nx run-many -t lint
+      - name: Lint the skills library (secrets, injection patterns, structure)
+        run: node apps/board/bin/maggie.js lint --strict
       - name: Check every project enforces a 100% coverage gate
         run: pnpm run check:coverage
       - name: Test (100% coverage gate per project)

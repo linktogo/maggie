@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>maggie — one source of truth for your AI agent skills</title>
-  <meta name="description" content="Author AI agent skills once and render them for Claude Code, GitHub Copilot, Cursor and Windsurf across every repository of your organization.">
+  <meta name="description" content="Author AI agent skills once and render them for the Agent Skills standard (AGENTS.md, Codex, Gemini CLI), Claude Code, GitHub Copilot, Cursor and Windsurf across every repository of your organization — linted, checked for drift and measured.">
   <link rel="alternate" hreflang="fr" href="/fr/">
   <link rel="alternate" hreflang="en" href="/">
   <link rel="stylesheet" href="/assets/style.css">
@@ -15,6 +15,7 @@
       <a class="brand" href="/">maggie</a>
       <nav class="top">
         <a href="#how">How it works</a>
+        <a href="#trust">Trust</a>
         <a href="#board">Board</a>
         <a href="#teams">For teams</a>
         <a href="#start">Get started</a>
@@ -33,7 +34,7 @@
       <pre>npm install -g @linktogo/maggie-board
 maggie sync --config repos.json --dry-run</pre>
       <div class="platforms" style="margin-top:24px">
-        <span class="pill">Claude Code</span><span class="pill">GitHub Copilot</span><span class="pill">Cursor</span><span class="pill">Windsurf</span>
+        <span class="pill">Agent Skills · AGENTS.md</span><span class="pill">Codex</span><span class="pill">Gemini CLI</span><span class="pill">Claude Code</span><span class="pill">GitHub Copilot</span><span class="pill">Cursor</span><span class="pill">Windsurf</span>
       </div>
     </div>
   </div>
@@ -55,18 +56,35 @@ maggie sync --config repos.json --dry-run</pre>
       <h2>How it works</h2>
       <p class="sub">One skill library, one config file, one command.</p>
       <div class="grid">
-        <div class="card"><div class="step">1</div><h3>Author once</h3><p>Write <code>skills/&lt;techno&gt;/&lt;name&gt;/SKILL.md</code>: frontmatter plus the guidance itself.</p></div>
+        <div class="card"><div class="step">1</div><h3>Author once</h3><p>Write <code>skills/&lt;techno&gt;/&lt;name&gt;/SKILL.md</code>: frontmatter plus the guidance, with scripts and references next to it if needed.</p></div>
         <div class="card"><div class="step">2</div><h3>Declare technologies</h3><p>List the technologies of each repo in <code>repos.json</code>: nestjs, postgres, nextjs, vuejs, nx…</p></div>
-        <div class="card"><div class="step">3</div><h3>Render</h3><p>Skills are translated into each platform's native format, only for the repos that match.</p></div>
+        <div class="card"><div class="step">3</div><h3>Render</h3><p>Skills are translated into each platform's native format, only for the repos that match — including <code>.agents/skills/</code> and an index in <code>AGENTS.md</code> that leaves your own text alone.</p></div>
         <div class="card"><div class="step">4</div><h3>Open pull requests</h3><p>Changes land as pull requests. Preview first with <code>--dry-run</code>.</p></div>
       </div>
     </div>
   </section>
 
-  <section class="alt" id="board">
+  <section class="alt" id="trust">
+    <div class="wrap">
+      <h2>Trust what reaches your agents</h2>
+      <p class="sub">A skill runs with your agent's permissions in every repository it is synced to. maggie treats the library like a dependency.</p>
+      <div class="grid">
+        <div class="card"><h3>Lint before sync</h3><p><code>maggie lint</code> checks the Agent Skills structure and scans for secrets, <code>curl | sh</code>, prompt injection and hidden Unicode. A library with errors is never synced.</p></div>
+        <div class="card"><h3>Know what drifted</h3><p><code>maggie sync --check</code> compares every repository with the library, pushes nothing, and shows the missing, edited or stale files on the board.</p></div>
+        <div class="card"><h3>Measure each skill</h3><p><code>maggie eval</code> runs a skill's cases with a real agent, without and with the skill, and reports the difference in pass rate.</p></div>
+        <div class="card"><h3>More than Markdown</h3><p>Scripts, references and assets ship with the skill, next to it where the tool supports folders.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="board">
     <div class="wrap">
       <h2>See what your agents are doing</h2>
-      <p class="sub">A local kanban board tracks Claude Code and GitHub Copilot CLI sessions across your repositories. From it, the AI Factory server launches agents in per-thread git worktrees, with a message center and a terminal console.</p>
+      <p class="sub">A local kanban board tracks Claude Code and GitHub Copilot CLI sessions across your repositories. From it, the AI Factory server launches agents in per-thread git worktrees, with a message center, a terminal console and one-click quick replies when the agent asks you to choose.</p>
+      <figure class="shot">
+        <img src="/assets/img/skills-sync-board-en.png" alt="The maggie board flagging repositories out of sync with the skills library" loading="lazy">
+        <figcaption>Skills drift at a glance: a banner, a badge on each affected card, and a filter.</figcaption>
+      </figure>
       <figure class="shot">
         <img src="/assets/img/send-message-board.png" alt="The maggie board with sessions in progress and waiting for an answer" loading="lazy">
         <figcaption>Sessions by state, tokens used, worktree badges and messages to a running session.</figcaption>
@@ -76,25 +94,17 @@ maggie sync --config repos.json --dry-run</pre>
         <figcaption>Each thread runs in its own worktree, so agents never step on each other.</figcaption>
       </figure>
       <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="AI Factory conversation: the agent asks a question and waits for the answer" loading="lazy">
-        <figcaption>AI Factory: launch an agent from the board, follow its steps and answer when it asks a question.</figcaption>
+        <img src="/assets/img/factory-quick-replies-en.png" alt="AI Factory conversation: the agent offers three options and quick reply buttons appear above the reply box" loading="lazy">
+        <figcaption>AI Factory: when the agent asks a choice question, each option becomes a button; one click sends the answer.</figcaption>
       </figure>
       <figure class="shot">
         <img src="/assets/img/factory-console.png" alt="AI Factory terminal console in the thread's worktree" loading="lazy">
         <figcaption>A terminal console opens directly in the thread's worktree.</figcaption>
       </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-conversation.png" alt="The AI Factory conversation: an agent asks a question and the reply box is ready" loading="lazy">
-        <figcaption>Conversation mode: talk to the agent of a thread, answer its questions and follow its steps.</figcaption>
-      </figure>
-      <figure class="shot">
-        <img src="/assets/img/factory-console.png" alt="The AI Factory terminal console opened in the thread worktree" loading="lazy">
-        <figcaption>Console: a shell opened right in the thread worktree, next to the conversation.</figcaption>
-      </figure>
     </div>
   </section>
 
-  <section id="teams">
+  <section class="alt" id="teams">
     <div class="wrap">
       <h2>Built for teams</h2>
       <div class="grid">
@@ -108,15 +118,19 @@ maggie sync --config repos.json --dry-run</pre>
     </div>
   </section>
 
-  <section class="alt" id="start">
+  <section id="start">
     <div class="wrap">
       <h2>Get started</h2>
-      <p class="sub">Requires Node.js and git on your PATH.</p>
+      <p class="sub">Requires Node.js 24.22.1+ and git on your PATH.</p>
 <pre># install the maggie command, the board and the server
 npm install -g @linktogo/maggie-board
 
 # preview what would be pushed, no side effects
 maggie sync --config repos.json --dry-run
+
+# scan the skills library, then see which repos drifted
+maggie lint
+maggie sync --config repos.json --check
 
 # open the board and the agents server
 maggie</pre>

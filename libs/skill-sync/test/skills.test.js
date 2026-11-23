@@ -77,3 +77,16 @@ test('resolveSkills attaches the canonical skills/<techno>/<name>/SKILL.md sourc
   assert.equal(byName['nestjs-module-structure'].source, 'skills/nestjs/module-structure/SKILL.md');
   assert.equal(byName['react-component'].source, 'skills/react/component/SKILL.md');
 });
+
+test('resolveSkills loads supporting files, leaving out SKILL.md, evals/, dotfiles and non-regular files', async () => {
+  const [skill] = await resolveSkills(fixtures, ['rich']);
+  assert.equal(skill.name, 'rich-tooling');
+  assert.deepEqual(skill.resources.map((r) => r.path), ['references/deep/guide.md', 'scripts/check.sh']);
+  assert.equal(skill.resources[1].content.toString(), '#!/bin/sh\necho ok\n');
+  assert.equal(skill.dir, path.join(fixtures, 'rich', 'tooling'));
+});
+
+test('a skill with nothing but SKILL.md has no supporting files', async () => {
+  const [skill] = await resolveSkills(fixtures, ['react']);
+  assert.deepEqual(skill.resources, []);
+});

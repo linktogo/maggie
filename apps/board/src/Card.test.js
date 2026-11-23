@@ -106,3 +106,26 @@ test('a card paints from theme tokens, not literal Tailwind colors', () => {
   expect(w.classes()).toContain('rounded-card');
   expect(w.classes()).toContain('shadow-card');
 });
+
+test('a repo out of sync with the skills library shows a badge with the drifted file count', () => {
+  const sync = { status: 'drift', drift: [{ path: 'a', state: 'missing' }, { path: 'b', state: 'stale' }] };
+  const w = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo', now, sync } });
+  const badge = w.get('[data-test=sync-badge]');
+  expect(badge.text()).toContain('2');
+  expect(badge.attributes('title')).toBe('2 skill file(s) out of sync with the library');
+});
+
+test('a drift without a file list counts zero, and a failed check shows its own badge', () => {
+  const drift = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo', now, sync: { status: 'drift' } } });
+  expect(drift.get('[data-test=sync-badge]').text()).toContain('0');
+  const failed = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo', now, sync: { status: 'error', error: 'x' } } });
+  expect(failed.get('[data-test=sync-badge]').text()).toContain('!');
+  expect(failed.get('[data-test=sync-badge]').attributes('title')).toBe('The skills sync check failed for this repo');
+});
+
+test('an in-sync or never-checked repo shows no sync badge', () => {
+  for (const sync of [null, { status: 'in-sync', drift: [] }]) {
+    const w = mount(Card, { props: { name: 'oc-be', sessions: [], status: 'todo', now, sync } });
+    expect(w.find('[data-test=sync-badge]').exists()).toBe(false);
+  }
+});
